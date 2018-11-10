@@ -22,7 +22,7 @@ namespace tg {
       _mp_train_learner(unsigned num_workers, const std::vector<DATUM> &data, std::function<dynet::Expression(const DATUM &)> compute_loss) :
           compute_loss(compute_loss) {
         if(data.empty()) return;
-        compute_loss(data); // for its side-effect only. to ensure that all lazy-initialized layers has been initialized before going parallel
+        compute_loss(data[0]); // for its side-effect only. to ensure that all lazy-initialized layers has been initialized before going parallel
         if(num_workers > 1) {
           dynet::mp::run_mp_minibatch(num_workers, this, data);
         }
