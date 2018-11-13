@@ -38,8 +38,15 @@ namespace tg {
     private:
       virtual unsigned LearnFromDatum(const DATUM &datum, bool learn) {
         dy::renew_cg();
-        dynet::Expression loss = compute_loss(datum);
-        dy::train_on_loss(loss);
+        try {
+          dynet::Expression loss = compute_loss(datum);
+          dy::train_on_loss(loss);
+        }
+        catch (const std::exception &exc)
+        {
+          std::cerr << "skipped datum because of exception" << std::endl;
+          std::cerr << exc.what() << std::endl;
+        }
         return 0;
       }
 

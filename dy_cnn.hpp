@@ -52,14 +52,14 @@ namespace tg {
       dynet::Expression forward(const dynet::Expression& x) {
         ensure_init(x);
         if(with_bias) {
-          return dynet::conv2d(x, dy::expr(filter), {stride_between_rows, stride_between_columns}, disable_padding);
+          return dynet::conv2d(x, dy::expr(filter), dy::expr(bias), {stride_between_rows, stride_between_columns}, disable_padding);
         }
         else {
-          return dynet::conv2d(x, dy::expr(filter), dy::expr(bias), {stride_between_rows, stride_between_columns}, disable_padding);
+          return dynet::conv2d(x, dy::expr(filter), {stride_between_rows, stride_between_columns}, disable_padding);
         }
       }
 
-      EASY_SERIALZABLE(input_channels, output_channels, filter_height, filter_width, stride_between_rows, stride_between_columns, with_bias, disable_padding, filter, bias);
+      EASY_SERIALZABLE(input_channels, output_channels, filter_height, filter_width, stride_between_rows, stride_between_columns, with_bias, disable_padding, filter, bias)
     private:
       unsigned input_channels;
       unsigned output_channels;
@@ -81,12 +81,14 @@ namespace tg {
 
     class conv1d_layer {
     public:
-      static dynet::Expression reshape_to_2d(const dynet::Expression& x) {
-        return dynet::reshape(x, dynet::Dim({x.dim().batch_size(), 1},x.dim().batch_elems()));
-      }
-      static dynet::Expression reshape_to_1d(const dynet::Expression& x) {
+      static dynet::Expression reshape_to_conv2d_compatible(const dynet::Expression &x) {
+        using namespace std;
         const auto& dim = x.dim();
-        return dynet::reshape(x, dynet::Dim({dim[0]*dim[1],dim[2]}, dim.batch_elems()));
+        return dynet::reshape(dynet::transpose(x), dynet::Dim({dim[1], 1, dim[0]},x.dim().batch_elems()));
+      }
+      static dynet::Expression reshape_to_conv1d_compatible(const dynet::Expression &x) {
+        const auto& dim = x.dim();
+        return dynet::reshape(x, dynet::Dim({dim[2], dim[0]}, dim.batch_elems()));
       }
 
       conv1d_layer() = default;
@@ -105,31 +107,28 @@ namespace tg {
         if (with_bias) bias = add_parameters({output_channels});
       }
 
-      dynet::Dim calculate_output_dimension(unsigned input_length) {
+      unsigned calculate_output_length(unsigned input_length) {
         if (disable_padding) {
-          return dynet::Dim({
-                              (unsigned)ceil(float(input_length - filter_length + 1) / float(stride)),
-                              output_channels
-                            });
+          return (unsigned)ceil(float(input_length - filter_length + 1) / float(stride));
         } else {
-          return dynet::Dim({
-                              (unsigned)ceil(float(input_length) / float(stride)),
-                              output_channels
-                            });
+          return (unsigned)ceil(float(input_length) / float(stride));
         }
       }
 
       dynet::Expression forward(const dynet::Expression& x) {
+        using namespace std;
         ensure_init(x);
         if(with_bias) {
-          return reshape_to_1d(dynet::conv2d(reshape_to_2d(x), dy::expr(filter), {stride, 1}, disable_padding));
+          return reshape_to_conv1d_compatible(
+            dynet::conv2d(reshape_to_conv2d_compatible(x), dy::expr(filter), dy::expr(bias), {stride, 1}, disable_padding));
         }
         else {
-          return reshape_to_1d(dynet::conv2d(reshape_to_2d(x), dy::expr(filter), dy::expr(bias), {stride}, disable_padding));
+          return reshape_to_conv1d_compatible(
+            dynet::conv2d(reshape_to_conv2d_compatible(x), dy::expr(filter), {stride, 1}, disable_padding));
         }
       }
 
-      EASY_SERIALZABLE(input_channels, output_channels, filter_length,  stride, with_bias, disable_padding, filter, bias);
+      EASY_SERIALZABLE(input_channels, output_channels, filter_length,  stride, with_bias, disable_padding, filter, bias)
     private:
       unsigned input_channels;
       unsigned output_channels;
@@ -142,7 +141,7 @@ namespace tg {
 
       void ensure_init(const dynet::Expression& x) {
         if(input_channels > 0) return;
-        input_channels = x.dim()[2];
+        input_channels = x.dim()[0];
         filter = add_parameters({filter_length, 1, input_channels, output_channels});
       }
     };
@@ -152,7 +151,9 @@ namespace tg {
     }
 
     dynet::Expression maxpooling1d(const dynet::Expression& x, unsigned window_length, unsigned stride, bool disable_padding = true) {
-      return conv1d_layer::reshape_to_1d(dynet::maxpooling2d(conv1d_layer::reshape_to_2d(x), {window_length, 1}, {stride, 1}, disable_padding));
+      return conv1d_layer::reshape_to_conv1d_compatible(
+        dynet::maxpooling2d(conv1d_layer::reshape_to_conv2d_compatible(x), {window_length, 1}, {stride, 1},
+                            disable_padding));
     }
   }
 }

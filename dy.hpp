@@ -19,5 +19,7 @@
 #include "dy_iob_readout.hpp"
 #include "dy_iobes_readout.hpp"
 #include "dy_ioe_readout.hpp"
+#include "dy_multi_readout_layer.hpp"
+#include "dy_cnn.hpp"
 
 #endif //DYNET_WRAPPER_DY_HPP

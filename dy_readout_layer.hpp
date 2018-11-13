@@ -11,7 +11,7 @@ namespace tg {
   namespace dy {
     /**
      * a layer that predicts a label given a dim(X) tensor
-     * this tensor is called embedding
+     * sometimes this input tensor is called embedding
      */
     class readout_layer {
     public:
