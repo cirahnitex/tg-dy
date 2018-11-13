@@ -6,6 +6,7 @@
 #ifndef DYNET_WRAPPER_DY_HPP
 #define DYNET_WRAPPER_DY_HPP
 #include "dy_common.hpp"
+#include "dy_operations.hpp"
 #include "dy_utils.hpp"
 #include "dy_serialization_helper.hpp"
 #include "dy_immutable_dict.hpp"

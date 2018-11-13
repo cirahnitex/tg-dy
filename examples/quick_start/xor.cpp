@@ -15,18 +15,18 @@ public:
   XorModel():fc1(4),fc2(1) {
   }
 
-  dynet::Expression forward(bool x, bool y) {
+  dy::Expression forward(bool x, bool y) {
     auto input = dy::const_expr({x?1.0:0.0, y?1.0:0.0});
-    return fc2.forward(dynet::tanh(fc1.forward(input)));
+    return fc2.forward(dy::tanh(fc1.forward(input)));
   }
 
   bool predict(bool x, bool y) {
     return dy::as_scalar(forward(x, y)) > 0.0;
   }
 
-  dynet::Expression compute_loss(bool x, bool y, bool oracle) {
+  dy::Expression compute_loss(bool x, bool y, bool oracle) {
     auto oracle_expr = dy::const_expr(oracle?1.0:0.0);
-    return dynet::binary_log_loss(dynet::logistic(forward(x, y)), oracle_expr);
+    return dy::binary_log_loss(dy::logistic(forward(x, y)), oracle_expr);
   }
 
   EASY_SERIALZABLE(fc1, fc2)

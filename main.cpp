@@ -30,32 +30,13 @@ dynet::Expression vector_norm(const dynet::Expression &x) {
 int main() {
   dy::initialize();
 
-  std::stringstream ss; // any stream can be used
+  const auto big_num = dy::const_expr({-110,-100,0,0,0,0,0,90,100});
 
-  auto p = dy::add_parameters({1});
-  cout << (bool)p.p <<endl;
-
-
-  {
-    dy::linear_layer fc(1);
-
-    vector<float> input({4,5});
-    auto output = dy::as_scalar(fc.forward(dy::const_expr(input)));
-    cout << output <<endl;
-    cereal::BinaryOutputArchive(ss).operator()(fc); // Write the data to the archive
-
-  } // archive goes out of scope, ensuring all contents are flushed
-
-  {
-
-    dy::linear_layer fc;
-    cereal::BinaryInputArchive(ss).operator()(fc); // Read the data from the archive
-
-    vector<float> input({4,5});
-    auto output = dy::as_scalar(fc.forward(dy::const_expr(input)));
-    cout << output <<endl;
-
+  const auto sigmoid = dy::logistic(big_num);
+  for(const auto& num:dy::as_vector(sigmoid)) {
+    cout << num << " ";
   }
+  cout <<endl;
 
   return 0;
 }

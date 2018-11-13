@@ -7,15 +7,24 @@
 
 #include <dynet/lstm.h>
 #include "dy_common.hpp"
+#include "dy_operations.hpp"
+#include "dy_linear_layer.hpp"
 #include <memory>
 
 namespace tg {
   namespace dy {
-    /**
-     * pure functional RNN adapter that wraps dynet::RNNBuilder
-     * \tparam RNN_BUILDER_TYPE inherits dynet::RNNBuilder
-     */
-    template<class RNN_BUILDER_TYPE>
+
+    template<class CELL_STATE_T>
+    class rnn_cell_t {
+    public:
+      typedef CELL_STATE_T cell_state_type;
+
+      virtual std::pair<cell_state_type, dynet::Expression>
+      forward(const cell_state_type &prev_state, const dynet::Expression &x) = 0;
+    };
+
+
+    template<class RNN_CELL_T, class CELL_STATE_T>
     class rnn {
     public:
       rnn() = default;
@@ -29,140 +38,88 @@ namespace tg {
       rnn &operator=(rnn &&) = default;
 
       /**
-       * cell state is the thing that gets passed between time steps.
-       * it's an concatenation of all layer's hidden states followed by all layer's cell states
-       * normally you shouldn't be using it in any other way.
-       */
-      typedef std::vector<dynet::Expression> cell_state_type;
-
-
-      /**
        * apply the RNN cell for a single time step
        * \param prev_state the previous cell state
        * \param x the current input
-       * \return 0) the output
-       *         1) the cell state after this time step
+       * \return 0) the cell state after this time step
+       *         1) the output
        */
-      std::pair<dynet::Expression, cell_state_type>
-      operator()(const cell_state_type &prev_state, const dynet::Expression &x) {
-        ensure_init(x);
-        AUTO_START_THIS_GRAPH(builder->new_graph(cg()));
-        builder->start_new_sequence(prev_state);
-        auto y = builder->add_input(x);
-        return std::make_pair(y, builder->final_s());
+      std::pair<CELL_STATE_T, dynet::Expression>
+      forward(const CELL_STATE_T &prev_state, const dynet::Expression &x) {
+        return cell.forward(prev_state, x);
       }
 
       /**
        * apply the RNN cell for multiple time steps
        * \param prev_state the previous cell state
        * \param x_sequence a list of inputs to apply, in chronological order
-       * \return 0) the list of output in chronological order
-       *         1) the cell state after the last time step
+       * \return 0) the cell state after the last time step
+       *         1) the list of output in chronological order
        */
-      std::pair<std::vector<dynet::Expression>, cell_state_type>
-      operator()(const cell_state_type &prev_state, const std::vector<dynet::Expression> &x_sequence) {
-        if(x_sequence.empty()) return std::make_pair(std::vector<dynet::Expression>(), default_initial_state());
-        ensure_init(x_sequence[0]);
-        AUTO_START_THIS_GRAPH(builder->new_graph(cg()));
-        builder->start_new_sequence(prev_state);
-        std::vector<dynet::Expression> y_sequence;
-        for (auto itr = x_sequence.begin(); itr != x_sequence.end(); ++itr) {
-          y_sequence.push_back(builder->add_input(*itr));
+      std::pair<CELL_STATE_T, std::vector<dynet::Expression>>
+      forward(const CELL_STATE_T &prev_state, const std::vector<dynet::Expression> &x_sequence) {
+        if (x_sequence.empty()) return std::make_pair(CELL_STATE_T(), std::vector<dynet::Expression>());
+        auto[_state, y] = forward(prev_state, x_sequence[0]);
+        std::vector<dynet::Expression> ys;
+        ys.push_back(std::move(y));
+        for (unsigned i = 1; i < x_sequence.size(); i++) {
+          std::tie(_state, y) = forward(_state, x_sequence[i]);
+          ys.push_back(std::move(y));
         }
-        return std::make_pair(y_sequence, builder->final_s());
+        return std::make_pair(std::move(_state), std::move(ys));
       }
 
-      static cell_state_type default_initial_state() { return {}; }
-
     protected:
-      std::shared_ptr<RNN_BUILDER_TYPE> builder;
-      virtual void ensure_init(const dynet::Expression& x) = 0;
+      RNN_CELL_T cell;
     };
 
-    class coupled_lstm : public rnn<dynet::CoupledLSTMBuilder> {
-      coupled_lstm() = default;
-      coupled_lstm(const coupled_lstm &) = default;
-      coupled_lstm(coupled_lstm &&) = default;
-      coupled_lstm &operator=(const coupled_lstm &) = default;
-      coupled_lstm &operator=(coupled_lstm &&) = default;
+    struct lstm_cell_state {
+      Expression cell_state, hidden_state;
+    };
 
-      /**
-       * \brief Constructor for the LSTMBuilder
-       *
-       * \param layers Number of layers
-       * \param hidden_dim Dimention of the hidden states \f$h_t\f$ and \f$c_t\f$
-       */
-      coupled_lstm(unsigned layers, unsigned hidden_dim) : rnn(), layers(layers), input_dim(0), hidden_dim(hidden_dim) {
+    class vanilla_lstm_cell_t : public rnn_cell_t<lstm_cell_state> {
+    public:
+      vanilla_lstm_cell_t():hidden_dim(0), forget_gate(), input_gate(), input_fc(), output_gate() {};
+      vanilla_lstm_cell_t(const vanilla_lstm_cell_t&) = default;
+      vanilla_lstm_cell_t(vanilla_lstm_cell_t&&) = default;
+      vanilla_lstm_cell_t &operator=(const vanilla_lstm_cell_t&) = default;
+      vanilla_lstm_cell_t &operator=(vanilla_lstm_cell_t&&) = default;
+      virtual std::pair<lstm_cell_state, dynet::Expression> forward(const lstm_cell_state &prev_state, const dynet::Expression &x) {
+        ensure_init(x);
+        auto cell_state = prev_state.cell_state;
+        if(cell_state.pg==nullptr) cell_state = zeros(x.dim());
+        auto hidden_state = prev_state.hidden_state;
+        if(hidden_state.pg==nullptr) hidden_state = zeros(x.dim());
+
+        auto concat = concatenate({hidden_state, x});
+        auto after_forget = dy::cmult(cell_state, dy::logistic(forget_gate.forward(concat)));
+        auto input_candidate = dy::tanh(input_fc.forward(concat));
+        auto input = dy::cmult(dy::logistic(input_gate.forward(concat)), input_candidate);
+        auto output_cell_state = after_forget + input;
+        auto output_hidden_state = dy::cmult(dy::logistic(output_gate.forward(concat)), dy::tanh(output_cell_state));
+        lstm_cell_state ret;
+        ret.cell_state = std::move(output_cell_state);
+        ret.hidden_state = output_hidden_state;
+        return std::make_pair(std::move(ret), output_hidden_state);
       }
-
-      template<class Archive>
-      void save(Archive &ar) {
-        ar(layers, input_dim, hidden_dim);
-        if(input_dim == 0) return;
-        ar(builder->params);
-      }
-
-      template<class Archive>
-      void load(Archive &ar) {
-        ar(layers, input_dim, hidden_dim);
-        if(input_dim == 0) return;
-        builder = std::make_shared<dynet::CoupledLSTMBuilder>(layers, input_dim, hidden_dim, pc());
-        ar(builder->params);
-      }
-
-    protected:
-      void ensure_init(const dynet::Expression& x) {
-        if(input_dim != 0) return;
-        input_dim = x.dim()[0];
-        builder = std::make_shared<dynet::CoupledLSTMBuilder>(layers, input_dim, hidden_dim, pc());
-      }
-
+      EASY_SERIALZABLE(hidden_dim, forget_gate, input_gate, input_fc, output_gate)
     private:
-      unsigned layers;
-      unsigned input_dim;
+      void ensure_init(const Expression& x) {
+        if(hidden_dim>0) return;
+        hidden_dim = x.dim()[0];
+        forget_gate = linear_layer(hidden_dim);
+        input_gate = linear_layer(hidden_dim);
+        input_fc = linear_layer(hidden_dim);
+        output_gate = linear_layer(hidden_dim);
+      }
       unsigned hidden_dim;
+      linear_layer forget_gate;
+      linear_layer input_gate;
+      linear_layer input_fc;
+      linear_layer output_gate;
     };
 
-    class vanilla_lstm : public rnn<dynet::VanillaLSTMBuilder> {
-      vanilla_lstm() = default;
-      vanilla_lstm(const vanilla_lstm&) = default;
-      vanilla_lstm(vanilla_lstm&&) = default;
-      vanilla_lstm &operator=(const vanilla_lstm&) = default;
-      vanilla_lstm &operator=(vanilla_lstm&&) = default;
-      vanilla_lstm(unsigned layers,
-                  unsigned hidden_dim,
-                  bool ln_lstm = false,
-                  float forget_bias = 1.f):rnn(), layers(layers), input_dim(-1), hidden_dim(hidden_dim), ln_lstm(ln_lstm), forget_bias(forget_bias){}
-      template<class Archive>
-      void save(Archive &ar) {
-        ar(layers, input_dim, hidden_dim, ln_lstm, forget_bias);
-        if(input_dim == 0) return;
-        ar(builder->params);
-        ar(builder->ln_params);
-      }
-      template<class Archive>
-      void load(Archive &ar) {
-        ar(layers, input_dim, hidden_dim, ln_lstm, forget_bias);
-        if(input_dim == 0) return;
-        builder = std::make_shared<dynet::VanillaLSTMBuilder>(layers, input_dim, hidden_dim, pc(), ln_lstm, forget_bias);
-        ar(builder->params);
-        ar(builder->ln_params);
-      }
-
-    protected:
-      void ensure_init(const dynet::Expression& x) {
-        if(input_dim != 0) return;
-        input_dim = x.dim()[0];
-        builder = std::make_shared<dynet::VanillaLSTMBuilder>(layers, input_dim, hidden_dim, pc(), ln_lstm, forget_bias);
-      }
-
-    private:
-      unsigned layers;
-      unsigned input_dim;
-      unsigned hidden_dim;
-      bool ln_lstm;
-      float forget_bias;
-    };
+    typedef rnn<vanilla_lstm_cell_t, lstm_cell_state> valinna_lstm;
 
 
   }

@@ -58,7 +58,7 @@ namespace tg {
        */
       dynet::Expression compute_loss(const dynet::Expression& embedding, const std::string& oracle) {
         if(size() > SAMPLED_READOUT_THRESHOLD) return sampled_readout_loss(embedding, oracle);
-        return pickneglogsoftmax(fc(embedding), get_internal_label_id(oracle));
+        return dy::pickneglogsoftmax(fc(embedding), get_internal_label_id(oracle));
       }
 
       /**
@@ -133,7 +133,7 @@ namespace tg {
         }
 
         auto logits = fc.forward_given_output_positions(embedding, sampled_ids);
-        return pickneglogsoftmax(logits, (unsigned)0);
+        return dy::pickneglogsoftmax(logits, (unsigned)0);
       }
     };
   }

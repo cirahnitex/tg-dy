@@ -66,11 +66,11 @@ private:
 };
 
 template<class T>
-void print_helper(const T& x) {
+void print_helper(const T& x, std::ostream& os=std::cout) {
   for(const auto& t:x) {
-    cout << t << " ";
+    os << t << " ";
   }
-  cout <<endl;
+  os <<endl;
 }
 
 
@@ -94,17 +94,11 @@ int main() {
     cout << "epoch:"<< epoch <<endl;
     dy::mp_train<datum_t>(8, trainint_set.data, [&](const datum_t& datum){
       return model.compute_loss(datum.input, datum.oracle);
+    }, [](const std::exception& e, const datum_t& datum){
+      cerr << e.what() << endl;
+      cerr << "sentence is:";
+      print_helper(datum.input, cerr);
     });
-    for(const auto& datum:trainint_set.data) {
-      dy::renew_cg();
-      try {
-        dy::train_on_loss(model.compute_loss(datum.input, datum.oracle));
-      }
-      catch(...) {
-        cout << "nan for sentence:";
-        print_helper(datum.input);
-      }
-    }
   }
 
   cout << "testing" <<endl;

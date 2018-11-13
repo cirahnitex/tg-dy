@@ -151,7 +151,7 @@ namespace tg {
         auto one = dynet::input(dy::cg(), {1}, {(dynet::real)1});
         auto logits = dynet::dot_product(sampled_readout_table, dynet::concatenate({embedding, one}));
         logits = dynet::reshape(logits, {(unsigned)sampled_ids.size()});
-        auto loss = pickneglogsoftmax(logits, (unsigned)0);
+        auto loss = dy::pickneglogsoftmax(logits, (unsigned)0);
 
         return std::make_pair(std::move(embedding), std::move(loss));
       }
