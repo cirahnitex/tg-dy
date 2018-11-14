@@ -25,7 +25,7 @@ namespace tg {
        * construct given a set of labels
        * \param labels the set of all possible labels
        */
-      readout_layer(const std::vector<std::string>& labels):
+      readout_layer(const std::unordered_set<std::string>& labels):
         dict(labels), fc(dict.size()){
       }
 
@@ -35,7 +35,7 @@ namespace tg {
        * \param labels the set of all possible labels, part-I
        * \param more_labels the set of all possible labels, part-II
        */
-      readout_layer(const std::vector<std::string>& labels, const std::vector<std::string>& more_labels):
+      readout_layer(const std::unordered_set<std::string>& labels, const std::unordered_set<std::string>& more_labels):
         dict(labels, more_labels), fc(dict.size()){
       }
 

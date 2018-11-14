@@ -22,7 +22,7 @@ namespace tg {
        * \param embedding_size the size of embedding
        * \param tokens the list of tokens
        */
-      embedding_lookup(unsigned embedding_size, const std::vector<std::string>& tokens):
+      embedding_lookup(unsigned embedding_size, const std::unordered_set<std::string>& tokens):
           dict(std::make_shared<dynet::Dict>()),
           capacity(),
           embedding_size(embedding_size),
@@ -44,7 +44,7 @@ namespace tg {
        * \param tokens the list of tokens
        * \param lookup_init_embedding how to get initial embedding from a token. this function may return an empty std::vector or even throw an exception to indicate that the initial embedding of a given token is unknown
        */
-      embedding_lookup(unsigned embedding_size, const std::vector<std::string>& tokens, std::function<std::vector<float>(const std::string&)> lookup_init_embedding): embedding_lookup(embedding_size, tokens)
+      embedding_lookup(unsigned embedding_size, const std::unordered_set<std::string>& tokens, std::function<std::vector<float>(const std::string&)> lookup_init_embedding): embedding_lookup(embedding_size, tokens)
       {
         for(const auto& token:list_tokens()) {
           auto id = token_to_id(token);
@@ -101,24 +101,6 @@ namespace tg {
         }
         return ret;
       }
-      static std::vector<std::string> re_split(const std::string &s, const std::string& rgx_str = "\\s+") {
-
-        std::vector<std::string> elems;
-
-        std::regex rgx (rgx_str);
-
-        std::sregex_token_iterator iter(s.begin(), s.end(), rgx, -1);
-        std::sregex_token_iterator end;
-
-        while (iter != end)  {
-          //std::cout << "S43:" << *iter << std::endl;
-          elems.push_back(*iter);
-          ++iter;
-        }
-
-        return elems;
-
-      }
 
       unsigned token_to_id(const std::string& token) const {
         return (unsigned)(dict)->convert(token);
@@ -129,8 +111,6 @@ namespace tg {
       unsigned real_dict_size() const {return dict->size();}
       /**
        * list all the tokens stored in dictionary, excluding EPSILON and UNK.
-       * if you construct a new embedding_lookup with this token list, you are garenteed to get the same internal token ID.
-       * which means that you can load previous dynet models.
        */
       std::vector<std::string> list_tokens() const {
         std::vector<std::string> ret;

@@ -37,6 +37,12 @@ namespace tg {
 
       rnn &operator=(rnn &&) = default;
 
+      typedef std::vector<CELL_STATE_T> stacked_cell_state;
+
+      explicit rnn(unsigned num_stack):cells() {
+        cells.resize(num_stack);
+      }
+
       /**
        * apply the RNN cell for a single time step
        * \param prev_state the previous cell state
@@ -44,9 +50,17 @@ namespace tg {
        * \return 0) the cell state after this time step
        *         1) the output
        */
-      std::pair<CELL_STATE_T, dynet::Expression>
-      forward(const CELL_STATE_T &prev_state, const dynet::Expression &x) {
-        return cell.forward(prev_state, x);
+      std::pair<stacked_cell_state, dynet::Expression>
+      forward(const stacked_cell_state &prev_state, const dynet::Expression &x) {
+        Expression y = x;
+        std::vector<CELL_STATE_T> output_stacked_cell_state;
+        for(unsigned i=0; i<cells.size(); i++) {
+          auto& cell = cells[i];
+          auto _ = cell.forward(i<prev_state.size()?prev_state[i]:CELL_STATE_T(), y);
+          y = std::move(_.second);
+          output_stacked_cell_state.push_back(std::move(_.first));
+        }
+        return std::make_pair(output_stacked_cell_state, y);
       }
 
       /**
@@ -56,9 +70,9 @@ namespace tg {
        * \return 0) the cell state after the last time step
        *         1) the list of output in chronological order
        */
-      std::pair<CELL_STATE_T, std::vector<dynet::Expression>>
-      forward(const CELL_STATE_T &prev_state, const std::vector<dynet::Expression> &x_sequence) {
-        if (x_sequence.empty()) return std::make_pair(CELL_STATE_T(), std::vector<dynet::Expression>());
+      std::pair<stacked_cell_state, std::vector<dynet::Expression>>
+      forward(const stacked_cell_state &prev_state, const std::vector<dynet::Expression> &x_sequence) {
+        if (x_sequence.empty()) return std::make_pair(stacked_cell_state(), std::vector<dynet::Expression>());
         auto[_state, y] = forward(prev_state, x_sequence[0]);
         std::vector<dynet::Expression> ys;
         ys.push_back(std::move(y));
@@ -69,8 +83,20 @@ namespace tg {
         return std::make_pair(std::move(_state), std::move(ys));
       }
 
+      /**
+       * apply the RNN cell for multiple time steps
+       * \param x_sequence a list of inputs to apply, in chronological order
+       * \return 0) the cell state after the last time step
+       *         1) the list of output in chronological order
+       */
+      std::pair<stacked_cell_state, std::vector<dynet::Expression>>
+      forward(const std::vector<dynet::Expression> &x_sequence) {
+        return forward(stacked_cell_state(), x_sequence);
+      }
+
+      EASY_SERIALZABLE(cells)
     protected:
-      RNN_CELL_T cell;
+      std::vector<RNN_CELL_T> cells;
     };
 
     struct lstm_cell_state {
@@ -119,7 +145,7 @@ namespace tg {
       linear_layer output_gate;
     };
 
-    typedef rnn<vanilla_lstm_cell_t, lstm_cell_state> valinna_lstm;
+    typedef rnn<vanilla_lstm_cell_t, lstm_cell_state> vanilla_lstm;
 
 
   }

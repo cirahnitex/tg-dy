@@ -45,18 +45,14 @@ int main() {
   // the xor training dataset
   vector<datum_type> data({{false, false, false}, {false, true, true}, {true, false, true}, {true, true, false}});
 
-  // duplicate the data 10000 times to make a BIG dataset
-  vector<datum_type> big_data;
-  for(unsigned epoch=0; epoch<10000; epoch++) {
-    std::copy(data.begin(), data.end(), std::back_inserter(big_data));
-  }
-
-  cout << "parallel training" <<endl;
+  cout << "training" <<endl;
   XorModel model;
-  const unsigned NUM_WORKERS = 4;
-  dy::mp_train<datum_type>(NUM_WORKERS, big_data, [&](const datum_type& datum){
-    return model.compute_loss(datum[0], datum[1], datum[2]);
-  });
+  for(unsigned epoch = 0; epoch<10000; epoch++) {
+    for(const auto& datum:data) {
+      dy::renew_cg();
+      dy::train_on_loss(model.compute_loss(datum[0], datum[1], datum[2]));
+    }
+  }
 
   cout << "predicting" <<endl;
   for(const auto& datum:data) {

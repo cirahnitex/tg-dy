@@ -18,7 +18,7 @@ namespace tg {
       multi_readout_layer(multi_readout_layer&&) = default;
       multi_readout_layer &operator=(const multi_readout_layer&) = default;
       multi_readout_layer &operator=(multi_readout_layer&&) = default;
-      explicit multi_readout_layer(const std::vector<std::string>& labels):labels(labels),fc(labels.size()) {
+      explicit multi_readout_layer(const std::unordered_set<std::string>& labels):labels(labels.begin(), labels.end()),fc(labels.size()) {
       }
       std::unordered_set<std::string> readout(const dynet::Expression &x) {
         const auto evidences = dy::as_vector(fc.forward(x));
@@ -34,8 +34,8 @@ namespace tg {
       dynet::Expression compute_loss(const dynet::Expression& x, const std::unordered_set<std::string>& oracle) {
         using namespace std;
         vector<float> oracle_float;
-        for(unsigned i=0; i<labels.size(); i++) {
-          oracle_float.push_back(oracle.count(labels[i])>0?(float)1:(float)0);
+        for(const auto& label:labels) {
+          oracle_float.push_back(oracle.count(label)>0?(float)1:(float)0);
         }
         return dynet::binary_log_loss(dynet::logistic(fc.forward(x))+1e-6, dy::const_expr(oracle_float));
       }

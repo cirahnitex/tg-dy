@@ -18,7 +18,7 @@ data_t read_dataset(const string& path) {
   return ret;
 }
 vector<string> collect_frequent_tokens(const data_t& data, unsigned top_x=20000) {
-  tg::dy::frequent_token_collector collector;
+  dy::frequent_token_collector collector;
   for(const auto& datum:data.data) {
     for(const auto& token:datum.input) {
       collector.add_occurence(token);
@@ -29,21 +29,20 @@ vector<string> collect_frequent_tokens(const data_t& data, unsigned top_x=20000)
 
 class my_model {
 public:
-  my_model(const vector<string>& labels, const vector<string>& vocab, const unordered_map<string, vector<float>>& init_embeddings, unsigned embedding_size)
+  my_model(const unordered_set<string>& labels, const unordered_set<string>& vocab, const unordered_map<string, vector<float>>& init_embeddings, unsigned embedding_size)
   :emb(embedding_size, vocab, [&](const string& token){return init_embeddings.at(token);}), conv0(embedding_size,3,1,false,false), conv1(embedding_size,3,1,true,false), conv2(embedding_size,3,1,true,false), fc(128), ro(labels){
   }
 
-  dynet::Expression forward(const vector<string>& sentence) {
-    dynet::Expression x;
-    x = dynet::concatenate(emb.read_sentence(sentence),1);
-    x = dynet::rectify(conv0.forward(x));
+  dy::Expression forward(const vector<string>& sentence) {
+    dy::Expression x;
+    x = dy::concatenate(emb.read_sentence(sentence),1);
+    x = dy::rectify(conv0.forward(x));
     x = dy::maxpooling1d(x, 3, 1, false);
-    x = dynet::rectify(conv1.forward(x));
+    x = dy::rectify(conv1.forward(x));
     x = dy::maxpooling1d(x, 3, 1, false);
-    x = dynet::rectify(conv2.forward(x));
-    x = dynet::max_dim(x, 1);
-
-    x = dynet::tanh(fc.forward(x));
+    x = dy::rectify(conv2.forward(x));
+    x = dy::max_dim(x, 1);
+    x = dy::logistic(fc.forward(x));
     return x;
   }
 

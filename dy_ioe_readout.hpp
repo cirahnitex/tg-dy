@@ -11,7 +11,7 @@ namespace tg {
     class ioe_readout :public iobes_readout_base {
     public:
       DECLARE_DEFAULT_CONSTRUCTORS(ioe_readout)
-      ioe_readout(std::vector<std::string>& tokens):
+      ioe_readout(std::unordered_set<std::string>& tokens):
           iobes_readout_base({"I","E"}, tokens)
       {}
     protected:

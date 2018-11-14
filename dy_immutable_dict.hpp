@@ -24,7 +24,7 @@ namespace tg {
 
       immutable_dict &operator=(immutable_dict &&) = default;
 
-      explicit immutable_dict(const std::vector<std::string> &entries) :
+      explicit immutable_dict(const std::unordered_set<std::string> &entries) :
         dict(std::make_shared<dynet::Dict>()) {
         for (const auto &entry:entries) {
           dict->convert(entry);
@@ -32,7 +32,7 @@ namespace tg {
         dict->freeze();
       }
 
-      explicit immutable_dict(const std::vector<std::string> &entries, const std::vector<std::string> &more_entries) :
+      explicit immutable_dict(const std::unordered_set<std::string> &entries, const std::unordered_set<std::string> &more_entries) :
         dict(std::make_shared<dynet::Dict>()) {
         for (const auto &entry:entries) {
           dict->convert(entry);

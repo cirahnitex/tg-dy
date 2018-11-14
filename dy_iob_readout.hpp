@@ -10,7 +10,7 @@ namespace tg {
     class iob_readout :public iobes_readout_base {
     public:
       DECLARE_DEFAULT_CONSTRUCTORS(iob_readout)
-      iob_readout(const std::vector<std::string>& tokens):
+      iob_readout(const std::unordered_set<std::string>& tokens):
           iobes_readout_base({"I","B"}, tokens)
       {}
     protected:

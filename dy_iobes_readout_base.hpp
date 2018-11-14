@@ -15,9 +15,9 @@ namespace tg {
     public:
       DECLARE_DEFAULT_CONSTRUCTORS(iobes_readout_base)
       typedef web_srl_graph::item_type labeled_span_type;
-      iobes_readout_base(const std::vector<std::string>& prefixes, const std::vector<std::string>& labels):
+      iobes_readout_base(const std::unordered_set<std::string>& prefixes, const std::unordered_set<std::string>& labels):
           ro_prefix(prefixes),
-          ro_label({""}, labels)
+          ro_label(std::unordered_set<std::string>({""}), labels)
       {}
       /**
        * train the IOBES labeler
@@ -106,6 +106,7 @@ namespace tg {
         }
         return ret;
       }
+
       EASY_SERIALZABLE(ro_prefix, ro_label)
     protected:
       virtual std::pair<std::string, std::string> get_prefixed_label_at_token_index(unsigned index, const std::vector<web_srl_graph::item_type> &labeled_spans) const = 0;

@@ -9,6 +9,7 @@
 #include <dynet/dict.h>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/unordered_set.hpp>
 
 #define EASY_SERIALZABLE(...) template<class Archive> \
 void serialize(Archive & archive) \
