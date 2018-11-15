@@ -49,14 +49,12 @@ int main() {
   XorModel model;
   for(unsigned epoch = 0; epoch<10000; epoch++) {
     for(const auto& datum:data) {
-      dy::renew_cg();
       dy::train_on_loss(model.compute_loss(datum[0], datum[1], datum[2]));
     }
   }
 
   cout << "predicting" <<endl;
   for(const auto& datum:data) {
-    dy::renew_cg();
     cout << datum[0] << " " << datum[1] << " => "<< model.predict(datum[0], datum[1]) <<endl;
   }
 
@@ -70,7 +68,7 @@ int main() {
 
   cout << "predicting using loaded model" <<endl;
   for(const auto& datum:data) {
-    dy::renew_cg();
+    dy::_renew_cg();
     cout << datum[0] << " " << datum[1] << " => "<< new_model.predict(datum[0], datum[1]) <<endl;
   }
 }

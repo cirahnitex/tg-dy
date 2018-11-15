@@ -35,14 +35,14 @@ public:
 
   dy::Expression forward(const vector<string>& sentence) {
     dy::Expression x;
-    x = dy::concatenate(emb.read_sentence(sentence),1);
+    x = dy::concatenate(emb.lookup(sentence, true),1);
     x = dy::rectify(conv0.forward(x));
     x = dy::maxpooling1d(x, 3, 1, false);
     x = dy::rectify(conv1.forward(x));
     x = dy::maxpooling1d(x, 3, 1, false);
     x = dy::rectify(conv2.forward(x));
     x = dy::max_dim(x, 1);
-    x = dy::logistic(fc.forward(x));
+    x = dy::tanh(fc.forward(x));
     return x;
   }
 
@@ -85,7 +85,7 @@ int main() {
   const auto w2v = dy::import_word2vec(PATH_TO_WORD2VEC_FILE);
   cout << "initialze model" <<endl;
   dy::initialize();
-  my_model model(vector<string>(trainint_set.labels.begin(), trainint_set.labels.end()), vocab, w2v, 128);
+  my_model model(trainint_set.labels, unordered_set<string>(vocab.begin(), vocab.end()), w2v, 128);
 //  my_model model(vector<string>({"a","b"}), vector<string>({"a","b"}), unordered_map<string, vector<float>>(), 128);
 //  model.forward({"a","b","a","b"});
   cout << "training" <<endl;
@@ -102,7 +102,7 @@ int main() {
 
   cout << "testing" <<endl;
   const auto test_set = read_dataset(TEST_DATA_PATH);
-  for(unsigned i=0; i<5; i++) {
+  for(unsigned i=0; i<64; i++) {
     const auto& datum = test_set.data[i];
     cout << "sentence:";
     print_helper(datum.input);

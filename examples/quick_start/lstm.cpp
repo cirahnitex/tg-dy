@@ -107,14 +107,14 @@ int main() {
   simple_seq_to_seq_translation_model model(EMBEDDING_SIZE, foreign_vocab, emit_vocab);
   for(unsigned epoch = 0; epoch < 1000; epoch ++) {
     for(const auto& datum:training_set) {
-      dy::renew_cg();
+      dy::_renew_cg();
       auto loss = model.compute_loss(ECMAScript_string_utils::split(datum.foreign), ECMAScript_string_utils::split(datum.emit));
       dy::train_on_loss(loss);
     }
   }
   cout << "predicting" << endl;
   for(const auto& datum:training_set) {
-    dy::renew_cg();
+    dy::_renew_cg();
     print_helper(model.predict(ECMAScript_string_utils::split(datum.foreign)));
   }
 }

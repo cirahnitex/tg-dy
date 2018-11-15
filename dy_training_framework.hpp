@@ -127,7 +127,7 @@ namespace tg {
       template<typename model_T, typename datum_T>
       static void train(const training_options &o,
                         std::function<model_T()> init,
-                        std::function<dynet::Expression(const model_T &model, const datum_T &datum)> compute_loss,
+                        std::function<dy::Expression(const model_T &model, const datum_T &datum)> compute_loss,
                         const std::vector<datum_T> &data
       ) {
         using namespace std;
@@ -153,7 +153,7 @@ namespace tg {
       template<typename model_T, typename datum_T>
       static void train(const training_options &o,
                         std::function<model_T()> init,
-                        std::function<dynet::Expression(const model_T &model, const datum_T &datum)> compute_loss,
+                        std::function<dy::Expression(const model_T &model, const datum_T &datum)> compute_loss,
                         const std::vector<std::function<std::vector<datum_T>()>> &data_fetchers
       ) {
 

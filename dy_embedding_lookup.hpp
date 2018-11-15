@@ -84,20 +84,14 @@ namespace tg {
         }
       }
 
-      dynet::Expression lookup(const std::string& token) const {
-        return lookup(token_to_id(token));
+      dy::Expression lookup(const std::string& token, bool as_constant = false) const {
+        return lookup(token_to_id(token), as_constant);
       }
 
-      std::vector<dynet::Expression> read_sentence(const std::string& line) const {
-        return lookup( re_split(line));
-      }
-      std::vector<dynet::Expression> read_sentence(const std::vector<std::string>& tokens) const {
-        return lookup(tokens);
-      }
-      std::vector<dynet::Expression> lookup(const std::vector<std::string>& tokens) const {
-        std::vector<dynet::Expression> ret;
+      std::vector<dy::Expression> lookup(const std::vector<std::string>& tokens, bool as_constant = false) const {
+        std::vector<dy::Expression> ret;
         for(auto itr = tokens.begin(); itr!=tokens.end(); ++itr) {
-          ret.push_back(lookup(*itr));
+          ret.push_back(lookup(*itr, as_constant));
         }
         return ret;
       }
@@ -146,8 +140,8 @@ namespace tg {
       unsigned embedding_size;
       dynet::LookupParameter lookup_table;
 
-      dynet::Expression lookup(unsigned token_id) const {
-        return dynet::lookup(dy::cg(), lookup_table, token_id);
+      dy::Expression lookup(unsigned token_id, bool as_constant = false) const {
+        return as_constant?dynet::const_lookup(dy::cg(), lookup_table, token_id):dynet::lookup(dy::cg(), lookup_table, token_id);
       }
 
       static std::vector<float> resize_fill_random(const std::vector<float>& arr, unsigned size) {

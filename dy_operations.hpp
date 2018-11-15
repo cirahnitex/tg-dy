@@ -11,7 +11,7 @@
 
 namespace tg {
   namespace dy {
-    typedef dynet::Expression Expression;
+
     typedef dynet::Dim Dim;
 
     inline Expression zeros(const Dim& d) {return dynet::zeros(cg(), d);}
@@ -33,10 +33,10 @@ namespace tg {
  * \return An expression equal to: xs[0] + xs[1]*xs[2] + xs[3]*xs[4] + ...
  */
     inline Expression affine_transform(const std::initializer_list<Expression> &xs) {
-      return dynet::affine_transform(xs);
+      return dynet::affine_transform(Expression::vector_cast_to_base(xs));
     }
 
-    inline Expression affine_transform(const std::vector<Expression> &xs) { return dynet::affine_transform(xs); }
+    inline Expression affine_transform(const std::vector<Expression> &xs) { return dynet::affine_transform(Expression::vector_cast_to_base(xs)); }
 
 /**
  * \ingroup arithmeticoperations
@@ -47,7 +47,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to xs[0][i] + xs[1][i] + ...
  */
-    inline Expression sum(const std::vector<Expression> &xs) { return dynet::sum(xs); }
+    inline Expression sum(const std::vector<Expression> &xs) { return dynet::sum(Expression::vector_cast_to_base(xs)); }
 
 
 /**
@@ -229,7 +229,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to (xs[0][i] + xs[1][i] + ...)/|xs|
  */
-    inline Expression average(const std::vector<Expression> &xs) { return dynet::average(xs); }
+    inline Expression average(const std::vector<Expression> &xs) { return dynet::average(Expression::vector_cast_to_base(xs)); }
 
 /**
  * \ingroup arithmeticoperations
@@ -606,7 +606,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to max(xs[0][i], xs[1][i], ...)
  */
-    inline Expression max(const std::vector<Expression> &xs) { return dynet::max(xs); }
+    inline Expression max(const std::vector<Expression> &xs) { return dynet::max(Expression::vector_cast_to_base(xs)); }
 
 
 /**
@@ -759,7 +759,7 @@ namespace tg {
  *
  * \return The result.
  */
-    inline Expression logsumexp(const std::vector<Expression> &xs) { return dynet::logsumexp(xs); }
+    inline Expression logsumexp(const std::vector<Expression> &xs) { return dynet::logsumexp(Expression::vector_cast_to_base(xs)); }
 
 
 /**
@@ -1502,7 +1502,7 @@ namespace tg {
  * \return The expression with the batch dimensions concatenated
  */
     inline Expression concatenate_to_batch(const std::vector<Expression> &xs) {
-      return dynet::concatenate_to_batch(xs);
+      return dynet::concatenate_to_batch(Expression::vector_cast_to_base(xs));
     }
 
 /**
@@ -1532,7 +1532,7 @@ namespace tg {
  *
  * \return The expression with the columns concatenated
  */
-    inline Expression concatenate_cols(const std::vector<Expression> &xs) { return dynet::concatenate_cols(xs); }
+    inline Expression concatenate_cols(const std::vector<Expression> &xs) { return dynet::concatenate_cols(Expression::vector_cast_to_base(xs)); }
 
 /**
  * \ingroup flowoperations
@@ -1548,10 +1548,10 @@ namespace tg {
  * \return The expression with the specified dimension concatenated
  */
     inline Expression
-    concatenate(const std::initializer_list<Expression> &xs, unsigned d = 0) { return dynet::concatenate(xs, d); }
+    concatenate(const std::initializer_list<Expression> &xs, unsigned d = 0) { return dynet::concatenate(Expression::vector_cast_to_base(xs), d); }
 
     inline Expression concatenate(const std::vector<Expression> &xs, unsigned d = 0) {
-      return dynet::concatenate(xs, d);
+      return dynet::concatenate(Expression::vector_cast_to_base(xs), d);
     }
 
 /**

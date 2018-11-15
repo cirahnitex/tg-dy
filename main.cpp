@@ -12,7 +12,6 @@
 
 using namespace tg;
 using namespace std;
-using namespace dynet;
 using namespace util;
 
 
@@ -21,7 +20,7 @@ using namespace util;
  * \param x vector to normalize
  * \return the normalized vector
  */
-dynet::Expression vector_norm(const dynet::Expression &x) {
+dy::Expression vector_norm(const dy::Expression &x) {
   auto length = dynet::l2_norm(x);
   static const auto epsilon = dy::const_expr(0.0001);
   return dynet::cdiv(x, length + epsilon);
@@ -30,13 +29,16 @@ dynet::Expression vector_norm(const dynet::Expression &x) {
 int main() {
   dy::initialize();
 
-  const auto big_num = dy::const_expr({-110,-100,0,0,0,0,0,90,100});
-
-  const auto sigmoid = dy::logistic(big_num);
-  for(const auto& num:dy::as_vector(sigmoid)) {
-    cout << num << " ";
+  {
+    const auto big_num = dy::const_expr(-110);
+    const auto answers = dy::const_expr(1);
+    const auto sigmoid = dy::binary_log_loss(dy::logistic(big_num), answers);
+    for(const auto& num:dy::as_vector(sigmoid)) {
+      cout << num << " ";
+    }
+    cout <<endl;
   }
-  cout <<endl;
+
 
   return 0;
 }

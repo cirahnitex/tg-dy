@@ -4,7 +4,7 @@
 
 #ifndef FRAME_ANALYSIS_DYNET_IOBES_READOUT_BASE_HPP
 #define FRAME_ANALYSIS_DYNET_IOBES_READOUT_BASE_HPP
-#include <dy.hpp>
+#include "dy.hpp"
 #include <dynet/dynet.h>
 #include <srl_graph.hpp>
 
@@ -26,8 +26,8 @@ namespace tg {
        * \param oracle true answer, labeled span
        * \return
        */
-      dynet::Expression compute_loss(const std::vector<dynet::Expression>& embeddings_in, const std::vector<web_srl_graph::item_type> oracle) {
-        std::vector<dynet::Expression> ret;
+      dy::Expression compute_loss(const std::vector<dy::Expression>& embeddings_in, const std::vector<web_srl_graph::item_type> oracle) {
+        std::vector<dy::Expression> ret;
         for(unsigned i=0; i<embeddings_in.size(); i++) {
           std::string prefix_oracle, label_oracle;
           tie(prefix_oracle, label_oracle) = get_prefixed_label_at_token_index(i, oracle);
@@ -40,7 +40,7 @@ namespace tg {
           // if the label is NULL, only label need to be trained
           ret.push_back(ro_label.compute_loss(embeddings_in[i], label_oracle));
         }
-        return dynet::sum(ret);
+        return dy::sum(ret);
       }
 
       /**
@@ -48,7 +48,7 @@ namespace tg {
        * \param embeddings_in embedding of each token in sentence
        * \return
        */
-      std::vector<web_srl_graph::item_type> predict(const std::vector<dynet::Expression> &embeddings_in) {
+      std::vector<web_srl_graph::item_type> predict(const std::vector<dy::Expression> &embeddings_in) {
         enum {OUTSIDE, INSIDE} state = OUTSIDE;
         unsigned s_anchor = 0;
         std::string label_anchor;

@@ -41,9 +41,9 @@ namespace tg {
        * \return 0) the embeddings
        *         1) the lookup-loss
        */
-      std::pair<std::vector<dynet::Expression>, dynet::Expression> read_sentence_with_loss(const std::vector<std::string>& tokens) const {
+      std::pair<std::vector<dy::Expression>, dy::Expression> read_sentence_with_loss(const std::vector<std::string>& tokens) const {
         std::vector<unsigned> ids;
-        std::vector<dynet::Expression> ret_embeddings;
+        std::vector<dy::Expression> ret_embeddings;
         for(auto itr = tokens.begin(); itr!=tokens.end(); ++itr) {
           auto id = token_to_id(*itr);
           ids.push_back(id);
@@ -57,14 +57,14 @@ namespace tg {
        * \param embedding the embedding
        * \return the token
        */
-      std::string readout(const dynet::Expression& embedding) const { return dict->convert(embedding_to_id(embedding)); }
+      std::string readout(const dy::Expression& embedding) const { return dict->convert(embedding_to_id(embedding)); }
 
       /**
        * get back a sentence from a list of embeddings
        * \param embeddings a list of embeddings
        * \return the sentence
        */
-      std::vector<std::string> readout(const std::vector<dynet::Expression>& embeddings) const {
+      std::vector<std::string> readout(const std::vector<dy::Expression>& embeddings) const {
         std::vector<std::string> ret;
         for(auto itr = embeddings.begin(); itr!=embeddings.end(); ++itr) {
           ret.push_back(readout(*itr));
@@ -105,7 +105,7 @@ namespace tg {
     protected:
       dynet::LookupParameter readout_table;
 
-      unsigned embedding_to_id(const dynet::Expression &embedding) const {
+      unsigned embedding_to_id(const dy::Expression &embedding) const {
 
         // slice the first vocab_size number of readout_table
         std::vector<unsigned> sampled_ids(dict->size());
@@ -117,7 +117,7 @@ namespace tg {
         return dy::argmax_index(dynet::reshape(logits, {(unsigned)sampled_ids.size()}));
       }
 
-      dynet::Expression compute_windowed_readout_loss(const dy::Expression& embedding_batch, const std::vector<unsigned>& oracles) const {
+      dy::Expression compute_windowed_readout_loss(const dy::Expression& embedding_batch, const std::vector<unsigned>& oracles) const {
         std::vector<unsigned> unique_oracles;
         std::vector<unsigned> remapped_oracles;
         {
@@ -144,7 +144,7 @@ namespace tg {
         return dynet::sum_batches(dynet::pickneglogsoftmax(logit_batch, remapped_oracles));
       }
 
-      dynet::Expression windowed_readout_loss(const std::vector<unsigned>& selected_ids) const {
+      dy::Expression windowed_readout_loss(const std::vector<unsigned>& selected_ids) const {
 
         // fetch the embeddings involved in sample
         auto embedding_batch = dynet::lookup(dy::cg(), lookup_table, selected_ids);
@@ -193,7 +193,7 @@ namespace tg {
 
         return loss;
       };
-      std::pair<dynet::Expression, dynet::Expression> lookup_with_sampled_loss(unsigned token_id) const {
+      std::pair<dy::Expression, dy::Expression> lookup_with_sampled_loss(unsigned token_id) const {
         auto embedding = lookup(token_id);
         return std::make_pair(embedding, compute_sampled_readout_loss(embedding, token_id));
       }

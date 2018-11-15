@@ -37,6 +37,7 @@
 namespace tg {
   namespace dy {
 
+
     /**
      * get the computation graph instance
      * \return
@@ -86,10 +87,9 @@ namespace tg {
 
     /**
      * destroy all previous declared Expressions
-     * the computation graph does not have garbage collection built-in
-     * so call this whenever you believe that all Expressions in the computation graph are not needed
+     * the computation graph have garbage collection built-in so as a user you don't need to call this explicitly
      */
-    inline void renew_cg() {
+    inline void _renew_cg() {
       _params_that_have_expr_in_cg().clear();
       _those_who_have_their_graph_started().clear();
       cg().clear();
@@ -99,6 +99,27 @@ namespace tg {
       }
     }
 
+    class Expression:public dynet::Expression {
+    public:
+      Expression():dynet::Expression(){increment_cnt();};
+      Expression(const dynet::Expression& x):dynet::Expression(x) {increment_cnt();};
+      Expression(dynet::Expression&& x):dynet::Expression(x) {increment_cnt();};
+      Expression &operator=(const dynet::Expression& x) {dynet::Expression::operator=(x); return *this;} ;
+      Expression &operator=(dynet::Expression&& x) {dynet::Expression::operator=(x); return *this;};
+      ~Expression(){
+        num_exprs()--;
+        if(num_exprs()==0) dy::_renew_cg();
+      }
+      static std::vector<dynet::Expression> vector_cast_to_base(const std::vector<Expression>& x) {
+        return std::vector<dynet::Expression>(x.begin(), x.end());
+      }
+      static std::vector<Expression> vector_cast_to_parent(const std::vector<dynet::Expression>& x) {
+        return std::vector<Expression>(x.begin(), x.end());
+      }
+    private:
+      static unsigned long& num_exprs() { static unsigned long _; return _;}
+      void increment_cnt() {num_exprs()++;};
+    };
 
     /**
      * call this before any other dynet related stuffs are called
@@ -137,7 +158,7 @@ namespace tg {
      * \param p the Parameter
      * \return the Expression
      */
-    inline const dynet::Expression& expr(const dynet::Parameter& p) {
+    inline dy::Expression expr(const dynet::Parameter& p) {
       _RETURN_CACHED_EXPR(&p, dynet::parameter(cg(), p))
     }
 
@@ -148,7 +169,7 @@ namespace tg {
      * \param p the Parameter
      * \return the const Expression
      */
-    inline const dynet::Expression& const_expr(const dynet::Parameter& p) {
+    inline dy::Expression const_expr(const dynet::Parameter& p) {
       _RETURN_CACHED_EXPR(&p, dynet::const_parameter(cg(), p))
     }
 
@@ -157,7 +178,7 @@ namespace tg {
      * \param value the scalar
      * \return the const expression
      */
-    inline dynet::Expression const_expr(float value) {
+    inline dy::Expression const_expr(float value) {
       return dynet::input(dy::cg(), value);
     }
 
@@ -166,7 +187,7 @@ namespace tg {
      * \param values the value of the expression
      * \return the const expression
      */
-    inline dynet::Expression const_expr(const std::vector<float>& values) {
+    inline dy::Expression const_expr(const std::vector<float>& values) {
       return dynet::input(dy::cg(), {(unsigned)values.size()}, values);
     }
 
@@ -175,7 +196,7 @@ namespace tg {
      * \param logits must be of dim{n}
      * \return
      */
-    inline unsigned argmax_index(const dynet::Expression& logits) {
+    inline unsigned argmax_index(const dy::Expression& logits) {
       auto logits_value = as_vector(dy::cg().incremental_forward(logits));
 
       float max_value = logits_value[0];
@@ -190,11 +211,11 @@ namespace tg {
       return max_index;
     }
 
-    inline dynet::real as_scalar(const dynet::Expression& expr) {
+    inline float as_scalar(const dy::Expression& expr) {
       return dynet::as_scalar(cg().forward(expr));
     }
 
-    inline std::vector<dynet::real> as_vector(const dynet::Expression& expr) {
+    inline std::vector<float> as_vector(const dy::Expression& expr) {
       return dynet::as_vector(cg().forward(expr));
     }
 

@@ -19,7 +19,7 @@ namespace tg {
     template<typename DATUM>
   class _mp_train_learner :private dynet::mp::ILearner<DATUM, unsigned> {
     public:
-      _mp_train_learner(unsigned num_workers, const std::vector<DATUM> &data, std::function<dynet::Expression(const DATUM &)> compute_loss, std::function<void(const std::exception&, const DATUM&)> on_error) :
+      _mp_train_learner(unsigned num_workers, const std::vector<DATUM> &data, std::function<dy::Expression(const DATUM &)> compute_loss, std::function<void(const std::exception&, const DATUM&)> on_error) :
           compute_loss(compute_loss), on_error(on_error) {
         if(data.empty()) return;
         compute_loss(data[0]); // for its side-effect only. to ensure that all lazy-initialized layers has been initialized before going parallel
@@ -37,9 +37,9 @@ namespace tg {
 
     private:
       virtual unsigned LearnFromDatum(const DATUM &datum, bool learn) {
-        dy::renew_cg();
+        dy::_renew_cg();
         try {
-          dynet::Expression loss = compute_loss(datum);
+          dy::Expression loss = compute_loss(datum);
           dy::train_on_loss(loss);
         }
         catch (const std::exception &e)
@@ -51,7 +51,7 @@ namespace tg {
 
       virtual void SaveModel() {}
 
-      std::function<dynet::Expression(const DATUM &)> compute_loss;
+      std::function<dy::Expression(const DATUM &)> compute_loss;
       std::function<void(const std::exception&, const DATUM&)> on_error;
     };
 
@@ -65,7 +65,7 @@ namespace tg {
      * \param onerror what to do when an error occured on a datum
      */
     template<typename DATUM>
-    void mp_train(unsigned num_workers, const std::vector<DATUM> &data, std::function<dynet::Expression(const DATUM &)> compute_loss, std::function<void(const std::exception&, const DATUM&)> on_error) {
+    void mp_train(unsigned num_workers, const std::vector<DATUM> &data, std::function<dy::Expression(const DATUM &)> compute_loss, std::function<void(const std::exception&, const DATUM&)> on_error) {
       _mp_train_learner<DATUM>(num_workers, data, compute_loss, on_error);
     }
     /**
@@ -77,7 +77,7 @@ namespace tg {
      * \param compute_loss how to compute loss given a datum
      */
     template<typename DATUM>
-    void mp_train(unsigned num_workers, const std::vector<DATUM> &data, std::function<dynet::Expression(const DATUM &)> compute_loss) {
+    void mp_train(unsigned num_workers, const std::vector<DATUM> &data, std::function<dy::Expression(const DATUM &)> compute_loss) {
       _mp_train_learner<DATUM>(num_workers, data, compute_loss, [](const std::exception& e, const DATUM& d){
         std::cerr << "skipped datum because of exception" << std::endl;
         std::cerr << e.what() << std::endl;

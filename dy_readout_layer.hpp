@@ -44,7 +44,7 @@ namespace tg {
        * \param embedding dim(1) tensor
        * \return the predicted label
        */
-      std::string readout(const dynet::Expression& embedding) {
+      std::string readout(const dy::Expression& embedding) {
         return dict.convert(dy::argmax_index(fc(embedding)));
       }
 
@@ -56,7 +56,7 @@ namespace tg {
        * \param oracle the desired label
        * \return the loss
        */
-      dynet::Expression compute_loss(const dynet::Expression& embedding, const std::string& oracle) {
+      dy::Expression compute_loss(const dy::Expression& embedding, const std::string& oracle) {
         if(size() > SAMPLED_READOUT_THRESHOLD) return sampled_readout_loss(embedding, oracle);
         return dy::pickneglogsoftmax(fc(embedding), get_internal_label_id(oracle));
       }
@@ -85,7 +85,7 @@ namespace tg {
        * \param label the label to represent
        * \return a dim(#-of-labels) tensor, all values are 0 except 1 at the position of internal label ID
        */
-      dynet::Expression one_hot(const std::string& label) const {
+      dy::Expression one_hot(const std::string& label) const {
         return dict.one_hot(label);
       }
 
@@ -122,7 +122,7 @@ namespace tg {
        * \param oracle the true answer
        * \return
        */
-      dynet::Expression sampled_readout_loss(const dynet::Expression& embedding, const std::string& oracle) {
+      dy::Expression sampled_readout_loss(const dy::Expression& embedding, const std::string& oracle) {
         std::vector<unsigned> sampled_ids(SAMPLED_READOUT_NUM_SAMPLES);
         auto oracle_id = get_internal_label_id(oracle);
         sampled_ids[0] = oracle_id;

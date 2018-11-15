@@ -22,16 +22,16 @@ namespace tg {
           : dim_in(0), dim_out(dim_out), W(), b() {
       }
 
-      dynet::Expression operator()(const dynet::Expression& x) {
+      dy::Expression operator()(const dy::Expression& x) {
         return forward(x);
       }
 
-      dynet::Expression forward(const dynet::Expression& x) {
+      dy::Expression forward(const dy::Expression& x) {
         ensure_init(x);
         return dy::expr(W)*x+dy::expr(b);
       }
 
-      dynet::Expression forward_given_output_positions(const dynet::Expression& x, const std::vector<unsigned> output_positions) {
+      dy::Expression forward_given_output_positions(const dy::Expression& x, const std::vector<unsigned> output_positions) {
         ensure_init(x);
         auto selected_W = dynet::select_rows(dy::expr(W), output_positions);
         auto selected_b = dynet::reshape(dynet::pick(dy::expr(b), output_positions), {(unsigned)output_positions.size()});
@@ -46,7 +46,7 @@ namespace tg {
       dynet::Parameter W;
       dynet::Parameter b;
 
-      void ensure_init(const dynet::Expression& input) {
+      void ensure_init(const dy::Expression& input) {
         if(dim_in != 0) return;
         dim_in = input.dim()[0];
         W = add_parameters({dim_out, dim_in});

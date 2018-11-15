@@ -40,7 +40,7 @@ int main() {
   });
 
   // compute embedding
-  dy::renew_cg();
+  dy::_renew_cg();
   auto embedding = dy::as_vector(embedding_lookup.lookup("king"));
 
   // output
