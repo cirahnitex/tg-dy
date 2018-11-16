@@ -14,11 +14,21 @@ using namespace tg;
 using namespace std;
 using namespace util;
 
+template<class T>
+void print_helper(const T& x, std::ostream& os=std::cout) {
+  for(const auto& t:x) {
+    os << t << " ";
+  }
+  os <<endl;
+}
+
 
 int main() {
-
-  vector<string> strs({"hello","world"});
-  stringstream ss;
+  dy::initialize();
+  auto arr1 = dy::const_expr({1,2,3});
+  auto arr2 = dy::const_expr({3,2,1});
+  auto arr3 = dy::const_expr({1,3,2});
+  print_helper(dy::as_vector(dy::max({arr1, arr2,arr3})));
 
   return 0;
 }

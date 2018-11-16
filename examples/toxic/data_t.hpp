@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include <vector>
 #include <json/json.h>
+#include <fstream>
+
 struct datum_t {
   std::vector<std::string> input;
   std::unordered_set<std::string> oracle;
@@ -40,5 +42,14 @@ struct data_t {
   }
 };
 
+data_t read_dataset(const std::string& path) {
+  using namespace std;
+  ifstream ifs(path);
+  Json::Value json;
+  Json::Reader().parse(ifs, json);
+  data_t ret;
+  ret.parse_json(json);
+  return ret;
+}
 
 #endif //DYNET_WRAPPER_DATA_T_HPP

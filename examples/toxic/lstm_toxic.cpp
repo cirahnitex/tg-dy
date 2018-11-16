@@ -1,6 +1,7 @@
 //
-// Created by YAN Yuchen on 11/12/2018.
+// Created by YAN Yuchen on 11/16/2018.
 //
+
 
 #include "data_t.hpp"
 #include "../../dy.hpp"
@@ -9,41 +10,27 @@
 
 using namespace std;
 using namespace tg;
-data_t read_dataset(const string& path) {
-  ifstream ifs(path);
-  Json::Value json;
-  Json::Reader().parse(ifs, json);
-  data_t ret;
-  ret.parse_json(json);
-  return ret;
-}
-vector<string> collect_frequent_tokens(const data_t& data, unsigned top_x=20000) {
+
+unordered_set<string> collect_frequent_tokens(const data_t& data, unsigned top_x=20000) {
   dy::frequent_token_collector collector;
   for(const auto& datum:data.data) {
     for(const auto& token:datum.input) {
       collector.add_occurence(token);
     }
   }
-  return collector.list_frequent_tokens(top_x);
+  auto ret = collector.list_frequent_tokens(top_x);
+  return unordered_set<string>(ret.begin(), ret.end());
 }
 
-class my_model {
+class lstm_toxic_model {
 public:
-  my_model(const unordered_set<string>& labels, const unordered_set<string>& vocab, const unordered_map<string, vector<float>>& init_embeddings, unsigned embedding_size)
-  :emb(embedding_size, vocab, [&](const string& token){return init_embeddings.at(token);}), conv0(embedding_size,3,1,false,false), conv1(embedding_size,3,1,true,false), conv2(embedding_size,3,1,true,false), fc(128), ro(labels){
+  lstm_toxic_model(const unordered_set<string>& labels, const unordered_set<string>& vocab, const unordered_map<string, vector<float>>& init_embeddings, unsigned embedding_size)
+    :emb(embedding_size, vocab, [&](const string& token){return init_embeddings.at(token);}), lstm(1, 15), ro(labels){
   }
 
   dy::Expression forward(const vector<string>& sentence) {
-    dy::Expression x;
-    x = dy::concatenate(emb.lookup(sentence, true),1);
-    x = dy::rectify(conv0.forward(x));
-    x = dy::maxpooling1d(x, 3, 1, false);
-    x = dy::rectify(conv1.forward(x));
-    x = dy::maxpooling1d(x, 3, 1, false);
-    x = dy::rectify(conv2.forward(x));
-    x = dy::max_dim(x, 1);
-    x = dy::tanh(fc.forward(x));
-    return x;
+    auto output_embs = lstm.forward(emb.lookup(sentence, true)).second;
+    return dy::max(output_embs);
   }
 
   unordered_set<string> predict(const vector<string>& sentence) {
@@ -54,13 +41,10 @@ public:
     return ro.compute_loss(forward(sentence), labels);
   }
 
-  EASY_SERIALZABLE(emb, conv0, conv1, conv2, fc, ro)
+  EASY_SERIALZABLE(emb, lstm, ro)
 private:
   dy::embedding_lookup emb;
-  dy::conv1d_layer conv0;
-  dy::conv1d_layer conv1;
-  dy::conv1d_layer conv2;
-  dy::linear_layer fc;
+  dy::vanilla_lstm lstm;
   dy::multi_readout_layer ro;
 };
 
@@ -85,9 +69,8 @@ int main() {
   const auto w2v = dy::import_word2vec(PATH_TO_WORD2VEC_FILE);
   cout << "initialze model" <<endl;
   dy::initialize();
-  my_model model(trainint_set.labels, unordered_set<string>(vocab.begin(), vocab.end()), w2v, 128);
-//  my_model model(vector<string>({"a","b"}), vector<string>({"a","b"}), unordered_map<string, vector<float>>(), 128);
-//  model.forward({"a","b","a","b"});
+  lstm_toxic_model model(trainint_set.labels, vocab, w2v, 128);
+
   cout << "training" <<endl;
   for(unsigned epoch = 0; epoch<10; epoch++) {
     cout << "epoch:"<< epoch <<endl;

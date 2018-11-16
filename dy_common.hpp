@@ -219,6 +219,9 @@ namespace tg {
       return dynet::as_vector(cg().forward(expr));
     }
 
+    inline dynet::Tensor as_tensor(const dy::Expression& expr) {
+      return cg().forward(expr);
+    }
   }
 }
 

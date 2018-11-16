@@ -43,6 +43,11 @@ namespace tg {
         cells.resize(num_stack);
       }
 
+      rnn(unsigned num_stack, unsigned hidden_dim): cells() {
+        cells.emplace_back(hidden_dim);
+        cells.resize(num_stack);
+      }
+
       /**
        * apply the RNN cell for a single time step
        * \param prev_state the previous cell state
