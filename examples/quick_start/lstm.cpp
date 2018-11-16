@@ -11,20 +11,20 @@ class simple_seq_to_seq_translation_model {
 public:
   static constexpr unsigned MAX_OUTPUT_SIZE = 128;
   static constexpr char END_OF_SENTENCE[] = "&eos;";
-  simple_seq_to_seq_translation_model(unsigned embedding_size, const unordered_set<string>& foreign_tokens, const unordered_set<string>& emit_tokens):embedding_size(embedding_size), emb_table(embedding_size, foreign_tokens), ro(), encoder(3),decoder(3) {
+  simple_seq_to_seq_translation_model(unsigned embedding_size, const unordered_set<string>& foreign_tokens, const unordered_set<string>& emit_tokens):embedding_size(embedding_size), foreign_lookup_table(embedding_size, foreign_tokens), emit_lookup_table(), encoder(3),decoder(3) {
     unordered_set<string> enhanced_l1_tokens = emit_tokens;
     enhanced_l1_tokens.insert(END_OF_SENTENCE);
-    ro = dy::mono_lookup_readout(embedding_size, enhanced_l1_tokens);
+    emit_lookup_table = dy::mono_lookup_readout(embedding_size, enhanced_l1_tokens);
   };
 
   vector<string> predict(const vector<string>& foreign_sentence) {
-    auto sentence_embs = emb_table.lookup(foreign_sentence);
+    auto sentence_embs = foreign_lookup_table.lookup(foreign_sentence);
     auto cell_state = encoder.forward(sentence_embs).first;
     dy::Expression curr_output_emb = dy::zeros({embedding_size});
     vector<string> ret;
     for(unsigned i=0; i<MAX_OUTPUT_SIZE; i++) {
       tie(cell_state, curr_output_emb) = decoder.forward(cell_state, curr_output_emb);
-      auto output_token = ro.readout(curr_output_emb);
+      auto output_token = emit_lookup_table.readout(curr_output_emb);
       if(output_token == END_OF_SENTENCE) {
         break;
       }
@@ -34,27 +34,30 @@ public:
   }
 
   dy::Expression compute_loss(const vector<string>& foreign_sentence, const vector<string>& emit_sentence) {
-    auto [sentence_embs, foreign_lookup_loss] = emb_table.read_sentence_with_loss(foreign_sentence);
+
+    // encode foreign sentence into a cell state
+    auto [sentence_embs, foreign_lookup_loss] = foreign_lookup_table.read_sentence_with_loss(foreign_sentence);
     auto cell_state = encoder.forward(sentence_embs).first;
-    auto [emit_embs, emit_lookup_loss] = ro.read_sentence_with_loss(emit_sentence);
-    auto emit_with_ending_eos = emit_sentence;
-    emit_with_ending_eos.push_back(END_OF_SENTENCE);
 
-    vector<dy::Expression> output_embs(emit_with_ending_eos.size());
-    for(unsigned i=0; i<emit_with_ending_eos.size(); i++) {
-      string oracle_token = emit_with_ending_eos[i];
-      auto input_emb = i==0?dy::zeros({embedding_size}):emit_embs[i-1];
-      tie(cell_state, output_embs[i]) = decoder.forward(cell_state, input_emb);
-    }
+    // input for the decoder is the emit embeddings with leading zero
+    auto [emit_embs, emit_lookup_loss] = emit_lookup_table.read_sentence_with_loss(emit_sentence);
+    vector<dy::Expression> inputs_to_decoder({dy::zeros({embedding_size})});
+    std::copy(emit_embs.begin(), emit_embs.end(), back_inserter(inputs_to_decoder));
 
-    return ro.compute_windowed_loss(output_embs, emit_with_ending_eos) + foreign_lookup_loss + emit_lookup_loss;
+    // oracle for the decoder is the emit sentence embedding with ending EOS
+    auto oracle_for_decoder = emit_sentence;
+    oracle_for_decoder.push_back(END_OF_SENTENCE);
+
+    // forward and compute loss
+    auto output_embs = decoder.forward(cell_state, inputs_to_decoder).second;
+    return emit_lookup_table.compute_windowed_loss(output_embs, oracle_for_decoder) + foreign_lookup_loss + emit_lookup_loss;
   }
 
-  EASY_SERIALZABLE(embedding_size, emb_table, ro, encoder, decoder)
+  EASY_SERIALZABLE(embedding_size, foreign_lookup_table, emit_lookup_table, encoder, decoder)
 private:
   unsigned embedding_size;
-  dy::mono_lookup_readout emb_table;
-  dy::mono_lookup_readout ro;
+  dy::mono_lookup_readout foreign_lookup_table;
+  dy::mono_lookup_readout emit_lookup_table;
   dy::vanilla_lstm encoder;
   dy::vanilla_lstm decoder;
 };
