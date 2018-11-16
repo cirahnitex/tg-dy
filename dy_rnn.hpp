@@ -116,13 +116,15 @@ namespace tg {
 
       vanilla_lstm_cell_t &operator=(vanilla_lstm_cell_t &&) = default;
 
+      vanilla_lstm_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), forget_gate(hidden_dim), input_gate(hidden_dim), input_fc(hidden_dim), output_gate(hidden_dim) {};
+
       virtual std::pair<lstm_cell_state, dy::Expression>
       forward(const lstm_cell_state &prev_state, const dy::Expression &x) {
         ensure_init(x);
         auto cell_state = prev_state.cell_state;
-        if (cell_state.pg == nullptr) cell_state = zeros(x.dim());
+        if (cell_state.pg == nullptr) cell_state = zeros({hidden_dim});
         auto hidden_state = prev_state.hidden_state;
-        if (hidden_state.pg == nullptr) hidden_state = zeros(x.dim());
+        if (hidden_state.pg == nullptr) hidden_state = zeros({hidden_dim});
 
         auto concat = concatenate({hidden_state, x});
         auto after_forget = dy::cmult(cell_state, dy::logistic(forget_gate.forward(concat)));
@@ -169,13 +171,15 @@ namespace tg {
 
       coupled_lstm_cell_t &operator=(coupled_lstm_cell_t &&) = default;
 
+      coupled_lstm_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), forget_gate(hidden_dim), input_fc(hidden_dim), output_gate(hidden_dim) {};
+
       virtual std::pair<lstm_cell_state, dy::Expression>
       forward(const lstm_cell_state &prev_state, const dy::Expression &x) {
         ensure_init(x);
         auto cell_state = prev_state.cell_state;
-        if (cell_state.pg == nullptr) cell_state = zeros(x.dim());
+        if (cell_state.pg == nullptr) cell_state = zeros({hidden_dim});
         auto hidden_state = prev_state.hidden_state;
-        if (hidden_state.pg == nullptr) hidden_state = zeros(x.dim());
+        if (hidden_state.pg == nullptr) hidden_state = zeros({hidden_dim});
 
         auto concat = concatenate({hidden_state, x});
         auto forget_coef = dy::logistic(forget_gate.forward(concat));
@@ -222,6 +226,8 @@ namespace tg {
       gru_cell_t &operator=(const gru_cell_t &) = default;
 
       gru_cell_t &operator=(gru_cell_t &&) = default;
+
+      gru_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), pre_input_gate(hidden_dim), input_fc(hidden_dim), output_gate(hidden_dim) {};
 
       virtual std::pair<dy::Expression, dy::Expression>
       forward(const dy::Expression &prev_state, const dy::Expression &x) {

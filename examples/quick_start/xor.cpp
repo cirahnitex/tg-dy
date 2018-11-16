@@ -68,7 +68,6 @@ int main() {
 
   cout << "predicting using loaded model" <<endl;
   for(const auto& datum:data) {
-    dy::_renew_cg();
     cout << datum[0] << " " << datum[1] << " => "<< new_model.predict(datum[0], datum[1]) <<endl;
   }
 }

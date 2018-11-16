@@ -29,15 +29,13 @@ dy::Expression vector_norm(const dy::Expression &x) {
 int main() {
   dy::initialize();
 
-  {
-    const auto big_num = dy::const_expr(-110);
-    const auto answers = dy::const_expr(1);
-    const auto sigmoid = dy::binary_log_loss(dy::logistic(big_num), answers);
-    for(const auto& num:dy::as_vector(sigmoid)) {
-      cout << num << " ";
-    }
-    cout <<endl;
+  const auto big_num = dy::const_expr(-110);
+  const auto answers = dy::const_expr(1);
+  const auto sigmoid = dy::binary_log_loss(dy::logistic(big_num), answers);
+  for(const auto& num:dy::as_vector(sigmoid)) {
+    cout << num << " ";
   }
+  cout <<endl;
 
 
   return 0;

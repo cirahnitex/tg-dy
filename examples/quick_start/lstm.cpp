@@ -18,7 +18,7 @@ public:
   };
 
   vector<string> predict(const vector<string>& foreign_sentence) {
-    auto sentence_embs = emb_table.read_sentence(foreign_sentence);
+    auto sentence_embs = emb_table.lookup(foreign_sentence);
     auto cell_state = encoder.forward(sentence_embs).first;
     dy::Expression curr_output_emb = dy::zeros({embedding_size});
     vector<string> ret;
@@ -107,14 +107,12 @@ int main() {
   simple_seq_to_seq_translation_model model(EMBEDDING_SIZE, foreign_vocab, emit_vocab);
   for(unsigned epoch = 0; epoch < 1000; epoch ++) {
     for(const auto& datum:training_set) {
-      dy::_renew_cg();
       auto loss = model.compute_loss(ECMAScript_string_utils::split(datum.foreign), ECMAScript_string_utils::split(datum.emit));
       dy::train_on_loss(loss);
     }
   }
   cout << "predicting" << endl;
   for(const auto& datum:training_set) {
-    dy::_renew_cg();
     print_helper(model.predict(ECMAScript_string_utils::split(datum.foreign)));
   }
 }
