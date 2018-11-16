@@ -43,7 +43,7 @@ namespace tg {
         cells.resize(num_stack);
       }
 
-      rnn(unsigned num_stack, unsigned hidden_dim): cells() {
+      rnn(unsigned num_stack, unsigned hidden_dim) : cells() {
         cells.emplace_back(hidden_dim);
         cells.resize(num_stack);
       }
@@ -105,6 +105,62 @@ namespace tg {
       std::vector<RNN_CELL_T> cells;
     };
 
+    template<class RNN_CELL_T, class CELL_STATE_T>
+    class bidirectional_rnn {
+      bidirectional_rnn() = default;
+      bidirectional_rnn(const bidirectional_rnn&) = default;
+      bidirectional_rnn(bidirectional_rnn&&) = default;
+      bidirectional_rnn &operator=(const bidirectional_rnn&) = default;
+      bidirectional_rnn &operator=(bidirectional_rnn&&) = default;
+      explicit bidirectional_rnn(unsigned num_stack) : forward_rnn(num_stack), backward_rnn(num_stack) {}
+      bidirectional_rnn(unsigned num_stack, unsigned hidden_dim) : forward_rnn(num_stack, hidden_dim), backward_rnn(num_stack, hidden_dim) {}
+      struct stacked_cell_state {
+        stacked_cell_state() = default;
+        stacked_cell_state(const stacked_cell_state&) = default;
+        stacked_cell_state(stacked_cell_state&&) = default;
+        stacked_cell_state &operator=(const stacked_cell_state&) = default;
+        stacked_cell_state &operator=(stacked_cell_state&&) = default;
+        typedef typename rnn<RNN_CELL_T, CELL_STATE_T>::stacked_cell_state inner_cell_state;
+        stacked_cell_state(inner_cell_state&& forward, inner_cell_state&& backward):forward(forward), backward(backward) {};
+        inner_cell_state forward, backward;
+      };
+
+      /**
+       * apply the bidirectional-RNN for multiple time steps
+       * \param prev_state the previous cell state
+       * \param x_sequence a list of inputs to apply, in chronological order
+       * \return 0) the cell state after the last time step
+       *         1) the list of output in chronological order
+       */
+      std::pair<stacked_cell_state, std::vector<dy::Expression>>
+      forward(const stacked_cell_state &prev_state, const std::vector<dy::Expression> &x_sequence) {
+        auto [forward_cell_state, forward_ys] = forward_rnn.forward(prev_state, x_sequence);
+        auto reversed_xs = x_sequence;
+        std::reverse(reversed_xs.begin(), reversed_xs.end());
+        auto [backward_cell_state, backward_ys] = backward_rnn.forward(prev_state, reversed_xs);
+        std::reverse(backward_ys.begin(), backward_ys.end());
+        std::vector<dy::Expression> ret;
+        for(unsigned i=0; i<forward_ys.size(); i++) {
+          ret.push_back(dy::concatenate(forward_ys[i], backward_ys[i]));
+        }
+        return std::make_pair(stacked_cell_state(std::move(forward_cell_state), std::move(backward_cell_state)), std::move(ret));
+      }
+
+      /**
+       * apply the bidirectional-RNN for multiple time steps
+       * \param x_sequence a list of inputs to apply, in chronological order
+       * \return 0) the cell state after the last time step
+       *         1) the list of output in chronological order
+       */
+      std::pair<stacked_cell_state, std::vector<dy::Expression>>
+      forward(const std::vector<dy::Expression> &x_sequence) {
+        return forward(stacked_cell_state(), x_sequence);
+      }
+    private:
+      rnn<RNN_CELL_T, CELL_STATE_T> forward_rnn;
+      rnn<RNN_CELL_T, CELL_STATE_T> backward_rnn;
+    };
+
     struct lstm_cell_state {
       Expression cell_state, hidden_state;
     };
@@ -121,7 +177,9 @@ namespace tg {
 
       vanilla_lstm_cell_t &operator=(vanilla_lstm_cell_t &&) = default;
 
-      vanilla_lstm_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), forget_gate(hidden_dim), input_gate(hidden_dim), input_fc(hidden_dim), output_gate(hidden_dim) {};
+      vanilla_lstm_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), forget_gate(hidden_dim),
+                                                 input_gate(hidden_dim), input_fc(hidden_dim),
+                                                 output_gate(hidden_dim) {};
 
       virtual std::pair<lstm_cell_state, dy::Expression>
       forward(const lstm_cell_state &prev_state, const dy::Expression &x) {
@@ -163,6 +221,7 @@ namespace tg {
     };
 
     typedef rnn<vanilla_lstm_cell_t, lstm_cell_state> vanilla_lstm;
+    typedef bidirectional_rnn<vanilla_lstm_cell_t, lstm_cell_state> bidirectional_vanilla_lstm;
 
     class coupled_lstm_cell_t : public rnn_cell_t<lstm_cell_state> {
     public:
@@ -176,7 +235,8 @@ namespace tg {
 
       coupled_lstm_cell_t &operator=(coupled_lstm_cell_t &&) = default;
 
-      coupled_lstm_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), forget_gate(hidden_dim), input_fc(hidden_dim), output_gate(hidden_dim) {};
+      coupled_lstm_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), forget_gate(hidden_dim), input_fc(hidden_dim),
+                                                 output_gate(hidden_dim) {};
 
       virtual std::pair<lstm_cell_state, dy::Expression>
       forward(const lstm_cell_state &prev_state, const dy::Expression &x) {
@@ -218,7 +278,7 @@ namespace tg {
     };
 
     typedef rnn<coupled_lstm_cell_t, lstm_cell_state> coupled_lstm;
-
+    typedef bidirectional_rnn<coupled_lstm_cell_t, lstm_cell_state> bidirectional_coupled_lstm;
 
     class gru_cell_t : public rnn_cell_t<dy::Expression> {
     public:
@@ -232,18 +292,19 @@ namespace tg {
 
       gru_cell_t &operator=(gru_cell_t &&) = default;
 
-      gru_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), pre_input_gate(hidden_dim), input_fc(hidden_dim), output_gate(hidden_dim) {};
+      gru_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), pre_input_gate(hidden_dim), input_fc(hidden_dim),
+                                        output_gate(hidden_dim) {};
 
       virtual std::pair<dy::Expression, dy::Expression>
       forward(const dy::Expression &prev_state, const dy::Expression &x) {
         ensure_init(x);
-        auto hidden = (prev_state.pg == nullptr)?dy::zeros({hidden_dim}):prev_state;
+        auto hidden = (prev_state.pg == nullptr) ? dy::zeros({hidden_dim}) : prev_state;
         auto input_for_gates = dy::concatenate({hidden, x});
         auto pre_input_gate_coef = dy::logistic(pre_input_gate.forward(input_for_gates));
         auto output_gate_coef = dy::logistic(output_gate.forward(input_for_gates));
-        auto gated_concat = dy::concatenate({dy::cmult(hidden, pre_input_gate_coef),x});
+        auto gated_concat = dy::concatenate({dy::cmult(hidden, pre_input_gate_coef), x});
         auto output_candidate = dy::tanh(input_fc.forward(gated_concat));
-        auto after_forget = dy::cmult(hidden, 1-output_gate_coef);
+        auto after_forget = dy::cmult(hidden, 1 - output_gate_coef);
         auto output_hidden = after_forget + dy::cmult(output_gate_coef, output_candidate);
         return std::make_pair(output_hidden, output_hidden);
       }
@@ -265,7 +326,8 @@ namespace tg {
       linear_layer output_gate;
     };
 
-    typedef rnn<coupled_lstm_cell_t, lstm_cell_state> coupled_lstm;
+    typedef rnn<gru_cell_t, dy::Expression> gru;
+    typedef bidirectional_rnn<gru_cell_t, dy::Expression> bidirectional_gru;
   }
 }
 #endif //DYNET_WRAPPER_DY_LSTM_HPP
