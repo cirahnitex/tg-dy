@@ -107,6 +107,7 @@ namespace tg {
 
     template<class RNN_CELL_T, class CELL_STATE_T>
     class bidirectional_rnn {
+    public:
       bidirectional_rnn() = default;
       bidirectional_rnn(const bidirectional_rnn&) = default;
       bidirectional_rnn(bidirectional_rnn&&) = default;
@@ -114,48 +115,40 @@ namespace tg {
       bidirectional_rnn &operator=(bidirectional_rnn&&) = default;
       explicit bidirectional_rnn(unsigned num_stack) : forward_rnn(num_stack), backward_rnn(num_stack) {}
       bidirectional_rnn(unsigned num_stack, unsigned hidden_dim) : forward_rnn(num_stack, hidden_dim), backward_rnn(num_stack, hidden_dim) {}
-      struct stacked_cell_state {
-        stacked_cell_state() = default;
-        stacked_cell_state(const stacked_cell_state&) = default;
-        stacked_cell_state(stacked_cell_state&&) = default;
-        stacked_cell_state &operator=(const stacked_cell_state&) = default;
-        stacked_cell_state &operator=(stacked_cell_state&&) = default;
-        typedef typename rnn<RNN_CELL_T, CELL_STATE_T>::stacked_cell_state inner_cell_state;
-        stacked_cell_state(inner_cell_state&& forward, inner_cell_state&& backward):forward(forward), backward(backward) {};
-        inner_cell_state forward, backward;
-      };
+      typedef typename rnn<RNN_CELL_T, CELL_STATE_T>::stacked_cell_state inner_cell_state;
 
       /**
-       * apply the bidirectional-RNN for multiple time steps
-       * \param prev_state the previous cell state
-       * \param x_sequence a list of inputs to apply, in chronological order
-       * \return 0) the cell state after the last time step
-       *         1) the list of output in chronological order
+       * apply the bidirectional-RNN to a sequence of time steps
+       * \param x_sequence a list of inputs to apply
+       * \return the outputs for each time step, concatenating outputs from both direction
        */
-      std::pair<stacked_cell_state, std::vector<dy::Expression>>
-      forward(const stacked_cell_state &prev_state, const std::vector<dy::Expression> &x_sequence) {
-        auto [forward_cell_state, forward_ys] = forward_rnn.forward(prev_state, x_sequence);
+      std::vector<dy::Expression>
+      forward_output_sequence(const std::vector<dy::Expression> &x_sequence) {
+        auto forward_ys= forward_rnn.forward(inner_cell_state(), x_sequence).second;
         auto reversed_xs = x_sequence;
         std::reverse(reversed_xs.begin(), reversed_xs.end());
-        auto [backward_cell_state, backward_ys] = backward_rnn.forward(prev_state, reversed_xs);
+        auto backward_ys = backward_rnn.forward(inner_cell_state(), reversed_xs).second;
         std::reverse(backward_ys.begin(), backward_ys.end());
         std::vector<dy::Expression> ret;
         for(unsigned i=0; i<forward_ys.size(); i++) {
           ret.push_back(dy::concatenate(forward_ys[i], backward_ys[i]));
         }
-        return std::make_pair(stacked_cell_state(std::move(forward_cell_state), std::move(backward_cell_state)), std::move(ret));
+        return ret;
       }
 
       /**
-       * apply the bidirectional-RNN for multiple time steps
-       * \param x_sequence a list of inputs to apply, in chronological order
-       * \return 0) the cell state after the last time step
-       *         1) the list of output in chronological order
+       * apply the bidirectional-RNN to a sequence of time steps
+       * \param x_sequence a list of inputs to apply
+       * \return concatenating the final output from both direction. i.e. forward output for t[-1] and reversed output for t[0]
        */
-      std::pair<stacked_cell_state, std::vector<dy::Expression>>
-      forward(const std::vector<dy::Expression> &x_sequence) {
-        return forward(stacked_cell_state(), x_sequence);
+      dy::Expression forward_output_final(const std::vector<dy::Expression> &x_sequence) {
+        auto forward_ys= forward_rnn.forward(inner_cell_state(), x_sequence).second;
+        auto reversed_xs = x_sequence;
+        std::reverse(reversed_xs.begin(), reversed_xs.end());
+        auto backward_ys = backward_rnn.forward(inner_cell_state(), reversed_xs).second;
+        return dy::concatenate({forward_ys.back(), backward_ys.back()});
       }
+
     private:
       rnn<RNN_CELL_T, CELL_STATE_T> forward_rnn;
       rnn<RNN_CELL_T, CELL_STATE_T> backward_rnn;

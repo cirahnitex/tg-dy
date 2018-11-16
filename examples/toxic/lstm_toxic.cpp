@@ -29,7 +29,8 @@ public:
   }
 
   dy::Expression forward(const vector<string>& sentence) {
-    auto output_embs = lstm.forward(emb.lookup(sentence, true)).second;
+//    auto output_embs = lstm.forward(emb.lookup(sentence, true)).second;
+    auto output_embs = lstm.forward_output_sequence(emb.lookup(sentence, true));
     return dy::max(output_embs);
   }
 
@@ -44,7 +45,8 @@ public:
   EASY_SERIALZABLE(emb, lstm, ro)
 private:
   dy::embedding_lookup emb;
-  dy::vanilla_lstm lstm;
+//  dy::vanilla_lstm lstm;
+  dy::bidirectional_vanilla_lstm lstm;
   dy::multi_readout_layer ro;
 };
 
