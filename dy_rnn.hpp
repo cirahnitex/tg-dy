@@ -131,7 +131,7 @@ namespace tg {
         std::reverse(backward_ys.begin(), backward_ys.end());
         std::vector<dy::Expression> ret;
         for(unsigned i=0; i<forward_ys.size(); i++) {
-          ret.push_back(dy::concatenate(forward_ys[i], backward_ys[i]));
+          ret.push_back(dy::concatenate({forward_ys[i], backward_ys[i]}));
         }
         return ret;
       }
@@ -181,7 +181,6 @@ namespace tg {
         if (cell_state.pg == nullptr) cell_state = zeros({hidden_dim});
         auto hidden_state = prev_state.hidden_state;
         if (hidden_state.pg == nullptr) hidden_state = zeros({hidden_dim});
-
         auto concat = concatenate({hidden_state, x});
         auto after_forget = dy::cmult(cell_state, dy::logistic(forget_gate.forward(concat)));
         auto input_candidate = dy::tanh(input_fc.forward(concat));

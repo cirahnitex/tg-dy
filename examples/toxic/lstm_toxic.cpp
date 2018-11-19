@@ -11,7 +11,7 @@
 using namespace std;
 using namespace tg;
 
-unordered_set<string> collect_frequent_tokens(const data_t& data, unsigned top_x=20000) {
+unordered_set<string> collect_frequent_tokens(const dataset_t& data, unsigned top_x=20000) {
   dy::frequent_token_collector collector;
   for(const auto& datum:data.data) {
     for(const auto& token:datum.input) {

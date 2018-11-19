@@ -25,7 +25,7 @@ struct datum_t {
   }
 };
 
-struct data_t {
+struct dataset_t {
   std::unordered_set<std::string> labels;
   std::vector<datum_t> data;
   void parse_json(const Json::Value& json) {
@@ -42,12 +42,12 @@ struct data_t {
   }
 };
 
-data_t read_dataset(const std::string& path) {
+dataset_t read_dataset(const std::string& path) {
   using namespace std;
   ifstream ifs(path);
   Json::Value json;
   Json::Reader().parse(ifs, json);
-  data_t ret;
+  dataset_t ret;
   ret.parse_json(json);
   return ret;
 }

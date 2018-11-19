@@ -25,10 +25,7 @@ void print_helper(const T& x, std::ostream& os=std::cout) {
 
 int main() {
   dy::initialize();
-  auto arr1 = dy::const_expr({1,2,3});
-  auto arr2 = dy::const_expr({3,2,1});
-  auto arr3 = dy::const_expr({1,3,2});
-  print_helper(dy::as_vector(dy::max({arr1, arr2,arr3})));
-
+  auto z = dy::zeros({15});
+  cout << dy::as_tensor(z) << endl;
   return 0;
 }

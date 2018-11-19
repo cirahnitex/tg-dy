@@ -71,7 +71,7 @@ namespace tg {
  *
  * \return A scalar expression (with a potential batch dimension)
  */
-    Expression moment_elems(const Expression &x, unsigned r) { return dynet::moment_elems(x, r); }
+    inline Expression moment_elems(const Expression &x, unsigned r) { return dynet::moment_elems(x, r); }
 
 /**
  * \ingroup arithmeticoperations
@@ -118,7 +118,7 @@ namespace tg {
  *
  * \return An expression with a single batch
  */
-    Expression moment_batches(const Expression &x, unsigned r) { return dynet::moment_batches(x, r); }
+    inline Expression moment_batches(const Expression &x, unsigned r) { return dynet::moment_batches(x, r); }
 
 /**
  * \ingroup arithmeticoperations
@@ -153,7 +153,7 @@ namespace tg {
  *
  * \return An expression with |d| less dimensions and possibly dropped batch dimension
  */
-    Expression sum_dim(const Expression &x, const std::vector<unsigned> &dims, bool b = false) {
+    inline Expression sum_dim(const Expression &x, const std::vector<unsigned> &dims, bool b = false) {
       return dynet::sum_dim(x, dims, b);
     }
 
@@ -172,7 +172,7 @@ namespace tg {
  *
  * \return An expression of the same shape as the input
  */
-    Expression cumsum(const Expression &x, unsigned d) { return dynet::cumsum(x, d); }
+    inline Expression cumsum(const Expression &x, unsigned d) { return dynet::cumsum(x, d); }
 
 /**
  * \ingroup arithmeticoperations

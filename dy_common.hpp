@@ -37,12 +37,41 @@
 namespace tg {
   namespace dy {
 
+    inline bool& _is_initialized() {
+      static bool _ = false; return _;
+    }
+
+    /**
+     * call this before any other dynet related stuffs are called
+     */
+    inline void initialize() {
+      if(_is_initialized()) return;
+      std::vector<std::string> arguments = {"", "--dynet-mem=512"};
+
+      std::vector<char*> argv;
+      for (const auto& arg : arguments)
+        argv.push_back((char*)arg.data());
+      argv.push_back(nullptr);
+
+      int argc = (int)argv.size() - 1;
+      char** argv2 = argv.data();
+      auto dynet_params = dynet::extract_dynet_params(argc, argv2, true);
+      dynet::initialize(dynet_params);
+
+      // dynet internally uses the mt1997 RNG, but with one exception.
+      // in interprocess, when generating queue names, it uses rand() instead of mt1997 RNG
+      // so we also need to randomize this
+      // otherwise you cannot have multiple dynet program running on the same machine! queue name clash!
+      srand(dynet_params.random_seed);
+      _is_initialized() = true;
+    }
 
     /**
      * get the computation graph instance
      * \return
      */
     inline dynet::ComputationGraph& cg() {
+      dy::initialize();
       static dynet::ComputationGraph _cg;
       return _cg;
     }
@@ -121,29 +150,6 @@ namespace tg {
       void increment_cnt() {num_exprs()++;};
     };
 
-    /**
-     * call this before any other dynet related stuffs are called
-     */
-    inline void initialize() {
-      std::vector<std::string> arguments = {"", "--dynet-mem=2048"};
-
-      std::vector<char*> argv;
-      for (const auto& arg : arguments)
-        argv.push_back((char*)arg.data());
-      argv.push_back(nullptr);
-
-      int argc = (int)argv.size() - 1;
-      char** argv2 = argv.data();
-      auto dynet_params = dynet::extract_dynet_params(argc, argv2, true);
-      dynet::initialize(dynet_params);
-
-      // dynet internally uses the mt1997 RNG, but with one exception.
-      // in interprocess, when generating queue names, it uses rand() instead of mt1997 RNG
-      // so we also need to randomize this
-      // otherwise you cannot have multiple dynet program running on the same machine! queue name clash!
-      srand(dynet_params.random_seed);
-    }
-
     inline dynet::Parameter add_parameters(const dynet::Dim& dim) {
       return pc().add_parameters(dim);
     }
@@ -183,12 +189,22 @@ namespace tg {
     }
 
     /**
-     * create a const expression whose value is a dim(n) tensor
+     * create a const dim(n) tensor expression
      * \param values the value of the expression
      * \return the const expression
      */
     inline dy::Expression const_expr(const std::vector<float>& values) {
       return dynet::input(dy::cg(), {(unsigned)values.size()}, values);
+    }
+
+    /**
+     * create a const tensor expression
+     * \param values the values of the expression
+     * \param dim the desired dimension
+     * \return the const expression
+     */
+    inline dy::Expression const_expr(const std::vector<float>& values, const dynet::Dim& dim) {
+      return dynet::input(dy::cg(), dim, values);
     }
 
     /**
