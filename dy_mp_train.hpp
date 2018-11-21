@@ -17,30 +17,30 @@ namespace tg {
      * \tparam DATUM represents a single data item
      */
     template<typename DATUM>
-  class _mp_train_learner :private dynet::mp::ILearner<DATUM, unsigned> {
+  class _mp_train_learner :private dynet::mp::ILearner<DATUM, float> {
     public:
-      _mp_train_learner(unsigned num_workers, const std::vector<DATUM> &data, std::function<dy::Expression(const DATUM &)> compute_loss, std::function<void(const std::exception&, const DATUM&)> on_error) :
-          compute_loss(compute_loss), on_error(on_error) {
-        if(data.empty()) return;
-        compute_loss(data[0]); // for its side-effect only. to ensure that all lazy-initialized layers has been initialized before going parallel
-        if(num_workers > 1) {
-          dynet::mp::run_mp_minibatch(num_workers, this, data);
+      _mp_train_learner(unsigned num_workers, unsigned num_epoches, const std::vector<DATUM> &training_set,  const std::vector<DATUM> &dev_set, std::function<dy::Expression(const DATUM &)> compute_loss, std::function<void(const std::exception&, const DATUM&)> on_error, std::function<void()> save) :
+          compute_loss(compute_loss), on_error(on_error), save(save) {
+        if(training_set.empty()) return;
+        compute_loss(training_set[0]); // for its side-effect only. to ensure that all lazy-initialized layers has been initialized before going parallel
+        if(num_workers<=1) {
+          dynet::mp::run_single_process(this, &dy::trainer(), training_set, dev_set,num_epoches,dev_set.size(),dev_set.size(), 1);
         }
         else {
-          for(const auto& datum:data) {
-            LearnFromDatum(datum, true);
-          }
+          dynet::mp::run_multi_process(num_workers, this, &dy::trainer(), training_set, dev_set,num_epoches,dev_set.size(),dev_set.size());
         }
+
       }
 
       virtual ~_mp_train_learner() {}
 
     private:
-      virtual unsigned LearnFromDatum(const DATUM &datum, bool learn) {
-        dy::_renew_cg();
+      virtual float LearnFromDatum(const DATUM &datum, bool learn) {
         try {
           dy::Expression loss = compute_loss(datum);
-          dy::train_on_loss(loss);
+          float ret = dy::as_scalar(loss);
+          if(learn) dy::cg().backward(loss);
+          return ret;
         }
         catch (const std::exception &e)
         {
@@ -49,39 +49,62 @@ namespace tg {
         return 0;
       }
 
-      virtual void SaveModel() {}
+      virtual void SaveModel() {save();}
 
       std::function<dy::Expression(const DATUM &)> compute_loss;
       std::function<void(const std::exception&, const DATUM&)> on_error;
+      std::function<void()> save;
     };
 
     /**
      * data-parallel training.
      * this function returns after all the data have finished training
-     * \tparam DATUM represents a single piece of data
+     * \tparam DATUM type of a single datum
      * \param num_workers number of parallel processes. 1 means single process.
-     * \param data the list of data
-     * \param compute_loss how to compute loss given a datum
-     * \param onerror what to do when an error occured on a datum
+     * \param num_epoches number of epoches
+     * \param training_set all training data
+     * \param dev_set all dev data
+     * \param compute_loss a function that accepts a datum and returns the loss
+     * \param on_error how to report an exception
+     * \param on_save how to save your model
      */
     template<typename DATUM>
-    void mp_train(unsigned num_workers, const std::vector<DATUM> &data, std::function<dy::Expression(const DATUM &)> compute_loss, std::function<void(const std::exception&, const DATUM&)> on_error) {
-      _mp_train_learner<DATUM>(num_workers, data, compute_loss, on_error);
+    void mp_train(unsigned num_workers, unsigned num_epoches, const std::vector<DATUM> &training_set, const std::vector<DATUM> &dev_set, std::function<dy::Expression(const DATUM &)> compute_loss, std::function<void(const std::exception&, const DATUM&)> on_error, std::function<void()> save) {
+      _mp_train_learner<DATUM>(num_workers, num_epoches, training_set, dev_set, compute_loss, on_error, save);
     }
+
     /**
      * data-parallel training.
      * this function returns after all the data have finished training
-     * \tparam DATUM represents a single piece of data
+     * \tparam DATUM type of a single datum
      * \param num_workers number of parallel processes. 1 means single process.
-     * \param data the list of data
-     * \param compute_loss how to compute loss given a datum
+     * \param num_epoches number of epoches
+     * \param training_set all training data
+     * \param dev_set all dev data
+     * \param compute_loss a function that accepts a datum and returns the loss
+     * \param on_error how to report an exception
      */
     template<typename DATUM>
-    void mp_train(unsigned num_workers, const std::vector<DATUM> &data, std::function<dy::Expression(const DATUM &)> compute_loss) {
-      _mp_train_learner<DATUM>(num_workers, data, compute_loss, [](const std::exception& e, const DATUM& d){
+    void mp_train(unsigned num_workers, unsigned num_epoches, const std::vector<DATUM> &training_set, const std::vector<DATUM> &dev_set, std::function<dy::Expression(const DATUM &)> compute_loss, std::function<void(const std::exception&, const DATUM&)> on_error) {
+      _mp_train_learner<DATUM>(num_workers, num_epoches, training_set, dev_set, compute_loss, on_error, [](){});
+    }
+
+    /**
+     * data-parallel training.
+     * this function returns after all the data have finished training
+     * \tparam DATUM type of a single datum
+     * \param num_workers number of parallel processes. 1 means single process.
+     * \param num_epoches number of epoches
+     * \param training_set all training data
+     * \param dev_set all dev data
+     * \param compute_loss a function that accepts a datum and returns the loss
+     */
+    template<typename DATUM>
+    void mp_train(unsigned num_workers, unsigned num_epoches, const std::vector<DATUM> &training_set, const std::vector<DATUM> &dev_set, std::function<dy::Expression(const DATUM &)> compute_loss) {
+      _mp_train_learner<DATUM>(num_workers, num_epoches, training_set, dev_set, compute_loss, [](const std::exception& e, const DATUM& d){
         std::cerr << "skipped datum because of exception" << std::endl;
         std::cerr << e.what() << std::endl;
-      });
+      }, [](){});
     }
   }
 }

@@ -97,14 +97,9 @@ private:
   }
 };
 
-pair<vector<datum_t>, vector<datum_t>> shuffle_and_split(const dataset_t& dataset) {
-  vector<datum_t> data = dataset.data;
-  random_shuffle(data.begin(), data.end());
-  unsigned cut = data.size()/10;
-  return make_pair(vector<datum_t>(data.begin()+cut, data.end()), vector<datum_t>(data.begin(), data.begin()+cut));
-}
 
 int main() {
+  dy::initialize();
   const string DATASET_PATH = "/hltc/0/cl/corpora/mnist/train.json";
   const unsigned HIDDEN_DIM = 15;
 
@@ -112,16 +107,13 @@ int main() {
   auto dataset = read_dataset(DATASET_PATH);
 
   cout << "splitting" <<endl;
-  auto [training_set, dev_set] = shuffle_and_split(dataset);
+  auto [training_set, dev_set] = dy::shuffle_and_split_dataset(dataset.data);
   bilstm_mnist_model model(dataset.width, dataset.height, dataset.labels, HIDDEN_DIM);
 
   cout << "training" <<endl;
-  for(unsigned i=0; i<10; i++) {
-    cout << "epoch: "<<i <<endl;
-    dy::mp_train<datum_t>(1, training_set, [&](const datum_t& datum){
-      return model.compute_loss(datum.input, datum.oracle);
-    });
-  }
+  dy::mp_train<datum_t>(4, 10, training_set, dev_set, [&](const datum_t& datum){
+    return model.compute_loss(datum.input, datum.oracle);
+  });
 
   cout << "testing. dev set size: "<<dev_set.size() <<endl;
   unsigned num_correct = 0;

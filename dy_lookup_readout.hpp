@@ -54,10 +54,21 @@ namespace tg {
 
       /**
        * get back the token from an embedding
-       * \param embedding the embedding
+       * \param embedding the embedding, dim(1) expression
        * \return the token
        */
-      std::string readout(const dy::Expression& embedding) const { return dict->convert(embedding_to_id(embedding)); }
+      std::string readout(const dy::Expression& embedding) const { return dict->convert(dy::argmax_index(forward(embedding))); }
+
+      /**
+       * given an embedding, generate a token according to all token's weight distribution
+       * \param embedding dim(1) expression
+       * \return the generated token
+       */
+      std::string random_readout(const dy::Expression& embedding) const {
+        auto weights = dy::as_vector(dy::softmax(forward(embedding)));
+        std::discrete_distribution<unsigned> d(weights.begin(), weights.end());
+        return dict->convert(d(*dynet::rndeng));
+      }
 
       /**
        * get back a sentence from a list of embeddings
@@ -68,6 +79,19 @@ namespace tg {
         std::vector<std::string> ret;
         for(auto itr = embeddings.begin(); itr!=embeddings.end(); ++itr) {
           ret.push_back(readout(*itr));
+        }
+        return ret;
+      }
+
+      /**
+       * genreate a random sentence from a list of embeddings
+       * \param embeddings a list of embeddings
+       * \return the sentence
+       */
+      std::vector<std::string> random_readout(const std::vector<dy::Expression>& embeddings) const {
+        std::vector<std::string> ret;
+        for(auto itr = embeddings.begin(); itr!=embeddings.end(); ++itr) {
+          ret.push_back(random_readout(*itr));
         }
         return ret;
       }
@@ -105,16 +129,16 @@ namespace tg {
     protected:
       dynet::LookupParameter readout_table;
 
-      unsigned embedding_to_id(const dy::Expression &embedding) const {
+      dy::Expression forward(const dy::Expression &embedding) const {
 
         // slice the first vocab_size number of readout_table
         std::vector<unsigned> sampled_ids(dict->size());
         iota(sampled_ids.begin(), sampled_ids.end(), 0);
         auto sampled_readout =  dynet::lookup(dy::cg(), readout_table, sampled_ids);
 
-        auto one = dynet::input(dy::cg(), {1}, {(dynet::real)1});
-        auto logits = dynet::dot_product(sampled_readout, dynet::concatenate({embedding, one}));
-        return dy::argmax_index(dynet::reshape(logits, {(unsigned)sampled_ids.size()}));
+        auto one = dy::const_expr(1);
+        auto logits = dy::dot_product(sampled_readout, dy::concatenate({embedding, one}));
+        return dy::reshape(logits, {(unsigned)sampled_ids.size()});
       }
 
       dy::Expression compute_windowed_readout_loss(const dy::Expression& embedding_batch, const std::vector<unsigned>& oracles) const {

@@ -153,5 +153,95 @@ namespace tg {
         dynet::maxpooling2d(conv1d_layer::reshape_to_conv2d_compatible(x), {window_length, 1}, {stride, 1},
                             disable_padding));
     }
+
+    std::vector<dy::Expression> my_maxpooling1d(const std::vector<dy::Expression>& xs, unsigned window_length, unsigned stride, bool disable_padding = true) {
+      using namespace std;
+      if(disable_padding) {
+        const int bound = xs.size() - window_length;
+        if(bound<0) {
+          return std::vector<dy::Expression>({dy::max(xs)});
+        }
+        else {
+          std::vector<dy::Expression> ys;
+          for(int i=0; i<=bound; i+=stride) {
+            std::vector<dy::Expression> inners(xs.begin()+i, xs.begin()+i+window_length);
+            ys.push_back(dy::max(inners));
+          }
+          return ys;
+        }
+      }
+      else {
+        //TODO: support padding
+        throw std::runtime_error("not implemented");
+      }
+    }
+
+    class my_conv1d_layer {
+    public:
+      my_conv1d_layer(unsigned output_channels,
+                   unsigned filter_length, unsigned stride = 1,
+                   bool with_bias = false, bool disable_padding = true) :
+        input_channels(0), output_channels(output_channels), filter_length(filter_length),
+        stride(stride), with_bias(with_bias), disable_padding(disable_padding),
+        filters(filter_length),
+        bias() {
+        if (with_bias) bias = add_parameters({output_channels});
+      }
+      std::vector<dy::Expression> forward(const std::vector<dy::Expression>& xs) {
+        if(xs.empty()) return std::vector<dy::Expression>();
+        this->ensure_init(xs[0]);
+        if(disable_padding) {
+          const int bound = xs.size() - filter_length;
+          if(bound<0) {
+            std::vector<dy::Expression> inners;
+            for(unsigned i=0; i<xs.size(); i++) {
+              inners.push_back(dy::expr(filters[i])*xs[i]);
+            }
+            if(with_bias) {
+              return std::vector<dy::Expression>({dy::sum(inners)+dy::expr(bias)});
+            }
+            else {
+              return std::vector<dy::Expression>({dy::sum(inners)});
+            }
+          }
+          else {
+            std::vector<dy::Expression> ys;
+            for(int i=0; i<=bound; i+=stride) {
+              std::vector<dy::Expression> inners;
+              for(unsigned offset=0; offset<filter_length; offset++) {
+                inners.push_back(dy::expr(filters[offset])*xs[bound+offset]);
+              }
+              if(with_bias) {
+                ys.push_back(dy::sum(inners)+dy::expr(bias));
+              }
+              else {
+                ys.push_back(dy::sum(inners));
+              }
+            }
+            return ys;
+          }
+        }
+        else {
+          //TODO: support padding
+          throw std::runtime_error("not implemented");
+        }
+      }
+    private:
+      unsigned input_channels;
+      unsigned output_channels;
+      unsigned filter_length;
+      unsigned stride;
+      bool with_bias;
+      bool disable_padding;
+      std::vector<dynet::Parameter> filters;
+      dynet::Parameter bias;
+      void ensure_init(const dy::Expression& x) {
+        if(input_channels > 0) return;
+        input_channels = x.dim()[0];
+        for(auto& filter:filters) {
+          filter = add_parameters({output_channels, input_channels});
+        }
+      }
+    };
   }
 }

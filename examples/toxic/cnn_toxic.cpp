@@ -27,14 +27,17 @@ public:
   }
 
   dy::Expression forward(const vector<string>& sentence) {
-    dy::Expression x;
-    x = dy::concatenate(emb.lookup(sentence, true),1);
-    x = dy::rectify(conv0.forward(x));
-    x = dy::maxpooling1d(x, 3, 1, false);
-    x = dy::rectify(conv1.forward(x));
-    x = dy::maxpooling1d(x, 3, 1, false);
-    x = dy::rectify(conv2.forward(x));
-    x = dy::max_dim(x, 1);
+    vector<dy::Expression> xs;
+    xs = emb.lookup(sentence, true);
+    for(auto& x:xs) {x=dy::rectify(x);}
+
+    xs = dy::my_maxpooling1d(xs, 3, 1);
+    for(auto& x:xs) {x=dy::rectify(x);}
+
+    xs = dy::my_maxpooling1d(xs, 3, 1);
+    for(auto& x:xs) {x=dy::rectify(x);}
+
+    auto x = dy::max(xs);
     x = dy::tanh(fc.forward(x));
     return x;
   }
@@ -43,16 +46,17 @@ public:
     return ro.readout(forward(sentence));
   }
 
-  dynet::Expression compute_loss(const vector<string>& sentence, const unordered_set<string>& labels) {
-    return ro.compute_loss(forward(sentence), labels);
+  dy::Expression compute_loss(const vector<string>& sentence, const unordered_set<string>& labels) {
+    auto x = ro.compute_loss(forward(sentence), labels);
+    return x;
   }
 
   EASY_SERIALZABLE(emb, conv0, conv1, conv2, fc, ro)
 private:
   dy::embedding_lookup emb;
-  dy::conv1d_layer conv0;
-  dy::conv1d_layer conv1;
-  dy::conv1d_layer conv2;
+  dy::my_conv1d_layer conv0;
+  dy::my_conv1d_layer conv1;
+  dy::my_conv1d_layer conv2;
   dy::linear_layer fc;
   dy::multi_readout_layer ro;
 };
@@ -67,36 +71,31 @@ void print_helper(const T& x, std::ostream& os=std::cout) {
 
 
 int main() {
-  const string TRAINING_DATA_PATH = "/hltc/0/cl/corpora/jigsaw-toxic-comment-classification-challenge/processed/train.json";
-  const string TEST_DATA_PATH = "/hltc/0/cl/corpora/jigsaw-toxic-comment-classification-challenge/processed/test.json";
+  const string DATASET_PATH = "/hltc/0/cl/corpora/jigsaw-toxic-comment-classification-challenge/processed/train.json";
   const string PATH_TO_WORD2VEC_FILE = "/hltc/0/cl/tools/word_embeddings/w2vgw.d300.en.bin";
   cout << "read dataset" <<endl;
-  const auto trainint_set = read_dataset(TRAINING_DATA_PATH);
+  const auto dataset = read_dataset(DATASET_PATH);
+  const auto [training_set, dev_set] = dy::shuffle_and_split_dataset(dataset.data);
   cout << "collect frequent tokens" <<endl;
-  const auto vocab = collect_frequent_tokens(trainint_set);
+  const auto vocab = collect_frequent_tokens(dataset);
   cout << "import word2vec" <<endl;
   const auto w2v = dy::import_word2vec(PATH_TO_WORD2VEC_FILE);
   cout << "initialze model" <<endl;
   dy::initialize();
-  my_model model(trainint_set.labels, unordered_set<string>(vocab.begin(), vocab.end()), w2v, 128);
-//  my_model model(vector<string>({"a","b"}), vector<string>({"a","b"}), unordered_map<string, vector<float>>(), 128);
-//  model.forward({"a","b","a","b"});
-  cout << "training" <<endl;
-  for(unsigned epoch = 0; epoch<10; epoch++) {
-    cout << "epoch:"<< epoch <<endl;
-    dy::mp_train<datum_t>(8, trainint_set.data, [&](const datum_t& datum){
-      return model.compute_loss(datum.input, datum.oracle);
-    }, [](const std::exception& e, const datum_t& datum){
-      cerr << e.what() << endl;
-      cerr << "sentence is:";
-      print_helper(datum.input, cerr);
-    });
-  }
+  my_model model(dataset.labels, unordered_set<string>(vocab.begin(), vocab.end()), w2v, 128);
 
-  cout << "testing" <<endl;
-  const auto test_set = read_dataset(TEST_DATA_PATH);
+  cout << "training" <<endl;
+  dy::mp_train<datum_t>(4, 10, training_set, dev_set, [&](const datum_t& datum){
+    return model.compute_loss(datum.input, datum.oracle);
+  }, [](const std::exception& e, const datum_t& datum){
+    cerr << e.what() << endl;
+    cerr << "sentence is:";
+    print_helper(datum.input, cerr);
+  });
+
+  cout << "predicting" <<endl;
   for(unsigned i=0; i<64; i++) {
-    const auto& datum = test_set.data[i];
+    const auto& datum = dev_set[i];
     cout << "sentence:";
     print_helper(datum.input);
     cout << "oracle:";

@@ -1552,7 +1552,9 @@ namespace tg {
  * \return The expression with the specified dimension concatenated
  */
     inline Expression
-    concatenate(const std::initializer_list<Expression> &xs, unsigned d = 0) { return dynet::concatenate(Expression::vector_cast_to_base(xs), d); }
+    concatenate(const std::initializer_list<Expression> &xs, unsigned d = 0) {
+      return dynet::concatenate(Expression::vector_cast_to_base(xs), d);
+    }
 
     inline Expression concatenate(const std::vector<Expression> &xs, unsigned d = 0) {
       return dynet::concatenate(Expression::vector_cast_to_base(xs), d);

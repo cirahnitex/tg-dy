@@ -25,7 +25,15 @@ void print_helper(const T& x, std::ostream& os=std::cout) {
 
 int main() {
   dy::initialize();
-  auto z = dy::zeros({15});
-  cout << dy::as_tensor(z) << endl;
+  std::unordered_set<string> vocab;
+  vocab.insert("turn");
+  vocab.insert("left");
+  vocab.insert("right");
+  dy::readout_layer ro(vocab);
+  for(unsigned i=0;i<10; i++) {
+    cout << ro.random_readout(dy::zeros({3})) <<endl;
+  }
+
+
   return 0;
 }

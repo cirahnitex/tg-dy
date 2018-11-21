@@ -5,6 +5,7 @@
 #ifndef DYNET_WRAPPER_DY_READOUT_LAYER_HPP
 #define DYNET_WRAPPER_DY_READOUT_LAYER_HPP
 #include <dynet/dynet.h>
+#include <random>
 #include "dy.hpp"
 
 namespace tg {
@@ -46,6 +47,17 @@ namespace tg {
        */
       std::string readout(const dy::Expression& embedding) {
         return dict.convert(dy::argmax_index(fc(embedding)));
+      }
+
+      /**
+       * given an embedding, generate a label according to all label's weight distribution
+       * \param embedding dim(1) tensor
+       * \return the generated label
+       */
+      std::string random_readout(const dy::Expression& embedding) {
+        auto weights = dy::as_vector(dy::softmax(fc(embedding)));
+        std::discrete_distribution<unsigned> d(weights.begin(), weights.end());
+        return dict.convert(d(*dynet::rndeng));
       }
 
       /**

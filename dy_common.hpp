@@ -66,12 +66,16 @@ namespace tg {
       _is_initialized() = true;
     }
 
+    inline void ensure_initialized() {
+      if(!_is_initialized()) {throw std::runtime_error("dy::initialize must be called beforehand");}
+    }
+
     /**
      * get the computation graph instance
      * \return
      */
     inline dynet::ComputationGraph& cg() {
-      dy::initialize();
+      ensure_initialized();
       static dynet::ComputationGraph _cg;
       return _cg;
     }
@@ -87,7 +91,7 @@ namespace tg {
     }
 
     inline void train_on_loss(const dynet::Expression& loss) {
-      cg().forward(loss);
+      cg().incremental_forward(loss);
       cg().backward(loss);
       trainer().update();
     }
@@ -132,9 +136,13 @@ namespace tg {
     public:
       Expression():dynet::Expression(){increment_cnt();};
       Expression(const dynet::Expression& x):dynet::Expression(x) {increment_cnt();};
+      Expression(const dy::Expression& x):dynet::Expression(x) {increment_cnt();};
       Expression(dynet::Expression&& x):dynet::Expression(x) {increment_cnt();};
-      Expression &operator=(const dynet::Expression& x) {dynet::Expression::operator=(x); return *this;} ;
+      Expression(dy::Expression&& x):dynet::Expression(x) {increment_cnt();};
+      Expression &operator=(const dynet::Expression& x) {dynet::Expression::operator=(x); return *this;};
+      Expression &operator=(const dy::Expression& x) {dynet::Expression::operator=(x); return *this;} ;
       Expression &operator=(dynet::Expression&& x) {dynet::Expression::operator=(x); return *this;};
+      Expression &operator=(dy::Expression&& x) {dynet::Expression::operator=(x); return *this;};
       ~Expression(){
         num_exprs()--;
         if(num_exprs()==0) dy::_renew_cg();
@@ -228,15 +236,15 @@ namespace tg {
     }
 
     inline float as_scalar(const dy::Expression& expr) {
-      return dynet::as_scalar(cg().forward(expr));
+      return dynet::as_scalar(cg().incremental_forward(expr));
     }
 
     inline std::vector<float> as_vector(const dy::Expression& expr) {
-      return dynet::as_vector(cg().forward(expr));
+      return dynet::as_vector(cg().incremental_forward(expr));
     }
 
     inline dynet::Tensor as_tensor(const dy::Expression& expr) {
-      return cg().forward(expr);
+      return cg().incremental_forward(expr);
     }
   }
 }
