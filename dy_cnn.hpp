@@ -82,6 +82,7 @@ namespace tg {
     }
 
     std::vector<dy::Expression> maxpooling1d(const std::vector<dy::Expression>& xs, unsigned window_length, unsigned stride, bool disable_padding = true) {
+      if(xs.empty()) {throw std::runtime_error("cannot call maxpool1d on empty vector");}
       using namespace std;
       if(disable_padding) {
         const int bound = xs.size() - window_length;
@@ -98,8 +99,17 @@ namespace tg {
         }
       }
       else {
-        //TODO: support padding
-        throw std::runtime_error("not implemented");
+        int pad_begin = (window_length - 1) / 2;
+        int pad_end = window_length - 1 - pad_begin;
+        int max_end = xs.size();
+        std::vector<dy::Expression> ys;
+        for(int i=0; i<max_end; i+=stride) {
+          int begin = std::max(0, i-pad_begin);
+          int end_ = std::min(max_end, i+pad_end);
+          std::vector<dy::Expression> inners(xs.begin()+begin, xs.begin()+end_);
+          ys.push_back(dy::max(inners));
+        }
+        return ys;
       }
     }
 
@@ -122,40 +132,23 @@ namespace tg {
       std::vector<dy::Expression> forward(const std::vector<dy::Expression>& xs) {
         if(xs.empty()) return std::vector<dy::Expression>();
         this->ensure_init(xs[0]);
-        if(disable_padding) {
-          const int bound = xs.size() - filter_length;
-          if(bound<0) {
-            std::vector<dy::Expression> inners;
-            for(unsigned i=0; i<xs.size(); i++) {
-              inners.push_back(dy::expr(filters[i])*xs[i]);
-            }
-            if(with_bias) {
-              return std::vector<dy::Expression>({dy::sum(inners)+dy::expr(bias)});
-            }
-            else {
-              return std::vector<dy::Expression>({dy::sum(inners)});
-            }
-          }
-          else {
-            std::vector<dy::Expression> ys;
-            for(int i=0; i<=bound; i+=stride) {
-              std::vector<dy::Expression> inners;
-              for(unsigned offset=0; offset<filter_length; offset++) {
-                inners.push_back(dy::expr(filters[offset])*xs[bound+offset]);
-              }
-              if(with_bias) {
-                ys.push_back(dy::sum(inners)+dy::expr(bias));
-              }
-              else {
-                ys.push_back(dy::sum(inners));
-              }
-            }
-            return ys;
-          }
-        }
+        if(disable_padding) {return forward_no_padding(xs);}
         else {
-          //TODO: support padding
-          throw std::runtime_error("not implemented");
+          auto zeros = dy::zeros(xs[0].dim());
+          unsigned pad_begin = (filter_length - 1) / 2;
+          unsigned pad_end = filter_length - 1 - pad_begin;
+
+          // zeros at beginning
+          std::vector<Expression> padded(pad_begin, zeros);
+
+          // values in the middle
+          std::copy(xs.begin(), xs.end(), std::back_inserter(padded));
+
+          // zeros at the end
+          for(unsigned i=0; i<pad_end; i++) {
+            padded.push_back(zeros);
+          }
+          return forward_no_padding(padded);
         }
       }
       EASY_SERIALZABLE(input_channels, output_channels, filter_length, stride, with_bias, disable_padding)
@@ -173,6 +166,37 @@ namespace tg {
         input_channels = x.dim()[0];
         for(auto& filter:filters) {
           filter = add_parameters({output_channels, input_channels});
+        }
+      }
+      std::vector<dy::Expression> forward_no_padding(const std::vector<dy::Expression>& xs) {
+        const int bound = xs.size() - filter_length;
+        if(bound<0) {
+          std::vector<dy::Expression> inners;
+          for(unsigned i=0; i<xs.size(); i++) {
+            inners.push_back(dy::expr(filters[i])*xs[i]);
+          }
+          if(with_bias) {
+            return std::vector<dy::Expression>({dy::sum(inners)+dy::expr(bias)});
+          }
+          else {
+            return std::vector<dy::Expression>({dy::sum(inners)});
+          }
+        }
+        else {
+          std::vector<dy::Expression> ys;
+          for(int i=0; i<=bound; i+=stride) {
+            std::vector<dy::Expression> inners;
+            for(unsigned offset=0; offset<filter_length; offset++) {
+              inners.push_back(dy::expr(filters[offset])*xs[bound+offset]);
+            }
+            if(with_bias) {
+              ys.push_back(dy::sum(inners)+dy::expr(bias));
+            }
+            else {
+              ys.push_back(dy::sum(inners));
+            }
+          }
+          return ys;
         }
       }
     };
