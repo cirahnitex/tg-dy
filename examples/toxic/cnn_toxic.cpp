@@ -23,18 +23,19 @@ vector<string> collect_frequent_tokens(const dataset_t& data, unsigned top_x=200
 class my_model {
 public:
   my_model(const unordered_set<string>& labels, const unordered_set<string>& vocab, const unordered_map<string, vector<float>>& init_embeddings, unsigned embedding_size)
-  :emb(embedding_size, vocab, [&](const string& token){return init_embeddings.at(token);}), conv0(embedding_size,3,1,false,false), conv1(embedding_size,3,1,true,false), conv2(embedding_size,3,1,true,false), fc(128), ro(labels){
+  :emb(embedding_size, vocab, [&](const string& token){return init_embeddings.at(token);}), conv0(embedding_size,3,1), conv1(embedding_size,3,1), conv2(embedding_size,3,1), fc(128), ro(labels){
   }
 
   dy::Expression forward(const vector<string>& sentence) {
     vector<dy::Expression> xs;
     xs = emb.lookup(sentence, true);
-    for(auto& x:xs) {x=dy::rectify(x);}
 
-    xs = dy::maxpooling1d(xs, 3, 1);
+    xs = conv0.forward(xs);
     for(auto& x:xs) {x=dy::rectify(x);}
+    xs = dy::maxpooling1d(conv1.forward(xs), 3, 1);
 
-    xs = dy::maxpooling1d(xs, 3, 1);
+    for(auto& x:xs) {x=dy::rectify(x);}
+    xs = dy::maxpooling1d(conv2.forward(xs), 3, 1);
     for(auto& x:xs) {x=dy::rectify(x);}
 
     auto x = dy::max(xs);
