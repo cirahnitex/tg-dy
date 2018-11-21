@@ -31,10 +31,10 @@ public:
     xs = emb.lookup(sentence, true);
     for(auto& x:xs) {x=dy::rectify(x);}
 
-    xs = dy::my_maxpooling1d(xs, 3, 1);
+    xs = dy::maxpooling1d(xs, 3, 1);
     for(auto& x:xs) {x=dy::rectify(x);}
 
-    xs = dy::my_maxpooling1d(xs, 3, 1);
+    xs = dy::maxpooling1d(xs, 3, 1);
     for(auto& x:xs) {x=dy::rectify(x);}
 
     auto x = dy::max(xs);
@@ -54,9 +54,9 @@ public:
   EASY_SERIALZABLE(emb, conv0, conv1, conv2, fc, ro)
 private:
   dy::embedding_lookup emb;
-  dy::my_conv1d_layer conv0;
-  dy::my_conv1d_layer conv1;
-  dy::my_conv1d_layer conv2;
+  dy::conv1d_layer conv0;
+  dy::conv1d_layer conv1;
+  dy::conv1d_layer conv2;
   dy::linear_layer fc;
   dy::multi_readout_layer ro;
 };

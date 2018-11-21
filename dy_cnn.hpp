@@ -77,84 +77,11 @@ namespace tg {
       }
     };
 
-    class conv1d_layer {
-    public:
-      static dy::Expression reshape_to_conv2d_compatible(const dy::Expression &x) {
-        using namespace std;
-        const auto& dim = x.dim();
-        return dynet::reshape(dynet::transpose(x), dynet::Dim({dim[1], 1, dim[0]},x.dim().batch_elems()));
-      }
-      static dy::Expression reshape_to_conv1d_compatible(const dy::Expression &x) {
-        const auto& dim = x.dim();
-        return dynet::reshape(x, dynet::Dim({dim[2], dim[0]}, dim.batch_elems()));
-      }
-
-      conv1d_layer() = default;
-      conv1d_layer(const conv1d_layer&) = default;
-      conv1d_layer(conv1d_layer&&) = default;
-      conv1d_layer &operator=(const conv1d_layer&) = default;
-      conv1d_layer &operator=(conv1d_layer&&) = default;
-
-      conv1d_layer(unsigned output_channels,
-                   unsigned filter_length, unsigned stride = 1,
-                   bool with_bias = false, bool disable_padding = true) :
-        input_channels(0), output_channels(output_channels), filter_length(filter_length),
-        stride(stride), with_bias(with_bias), disable_padding(disable_padding),
-        filter(),
-        bias() {
-        if (with_bias) bias = add_parameters({output_channels});
-      }
-
-      unsigned calculate_output_length(unsigned input_length) {
-        if (disable_padding) {
-          return (unsigned)ceil(float(input_length - filter_length + 1) / float(stride));
-        } else {
-          return (unsigned)ceil(float(input_length) / float(stride));
-        }
-      }
-
-      dy::Expression forward(const dy::Expression& x) {
-        using namespace std;
-        ensure_init(x);
-        if(with_bias) {
-          return reshape_to_conv1d_compatible(
-            dynet::conv2d(reshape_to_conv2d_compatible(x), dy::expr(filter), dy::expr(bias), {stride, 1}, disable_padding));
-        }
-        else {
-          return reshape_to_conv1d_compatible(
-            dynet::conv2d(reshape_to_conv2d_compatible(x), dy::expr(filter), {stride, 1}, disable_padding));
-        }
-      }
-
-      EASY_SERIALZABLE(input_channels, output_channels, filter_length,  stride, with_bias, disable_padding, filter, bias)
-    private:
-      unsigned input_channels;
-      unsigned output_channels;
-      unsigned filter_length;
-      unsigned stride;
-      bool with_bias;
-      bool disable_padding;
-      dynet::Parameter filter;
-      dynet::Parameter bias;
-
-      void ensure_init(const dy::Expression& x) {
-        if(input_channels > 0) return;
-        input_channels = x.dim()[0];
-        filter = add_parameters({filter_length, 1, input_channels, output_channels});
-      }
-    };
-
     dy::Expression maxpooling2d(const dy::Expression& x, unsigned window_width, unsigned window_height, unsigned stride_between_rows, unsigned stride_between_columns, bool disable_padding = true) {
       return dynet::maxpooling2d(x, {window_width, window_height}, {stride_between_rows, stride_between_columns}, disable_padding);
     }
 
-    dy::Expression maxpooling1d(const dy::Expression& x, unsigned window_length, unsigned stride, bool disable_padding = true) {
-      return conv1d_layer::reshape_to_conv1d_compatible(
-        dynet::maxpooling2d(conv1d_layer::reshape_to_conv2d_compatible(x), {window_length, 1}, {stride, 1},
-                            disable_padding));
-    }
-
-    std::vector<dy::Expression> my_maxpooling1d(const std::vector<dy::Expression>& xs, unsigned window_length, unsigned stride, bool disable_padding = true) {
+    std::vector<dy::Expression> maxpooling1d(const std::vector<dy::Expression>& xs, unsigned window_length, unsigned stride, bool disable_padding = true) {
       using namespace std;
       if(disable_padding) {
         const int bound = xs.size() - window_length;
@@ -176,9 +103,14 @@ namespace tg {
       }
     }
 
-    class my_conv1d_layer {
+    class conv1d_layer {
     public:
-      my_conv1d_layer(unsigned output_channels,
+      conv1d_layer() = default;
+      conv1d_layer(const conv1d_layer&) = default;
+      conv1d_layer(conv1d_layer&&) = default;
+      conv1d_layer &operator=(const conv1d_layer&) = default;
+      conv1d_layer &operator=(conv1d_layer&&) = default;
+      conv1d_layer(unsigned output_channels,
                    unsigned filter_length, unsigned stride = 1,
                    bool with_bias = false, bool disable_padding = true) :
         input_channels(0), output_channels(output_channels), filter_length(filter_length),
@@ -226,6 +158,7 @@ namespace tg {
           throw std::runtime_error("not implemented");
         }
       }
+      EASY_SERIALZABLE(input_channels, output_channels, filter_length, stride, with_bias, disable_padding)
     private:
       unsigned input_channels;
       unsigned output_channels;
