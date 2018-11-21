@@ -29,7 +29,7 @@ int main() {
   const unsigned EMBEDDING_SIZE = 8;
 
   // here are all the words we are interested in
-  const vector<string> MY_VOCAB({"king", "queen", "man", "woman"});
+  const unordered_set<string> MY_VOCAB({"king", "queen", "man", "woman"});
 
   // load all word embeddings from w2v
   const auto all_w2v_embeddings = import_word2vec(PATH_TO_WORD2VEC_FILE);
