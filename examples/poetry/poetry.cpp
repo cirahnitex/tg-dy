@@ -49,7 +49,7 @@ public:
     oracle.push_back(END_OF_SENTENCE);
     auto sentence_emb = embedding_table.lookup(input);
     auto output_emb = lstm.forward(sentence_emb).second;
-    return embedding_table.compute_windowed_loss(output_emb, oracle);
+    return embedding_table.compute_readout_loss(output_emb, oracle);
   }
   EASY_SERIALZABLE(embedding_table, lstm)
 private:

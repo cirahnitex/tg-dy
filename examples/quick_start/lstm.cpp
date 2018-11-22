@@ -36,11 +36,11 @@ public:
   dy::Expression compute_loss(const vector<string>& foreign_sentence, const vector<string>& emit_sentence) {
 
     // encode foreign sentence into a cell state
-    auto [sentence_embs, foreign_lookup_loss] = foreign_lookup_table.read_sentence_with_loss(foreign_sentence);
+    auto [sentence_embs, foreign_lookup_loss] = foreign_lookup_table.lookup_with_loss(foreign_sentence);
     auto cell_state = encoder.forward(sentence_embs).first;
 
     // input for the decoder is the emit embeddings with leading zero
-    auto [emit_embs, emit_lookup_loss] = emit_lookup_table.read_sentence_with_loss(emit_sentence);
+    auto [emit_embs, emit_lookup_loss] = emit_lookup_table.lookup_with_loss(emit_sentence);
     vector<dy::Expression> inputs_to_decoder({dy::zeros({embedding_size})});
     std::copy(emit_embs.begin(), emit_embs.end(), back_inserter(inputs_to_decoder));
 
@@ -50,7 +50,7 @@ public:
 
     // forward and compute loss
     auto output_embs = decoder.forward(cell_state, inputs_to_decoder).second;
-    return emit_lookup_table.compute_windowed_loss(output_embs, oracle_for_decoder) + foreign_lookup_loss + emit_lookup_loss;
+    return emit_lookup_table.compute_readout_loss(output_embs, oracle_for_decoder) + foreign_lookup_loss + emit_lookup_loss;
   }
 
   EASY_SERIALZABLE(embedding_size, foreign_lookup_table, emit_lookup_table, encoder, decoder)

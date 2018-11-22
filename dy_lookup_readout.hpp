@@ -20,19 +20,25 @@ namespace tg {
       mono_lookup_readout(mono_lookup_readout&&) = default;
       mono_lookup_readout &operator=(const mono_lookup_readout&) = default;
       mono_lookup_readout &operator=(mono_lookup_readout&&) = default;
-      static const unsigned SAMPLE_THRESHOLD = 256;
+      static const unsigned SAMPLE_THRESHOLD = 128;
       mono_lookup_readout(unsigned embedding_size, const std::unordered_set<std::string>& tokens):
         embedding_lookup(embedding_size, tokens),
-        readout_table(add_lookup_parameters(capacity, {embedding_size+1})) // embedding +1 for bias
+        readout_table(add_parameters({embedding_size+1,capacity})) // embedding +1 for bias
       {}
       mono_lookup_readout(unsigned embedding_size, const std::unordered_set<std::string>& tokens, std::function<std::vector<float>(const std::string&)> lookup_init_embedding):
         embedding_lookup(embedding_size, tokens, lookup_init_embedding),
-        readout_table(add_lookup_parameters(capacity, {embedding_size+1})) // embedding +1 for bias
+        readout_table(add_parameters({embedding_size+1,capacity})) // embedding +1 for bias
       {}
       mono_lookup_readout(unsigned embedding_size, const std::unordered_map<std::string, std::vector<float>>& token_embeddings):
           embedding_lookup(embedding_size, token_embeddings),
-          readout_table(add_lookup_parameters(capacity, {embedding_size+1})) // embedding +1 for bias
+          readout_table(add_parameters({embedding_size+1,capacity})) // embedding +1 for bias
       {}
+
+      std::pair<dy::Expression, dy::Expression> lookup_with_loss(const std::string& token) const {
+        auto id = token_to_id(token);
+        auto ret_embedding = lookup(id);
+        return std::make_pair(ret_embedding, compute_windowed_readout_loss(ret_embedding, std::vector<unsigned>({id})));
+      }
 
       /**
        * read in a sentence, get its embeddings and a lookup-loss
@@ -41,7 +47,8 @@ namespace tg {
        * \return 0) the embeddings
        *         1) the lookup-loss
        */
-      std::pair<std::vector<dy::Expression>, dy::Expression> read_sentence_with_loss(const std::vector<std::string>& tokens) const {
+      std::pair<std::vector<dy::Expression>, dy::Expression> lookup_with_loss(
+        const std::vector<std::string> &tokens) const {
         std::vector<unsigned> ids;
         std::vector<dy::Expression> ret_embeddings;
         for(auto itr = tokens.begin(); itr!=tokens.end(); ++itr) {
@@ -49,8 +56,8 @@ namespace tg {
           ids.push_back(id);
           ret_embeddings.push_back(lookup(id));
         }
-        return std::make_pair(std::move(ret_embeddings), windowed_readout_loss(ids));
-      };
+        return std::make_pair(std::move(ret_embeddings), compute_windowed_readout_loss(dy::concatenate_to_batch(ret_embeddings), ids));
+      }
 
       /**
        * get back the token from an embedding
@@ -102,18 +109,19 @@ namespace tg {
        * \param oracle the desired token
        * \return the loss to train on
        */
-      dy::Expression compute_sampled_loss(const dy::Expression& embedding, const std::string& oracle) const {
-        return compute_sampled_readout_loss(embedding, token_to_id(oracle));
+      dy::Expression compute_readout_loss(const dy::Expression &embedding, const std::string &oracle) const {
+        return compute_windowed_readout_loss(embedding, std::vector<unsigned>({token_to_id(oracle)}));
       }
 
       /**
        * train the model to read out a sentence from its token embeddings.
-       * this function is much faster than calling compute_sampled_loss on each individual token embeddings.
+       * this function is much faster than calling compute_readout_loss on each individual token embeddings.
        * \param embeddings
        * \param oracle
        * \return the loss to train on
        */
-      dy::Expression compute_windowed_loss(const std::vector<dy::Expression>& embeddings, const std::vector<std::string>& oracle) const {
+      dy::Expression compute_readout_loss(const std::vector<dy::Expression> &embeddings,
+                                          const std::vector<std::string> &oracle) const {
         std::vector<unsigned> oracle_ids;
         for(const auto& token:oracle) {
           oracle_ids.push_back(token_to_id(token));
@@ -127,99 +135,54 @@ namespace tg {
         ar(cereal::base_class<embedding_lookup>(this), readout_table);
       }
     protected:
-      dynet::LookupParameter readout_table;
+      dynet::Parameter readout_table;
 
       dy::Expression forward(const dy::Expression &embedding) const {
-
-        // slice the first vocab_size number of readout_table
-        std::vector<unsigned> sampled_ids(dict->size());
-        iota(sampled_ids.begin(), sampled_ids.end(), 0);
-        auto sampled_readout =  dynet::lookup(dy::cg(), readout_table, sampled_ids);
-
         auto one = dy::const_expr(1);
-        auto logits = dy::dot_product(sampled_readout, dy::concatenate({embedding, one}));
-        return dy::reshape(logits, {(unsigned)sampled_ids.size()});
+        return dy::transpose(dy::transpose(dy::concatenate({embedding, one})) * dy::expr(readout_table));
       }
 
-      dy::Expression compute_windowed_readout_loss(const dy::Expression& embedding_batch, const std::vector<unsigned>& oracles) const {
-        std::vector<unsigned> unique_oracles;
-        std::vector<unsigned> remapped_oracles;
-        {
-          std::unordered_map<unsigned, unsigned> ori_to_remapped_oracle;
-          for(auto token_id:oracles) {
-            try {
-              remapped_oracles.push_back(ori_to_remapped_oracle.at(token_id));
-            }
-            catch(...) {
-              ori_to_remapped_oracle[token_id] = unique_oracles.size();
-              remapped_oracles.push_back(unique_oracles.size());
-              unique_oracles.push_back(token_id);
-            }
-          }
+      dy::Expression compute_windowed_readout_loss(const dy::Expression& embeddings_batch, const std::vector<unsigned>& oracles) const {
+        auto one = dy::ones({1});
+        if(capacity<=SAMPLE_THRESHOLD) {
+          auto logits = dy::transpose(dy::transpose(dy::concatenate({embeddings_batch, one})) * dy::expr(readout_table));
+          return dy::sum_batches(dy::pickneglogsoftmax(logits, oracles));
         }
+        else {
+          std::vector<unsigned> sampled_token_ids;
+          std::vector<unsigned> remapped_oracles;
+          {
+            std::unordered_map<unsigned, unsigned> ori_to_remapped_oracle;
 
-        // fetch the readouts involved in sample
-        auto remapped_readout_table = dynet::transpose(dynet::reshape(dynet::lookup(dy::cg(), readout_table, unique_oracles),{embedding_size+1,(unsigned)unique_oracles.size()}));
+            // put all oracle tokens in sample. the neural network should learn to correctly select them
+            for(auto token_id:oracles) {
+              try {
+                remapped_oracles.push_back(ori_to_remapped_oracle.at(token_id));
+              }
+              catch(...) {
+                ori_to_remapped_oracle[token_id] = sampled_token_ids.size();
+                remapped_oracles.push_back(sampled_token_ids.size());
+                sampled_token_ids.push_back(token_id);
+              }
+            }
 
-        // multiply to get readout logits
-        auto one = dynet::input(dy::cg(), {1}, {(dynet::real)1});
-        auto logit_batch = remapped_readout_table * dynet::concatenate({embedding_batch, one});
-        // return the loss
-        return dynet::sum_batches(dynet::pickneglogsoftmax(logit_batch, remapped_oracles));
-      }
+            // randomly sample some other unrelated tokens. the neural network to learn to avoid them
+            for(unsigned i=0; i<SAMPLE_THRESHOLD; i++) {
+              const auto rand_id = dynet::rand0n(capacity);
+              if(ori_to_remapped_oracle.count(rand_id)<=0) {
+                ori_to_remapped_oracle[rand_id] = sampled_token_ids.size();
+                sampled_token_ids.push_back(rand_id);
+              }
+            }
 
-      dy::Expression windowed_readout_loss(const std::vector<unsigned>& selected_ids) const {
-
-        // fetch the embeddings involved in sample
-        auto embedding_batch = dynet::lookup(dy::cg(), lookup_table, selected_ids);
-
-        return compute_windowed_readout_loss(embedding_batch, selected_ids);
-      }
-
-      dy::Expression compute_sampled_readout_loss(const dy::Expression& embedding, unsigned token_id) const {
-        unsigned vocab_size = dict->size();
-
-        // a placeholder for sampled token IDs
-        std::vector<unsigned> sampled_ids(vocab_size);
-
-        // in the beginning, sampled token IDs contains all token IDs.
-        // random sampling will happen later if vocab size is greater than sampling threshold
-        iota(sampled_ids.begin(), sampled_ids.end(), 0);
-
-        // swap the desired token ID to the front for easy book-keeping
-        sampled_ids[0] = token_id;
-        sampled_ids[token_id] = 0;
-
-        // random sampling will happen if vocab size is greater than sampling threshold
-        if(vocab_size > SAMPLE_THRESHOLD) {
-
-          // random swap the token IDs except the first ID.
-          // because the first ID is the desired ID, we just keep it there
-          // the swapping stops at index SAMPLE_THRESHOLD, because all the rest will be clipped away,
-          // so no need to swap them
-          for(unsigned i=1; i<SAMPLE_THRESHOLD; i++) {
-            unsigned to_swap = i + dynet::rand0n(vocab_size - i);
-            unsigned t = sampled_ids[i];
-            sampled_ids[i] = sampled_ids[to_swap];
-            sampled_ids[to_swap] = t;
           }
 
-          // clip the sampled IDs to the size SAMPLE_THRESHOLD
-          sampled_ids.resize(SAMPLE_THRESHOLD);
+          // fetch the readouts involved in sample
+          auto remapped_readout_table = dy::select_cols(dy::expr(readout_table), sampled_token_ids);
+
+          auto logits = dy::transpose(dy::transpose(dy::concatenate({embeddings_batch, one})) * remapped_readout_table);
+          return dy::sum_batches(dy::pickneglogsoftmax(logits, remapped_oracles));
         }
-
-        // readout and calculate loss
-        auto sampled_readout_table = dynet::lookup(dy::cg(), readout_table, sampled_ids);
-        auto one = dynet::input(dy::cg(), {1}, {(dynet::real)1});
-        auto logits = dynet::dot_product(sampled_readout_table, dynet::concatenate({embedding, one}));
-        logits = dynet::reshape(logits, {(unsigned)sampled_ids.size()});
-        auto loss = dy::pickneglogsoftmax(logits, (unsigned)0);
-
-        return loss;
-      };
-      std::pair<dy::Expression, dy::Expression> lookup_with_sampled_loss(unsigned token_id) const {
-        auto embedding = lookup(token_id);
-        return std::make_pair(embedding, compute_sampled_readout_loss(embedding, token_id));
       }
     };
   }

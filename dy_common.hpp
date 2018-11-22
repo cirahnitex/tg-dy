@@ -153,6 +153,7 @@ namespace tg {
       static std::vector<Expression> vector_cast_to_parent(const std::vector<dynet::Expression>& x) {
         return std::vector<Expression>(x.begin(), x.end());
       }
+      static unsigned get_exprs_counter(){return num_exprs();}
     private:
       static unsigned long& num_exprs() { static unsigned long _; return _;}
       void increment_cnt() {num_exprs()++;};

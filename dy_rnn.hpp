@@ -14,17 +14,17 @@
 namespace tg {
   namespace dy {
 
-    template<class CELL_STATE_T>
+    typedef std::vector<dy::Expression> rnn_cell_state_t;
+
+
     class rnn_cell_t {
     public:
-      typedef CELL_STATE_T cell_state_type;
-
-      virtual std::pair<cell_state_type, dy::Expression>
-      forward(const cell_state_type &prev_state, const dy::Expression &x) = 0;
+      virtual std::pair<rnn_cell_state_t, dy::Expression>
+      forward(const rnn_cell_state_t &prev_state, const dy::Expression &x) = 0;
     };
 
 
-    template<class RNN_CELL_T, class CELL_STATE_T>
+    template<class RNN_CELL_T>
     class rnn {
     public:
       rnn() = default;
@@ -37,7 +37,7 @@ namespace tg {
 
       rnn &operator=(rnn &&) = default;
 
-      typedef std::vector<CELL_STATE_T> stacked_cell_state;
+      typedef std::vector<rnn_cell_state_t> stacked_cell_state;
 
       explicit rnn(unsigned num_stack) : cells() {
         cells.resize(num_stack);
@@ -58,10 +58,10 @@ namespace tg {
       std::pair<stacked_cell_state, dy::Expression>
       forward(const stacked_cell_state &prev_state, const dy::Expression &x) {
         Expression y = x;
-        std::vector<CELL_STATE_T> output_stacked_cell_state;
+        std::vector<rnn_cell_state_t> output_stacked_cell_state;
         for (unsigned i = 0; i < cells.size(); i++) {
           auto &cell = cells[i];
-          auto _ = cell.forward(i < prev_state.size() ? prev_state[i] : CELL_STATE_T(), y);
+          auto _ = cell.forward(i < prev_state.size() ? prev_state[i] : rnn_cell_state_t(), y);
           y = std::move(_.second);
           output_stacked_cell_state.push_back(std::move(_.first));
         }
@@ -99,13 +99,29 @@ namespace tg {
         return forward(stacked_cell_state(), x_sequence);
       }
 
+      /**
+       * concatenate a stacked-cell-state into a single expression,
+       * useful if you need to feed this stacked-cell-state into some other network
+       * \param scs the stacked-cell-state
+       * \return
+       */
+      static dy::Expression flattern_stacked_cell_state(const stacked_cell_state& scs) {
+        std::vector<dy::Expression> flatterned_exprs;
+        for(const auto& cs:scs) {
+          for(const auto& expr:cs) {
+            flatterned_exprs.push_back(expr);
+          }
+        }
+        return dy::concatenate(flatterned_exprs);
+      }
+
       EASY_SERIALZABLE(cells)
 
     protected:
       std::vector<RNN_CELL_T> cells;
     };
 
-    template<class RNN_CELL_T, class CELL_STATE_T>
+    template<class RNN_CELL_T>
     class bidirectional_rnn {
     public:
       bidirectional_rnn() = default;
@@ -115,7 +131,7 @@ namespace tg {
       bidirectional_rnn &operator=(bidirectional_rnn&&) = default;
       explicit bidirectional_rnn(unsigned num_stack) : forward_rnn(num_stack), backward_rnn(num_stack) {}
       bidirectional_rnn(unsigned num_stack, unsigned hidden_dim) : forward_rnn(num_stack, hidden_dim), backward_rnn(num_stack, hidden_dim) {}
-      typedef typename rnn<RNN_CELL_T, CELL_STATE_T>::stacked_cell_state inner_cell_state;
+      typedef typename rnn<RNN_CELL_T>::stacked_cell_state inner_cell_state;
 
       /**
        * apply the bidirectional-RNN to a sequence of time steps
@@ -150,15 +166,15 @@ namespace tg {
       }
 
     private:
-      rnn<RNN_CELL_T, CELL_STATE_T> forward_rnn;
-      rnn<RNN_CELL_T, CELL_STATE_T> backward_rnn;
+      rnn<RNN_CELL_T> forward_rnn;
+      rnn<RNN_CELL_T> backward_rnn;
     };
 
-    struct lstm_cell_state {
-      Expression cell_state, hidden_state;
-    };
+//    struct lstm_cell_state {
+//      Expression cell_state, hidden_state;
+//    };
 
-    class vanilla_lstm_cell_t : public rnn_cell_t<lstm_cell_state> {
+    class vanilla_lstm_cell_t : public rnn_cell_t {
     public:
       vanilla_lstm_cell_t() : hidden_dim(0), forget_gate(), input_gate(), input_fc(), output_gate() {};
 
@@ -174,23 +190,23 @@ namespace tg {
                                                  input_gate(hidden_dim), input_fc(hidden_dim),
                                                  output_gate(hidden_dim) {};
 
-      virtual std::pair<lstm_cell_state, dy::Expression>
-      forward(const lstm_cell_state &prev_state, const dy::Expression &x) {
+      virtual std::pair<rnn_cell_state_t, dy::Expression>
+      forward(const rnn_cell_state_t &prev_state, const dy::Expression &x) {
         ensure_init(x);
-        auto cell_state = prev_state.cell_state;
-        if (cell_state.pg == nullptr) cell_state = zeros({hidden_dim});
-        auto hidden_state = prev_state.hidden_state;
-        if (hidden_state.pg == nullptr) hidden_state = zeros({hidden_dim});
+        dy::Expression cell_state, hidden_state;
+        if(prev_state.empty()) {
+          cell_state = hidden_state = dy::zeros({hidden_dim});
+        }
+        else {
+          cell_state = prev_state[0]; hidden_state = prev_state[1];
+        }
         auto concat = concatenate({hidden_state, x});
         auto after_forget = dy::cmult(cell_state, dy::logistic(forget_gate.forward(concat)));
         auto input_candidate = dy::tanh(input_fc.forward(concat));
         auto input = dy::cmult(dy::logistic(input_gate.forward(concat)), input_candidate);
         auto output_cell_state = after_forget + input;
         auto output_hidden_state = dy::cmult(dy::logistic(output_gate.forward(concat)), dy::tanh(output_cell_state));
-        lstm_cell_state ret;
-        ret.cell_state = std::move(output_cell_state);
-        ret.hidden_state = output_hidden_state;
-        return std::make_pair(std::move(ret), output_hidden_state);
+        return std::make_pair(rnn_cell_state_t({std::move(output_cell_state),output_hidden_state}),output_hidden_state);
       }
 
       EASY_SERIALZABLE(hidden_dim, forget_gate, input_gate, input_fc, output_gate)
@@ -212,10 +228,10 @@ namespace tg {
       linear_layer output_gate;
     };
 
-    typedef rnn<vanilla_lstm_cell_t, lstm_cell_state> vanilla_lstm;
-    typedef bidirectional_rnn<vanilla_lstm_cell_t, lstm_cell_state> bidirectional_vanilla_lstm;
+    typedef rnn<vanilla_lstm_cell_t> vanilla_lstm;
+    typedef bidirectional_rnn<vanilla_lstm_cell_t> bidirectional_vanilla_lstm;
 
-    class coupled_lstm_cell_t : public rnn_cell_t<lstm_cell_state> {
+    class coupled_lstm_cell_t : public rnn_cell_t {
     public:
       coupled_lstm_cell_t() : hidden_dim(0), forget_gate(), input_fc(), output_gate() {};
 
@@ -230,13 +246,16 @@ namespace tg {
       coupled_lstm_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), forget_gate(hidden_dim), input_fc(hidden_dim),
                                                  output_gate(hidden_dim) {};
 
-      virtual std::pair<lstm_cell_state, dy::Expression>
-      forward(const lstm_cell_state &prev_state, const dy::Expression &x) {
+      virtual std::pair<rnn_cell_state_t, dy::Expression>
+      forward(const rnn_cell_state_t &prev_state, const dy::Expression &x) {
         ensure_init(x);
-        auto cell_state = prev_state.cell_state;
-        if (cell_state.pg == nullptr) cell_state = zeros({hidden_dim});
-        auto hidden_state = prev_state.hidden_state;
-        if (hidden_state.pg == nullptr) hidden_state = zeros({hidden_dim});
+        dy::Expression cell_state, hidden_state;
+        if(prev_state.empty()) {
+          cell_state = hidden_state = dy::zeros({hidden_dim});
+        }
+        else {
+          cell_state = prev_state[0]; hidden_state = prev_state[1];
+        }
 
         auto concat = concatenate({hidden_state, x});
         auto forget_coef = dy::logistic(forget_gate.forward(concat));
@@ -246,10 +265,7 @@ namespace tg {
         auto output_cell_state = after_forget + input;
         auto output_hidden_state = dy::cmult(dy::logistic(output_gate.forward(concat)), dy::tanh(output_cell_state));
 
-        lstm_cell_state ret;
-        ret.cell_state = std::move(output_cell_state);
-        ret.hidden_state = output_hidden_state;
-        return std::make_pair(std::move(ret), output_hidden_state);
+        return std::make_pair(rnn_cell_state_t({std::move(output_cell_state),output_hidden_state}),output_hidden_state);
       }
 
       EASY_SERIALZABLE(hidden_dim, forget_gate, input_fc, output_gate)
@@ -269,10 +285,10 @@ namespace tg {
       linear_layer output_gate;
     };
 
-    typedef rnn<coupled_lstm_cell_t, lstm_cell_state> coupled_lstm;
-    typedef bidirectional_rnn<coupled_lstm_cell_t, lstm_cell_state> bidirectional_coupled_lstm;
+    typedef rnn<coupled_lstm_cell_t> coupled_lstm;
+    typedef bidirectional_rnn<coupled_lstm_cell_t> bidirectional_coupled_lstm;
 
-    class gru_cell_t : public rnn_cell_t<dy::Expression> {
+    class gru_cell_t : public rnn_cell_t {
     public:
       gru_cell_t() : hidden_dim(0), pre_input_gate(), input_fc(), output_gate() {};
 
@@ -287,10 +303,10 @@ namespace tg {
       gru_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), pre_input_gate(hidden_dim), input_fc(hidden_dim),
                                         output_gate(hidden_dim) {};
 
-      virtual std::pair<dy::Expression, dy::Expression>
-      forward(const dy::Expression &prev_state, const dy::Expression &x) {
+      virtual std::pair<rnn_cell_state_t, dy::Expression>
+      forward(const rnn_cell_state_t &prev_state, const dy::Expression &x) {
         ensure_init(x);
-        auto hidden = (prev_state.pg == nullptr) ? dy::zeros({hidden_dim}) : prev_state;
+        auto hidden = (prev_state.empty()) ? dy::zeros({hidden_dim}) : prev_state[0];
         auto input_for_gates = dy::concatenate({hidden, x});
         auto pre_input_gate_coef = dy::logistic(pre_input_gate.forward(input_for_gates));
         auto output_gate_coef = dy::logistic(output_gate.forward(input_for_gates));
@@ -298,7 +314,7 @@ namespace tg {
         auto output_candidate = dy::tanh(input_fc.forward(gated_concat));
         auto after_forget = dy::cmult(hidden, 1 - output_gate_coef);
         auto output_hidden = after_forget + dy::cmult(output_gate_coef, output_candidate);
-        return std::make_pair(output_hidden, output_hidden);
+        return std::make_pair(rnn_cell_state_t({output_hidden}), output_hidden);
       }
 
       EASY_SERIALZABLE(hidden_dim, pre_input_gate, input_fc, output_gate)
@@ -318,8 +334,8 @@ namespace tg {
       linear_layer output_gate;
     };
 
-    typedef rnn<gru_cell_t, dy::Expression> gru;
-    typedef bidirectional_rnn<gru_cell_t, dy::Expression> bidirectional_gru;
+    typedef rnn<gru_cell_t> gru;
+    typedef bidirectional_rnn<gru_cell_t> bidirectional_gru;
   }
 }
 #endif //DYNET_WRAPPER_DY_LSTM_HPP

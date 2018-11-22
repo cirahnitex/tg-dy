@@ -36,6 +36,9 @@ namespace tg {
 
     private:
       virtual float LearnFromDatum(const DATUM &datum, bool learn) {
+        if(dy::Expression::get_exprs_counter()!=0) {
+          throw std::runtime_error("all dy::Expression instances must be cleaned up before training on a new Datum, otherwise severe memory leak will occur on internal computation graph.");
+        }
         try {
           dy::Expression loss = compute_loss(datum);
           float ret = dy::as_scalar(loss);
