@@ -39,13 +39,17 @@ namespace tg {
 
       typedef std::vector<rnn_cell_state_t> stacked_cell_state;
 
-      explicit rnn(unsigned num_stack) : cells() {
-        cells.resize(num_stack);
-      }
-
       rnn(unsigned num_stack, unsigned hidden_dim) : cells() {
         cells.emplace_back(hidden_dim);
         cells.resize(num_stack);
+      }
+
+      stacked_cell_state default_cell_state() {
+        stacked_cell_state ret;
+        for(const auto& cell:cells) {
+          ret.push_back(cell.default_cell_state());
+        }
+        return ret;
       }
 
       /**
@@ -77,7 +81,7 @@ namespace tg {
        */
       std::pair<stacked_cell_state, std::vector<dy::Tensor>>
       forward(const stacked_cell_state &prev_state, const std::vector<dy::Tensor> &x_sequence) {
-        if (x_sequence.empty()) return std::make_pair(stacked_cell_state(), std::vector<dy::Tensor>());
+        if (x_sequence.empty()) return std::make_pair(default_cell_state(), std::vector<dy::Tensor>());
         auto[_state, y] = forward(prev_state, x_sequence[0]);
         std::vector<dy::Tensor> ys;
         ys.push_back(std::move(y));
@@ -140,10 +144,10 @@ namespace tg {
        */
       std::vector<dy::Tensor>
       forward_output_sequence(const std::vector<dy::Tensor> &x_sequence) {
-        auto forward_ys= forward_rnn.forward(inner_cell_state(), x_sequence).second;
+        auto forward_ys= forward_rnn.forward(forward_rnn.default_cell_state(), x_sequence).second;
         auto reversed_xs = x_sequence;
         std::reverse(reversed_xs.begin(), reversed_xs.end());
-        auto backward_ys = backward_rnn.forward(inner_cell_state(), reversed_xs).second;
+        auto backward_ys = backward_rnn.forward(backward_rnn.default_cell_state(), reversed_xs).second;
         std::reverse(backward_ys.begin(), backward_ys.end());
         std::vector<dy::Tensor> ret;
         for(unsigned i=0; i<forward_ys.size(); i++) {
@@ -158,10 +162,10 @@ namespace tg {
        * \return concatenating the final output from both direction. i.e. forward output for t[-1] and reversed output for t[0]
        */
       dy::Tensor forward_output_final(const std::vector<dy::Tensor> &x_sequence) {
-        auto forward_ys= forward_rnn.forward(inner_cell_state(), x_sequence).second;
+        auto forward_ys= forward_rnn.forward(forward_rnn.default_cell_state(), x_sequence).second;
         auto reversed_xs = x_sequence;
         std::reverse(reversed_xs.begin(), reversed_xs.end());
-        auto backward_ys = backward_rnn.forward(inner_cell_state(), reversed_xs).second;
+        auto backward_ys = backward_rnn.forward(backward_rnn.default_cell_state(), reversed_xs).second;
         return dy::concatenate({forward_ys.back(), backward_ys.back()});
       }
 
@@ -170,13 +174,10 @@ namespace tg {
       rnn<RNN_CELL_T> backward_rnn;
     };
 
-//    struct lstm_cell_state {
-//      Tensor cell_state, hidden_state;
-//    };
 
     class vanilla_lstm_cell_t : public rnn_cell_t {
     public:
-      vanilla_lstm_cell_t() : hidden_dim(0), forget_gate(), input_gate(), input_fc(), output_gate() {};
+      vanilla_lstm_cell_t() = default;
 
       vanilla_lstm_cell_t(const vanilla_lstm_cell_t &) = default;
 
@@ -190,16 +191,18 @@ namespace tg {
                                                  input_gate(hidden_dim), input_fc(hidden_dim),
                                                  output_gate(hidden_dim) {};
 
+      rnn_cell_state_t default_cell_state() {
+        auto zeros = dy::zeros({hidden_dim});
+        return rnn_cell_state_t({zeros, zeros});
+      }
+
       virtual std::pair<rnn_cell_state_t, dy::Tensor>
       forward(const rnn_cell_state_t &prev_state, const dy::Tensor &x) {
-        ensure_init(x);
-        dy::Tensor cell_state, hidden_state;
         if(prev_state.empty()) {
-          cell_state = hidden_state = dy::zeros({hidden_dim});
+          throw std::runtime_error("RNN: previous cell state empty. call default_cell_state to get a default one");
         }
-        else {
-          cell_state = prev_state[0]; hidden_state = prev_state[1];
-        }
+        auto cell_state = prev_state[0];
+        auto hidden_state = prev_state[1];
         auto concat = concatenate({hidden_state, x});
         auto after_forget = dy::cmult(cell_state, dy::logistic(forget_gate.forward(concat)));
         auto input_candidate = dy::tanh(input_fc.forward(concat));
@@ -212,15 +215,6 @@ namespace tg {
       EASY_SERIALZABLE(hidden_dim, forget_gate, input_gate, input_fc, output_gate)
 
     private:
-      void ensure_init(const Tensor &x) {
-        if (hidden_dim > 0) return;
-        hidden_dim = x.dim()[0];
-        forget_gate = linear_layer(hidden_dim);
-        input_gate = linear_layer(hidden_dim);
-        input_fc = linear_layer(hidden_dim);
-        output_gate = linear_layer(hidden_dim);
-      }
-
       unsigned hidden_dim;
       linear_layer forget_gate;
       linear_layer input_gate;
@@ -233,7 +227,7 @@ namespace tg {
 
     class coupled_lstm_cell_t : public rnn_cell_t {
     public:
-      coupled_lstm_cell_t() : hidden_dim(0), forget_gate(), input_fc(), output_gate() {};
+      coupled_lstm_cell_t() = default;
 
       coupled_lstm_cell_t(const coupled_lstm_cell_t &) = default;
 
@@ -246,16 +240,18 @@ namespace tg {
       coupled_lstm_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), forget_gate(hidden_dim), input_fc(hidden_dim),
                                                  output_gate(hidden_dim) {};
 
+      rnn_cell_state_t default_cell_state() {
+        auto zeros = dy::zeros({hidden_dim});
+        return rnn_cell_state_t({zeros, zeros});
+      }
+
       virtual std::pair<rnn_cell_state_t, dy::Tensor>
       forward(const rnn_cell_state_t &prev_state, const dy::Tensor &x) {
-        ensure_init(x);
-        dy::Tensor cell_state, hidden_state;
         if(prev_state.empty()) {
-          cell_state = hidden_state = dy::zeros({hidden_dim});
+          throw std::runtime_error("RNN: previous cell state empty. call default_cell_state to get a default one");
         }
-        else {
-          cell_state = prev_state[0]; hidden_state = prev_state[1];
-        }
+        auto cell_state = prev_state[0];
+        auto hidden_state = prev_state[1];
 
         auto concat = concatenate({hidden_state, x});
         auto forget_coef = dy::logistic(forget_gate.forward(concat));
@@ -271,14 +267,6 @@ namespace tg {
       EASY_SERIALZABLE(hidden_dim, forget_gate, input_fc, output_gate)
 
     private:
-      void ensure_init(const Tensor &x) {
-        if (hidden_dim > 0) return;
-        hidden_dim = x.dim()[0];
-        forget_gate = linear_layer(hidden_dim);
-        input_fc = linear_layer(hidden_dim);
-        output_gate = linear_layer(hidden_dim);
-      }
-
       unsigned hidden_dim;
       linear_layer forget_gate;
       linear_layer input_fc;
@@ -290,7 +278,7 @@ namespace tg {
 
     class gru_cell_t : public rnn_cell_t {
     public:
-      gru_cell_t() : hidden_dim(0), pre_input_gate(), input_fc(), output_gate() {};
+      gru_cell_t() = default;
 
       gru_cell_t(const gru_cell_t &) = default;
 
@@ -303,10 +291,16 @@ namespace tg {
       gru_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), pre_input_gate(hidden_dim), input_fc(hidden_dim),
                                         output_gate(hidden_dim) {};
 
+      rnn_cell_state_t default_cell_state() {
+        return rnn_cell_state_t({dy::zeros({hidden_dim})});
+      }
+
       virtual std::pair<rnn_cell_state_t, dy::Tensor>
       forward(const rnn_cell_state_t &prev_state, const dy::Tensor &x) {
-        ensure_init(x);
-        auto hidden = (prev_state.empty()) ? dy::zeros({hidden_dim}) : prev_state[0];
+        if(prev_state.empty()) {
+          throw std::runtime_error("RNN: previous cell state empty. call default_cell_state to get a default one");
+        }
+        auto hidden = prev_state[0];
         auto input_for_gates = dy::concatenate({hidden, x});
         auto pre_input_gate_coef = dy::logistic(pre_input_gate.forward(input_for_gates));
         auto output_gate_coef = dy::logistic(output_gate.forward(input_for_gates));
@@ -320,14 +314,6 @@ namespace tg {
       EASY_SERIALZABLE(hidden_dim, pre_input_gate, input_fc, output_gate)
 
     private:
-      void ensure_init(const Tensor &x) {
-        if (hidden_dim > 0) return;
-        hidden_dim = x.dim()[0];
-        pre_input_gate = linear_layer(hidden_dim);
-        input_fc = linear_layer(hidden_dim);
-        output_gate = linear_layer(hidden_dim);
-      }
-
       unsigned hidden_dim;
       linear_layer pre_input_gate;
       linear_layer input_fc;

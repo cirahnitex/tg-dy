@@ -78,7 +78,7 @@ public:
   static constexpr char END_OF_SENTENCE[] = "&eos;";
   static constexpr unsigned MAX_OUTPUT_LENGTH = 128;
   wseq2seq_model(unsigned embedding_size, const unordered_set<string>& f_vocab, unordered_set<string> e_vocab, const unordered_map<string, vector<float>>& e_w2v):
-    embedding_size(embedding_size), f_embedding_table(embedding_size, f_vocab), e_embedding_table(), encoder(2), decoder(2), output_fc(embedding_size)
+    embedding_size(embedding_size), f_embedding_table(embedding_size, f_vocab), e_embedding_table(), encoder(2, embedding_size), decoder(2, embedding_size), output_fc(embedding_size)
   {
     e_vocab.insert(END_OF_SENTENCE);
     e_embedding_table = dy::mono_lookup_readout(embedding_size, e_vocab, [&](const string& t){

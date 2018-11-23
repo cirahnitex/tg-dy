@@ -20,7 +20,7 @@ public:
   static constexpr char START_OF_SENTENCE[] = "&sos;";
   static constexpr char END_OF_SENTENCE[] = "&eos;";
   static const unsigned MAX_GENERATED_SENTENCE_LENGTH = 128;
-  poetry_model(unsigned embedding_size, unordered_set<string> vocab, const unordered_map<string, vector<float>>& w2v):embedding_table(),lstm(1) {
+  poetry_model(unsigned embedding_size, unordered_set<string> vocab, const unordered_map<string, vector<float>>& w2v):embedding_table(),lstm(1, embedding_size) {
     vocab.insert(START_OF_SENTENCE);
     vocab.insert(END_OF_SENTENCE);
     embedding_table = dy::mono_lookup_readout(embedding_size, vocab, [&](const string& token){

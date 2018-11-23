@@ -11,7 +11,7 @@ class simple_seq_to_seq_translation_model {
 public:
   static constexpr unsigned MAX_OUTPUT_SIZE = 128;
   static constexpr char END_OF_SENTENCE[] = "&eos;";
-  simple_seq_to_seq_translation_model(unsigned embedding_size, const unordered_set<string>& foreign_tokens, const unordered_set<string>& emit_tokens):embedding_size(embedding_size), foreign_lookup_table(embedding_size, foreign_tokens), emit_lookup_table(), encoder(3),decoder(3) {
+  simple_seq_to_seq_translation_model(unsigned embedding_size, const unordered_set<string>& foreign_tokens, const unordered_set<string>& emit_tokens):embedding_size(embedding_size), foreign_lookup_table(embedding_size, foreign_tokens), emit_lookup_table(), encoder(3, embedding_size),decoder(3, embedding_size) {
     unordered_set<string> enhanced_l1_tokens = emit_tokens;
     enhanced_l1_tokens.insert(END_OF_SENTENCE);
     emit_lookup_table = dy::mono_lookup_readout(embedding_size, enhanced_l1_tokens);

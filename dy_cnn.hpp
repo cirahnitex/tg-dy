@@ -31,15 +31,15 @@ namespace tg {
         if (with_bias) bias = add_parameters({output_channels});
       }
 
-      dynet::Dim calculate_output_dimension(unsigned input_height, unsigned input_width) {
+      dy::Dim calculate_output_dimension(unsigned input_height, unsigned input_width) {
         if (disable_padding) {
-          return dynet::Dim({
+          return dy::Dim({
                               (unsigned)ceil(float(input_height - filter_height + 1) / float(stride_between_rows)),
                               (unsigned)ceil(float(input_width - filter_width + 1) / float(stride_between_columns)),
                               output_channels
                             });
         } else {
-          return dynet::Dim({
+          return dy::Dim({
                               (unsigned)ceil(float(input_height) / float(stride_between_rows)),
                               (unsigned)ceil(float(input_width) / float(stride_between_columns)),
                               output_channels
@@ -67,8 +67,8 @@ namespace tg {
       unsigned stride_between_columns;
       bool with_bias;
       bool disable_padding;
-      dynet::Parameter filter;
-      dynet::Parameter bias;
+      dy::Parameter filter;
+      dy::Parameter bias;
 
       void ensure_init(const dy::Tensor& x) {
         if(input_channels > 0) return;
