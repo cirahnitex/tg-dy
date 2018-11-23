@@ -45,7 +45,7 @@ namespace tg {
        * \param embedding dim(1) tensor
        * \return the predicted label
        */
-      std::string readout(const dy::Expression& embedding) {
+      std::string readout(const dy::Tensor& embedding) {
         return dict.convert(dy::argmax_index(fc(embedding)));
       }
 
@@ -54,8 +54,8 @@ namespace tg {
        * \param embedding dim(1) tensor
        * \return the generated label
        */
-      std::string random_readout(const dy::Expression& embedding) {
-        auto weights = dy::as_vector(dy::softmax(fc(embedding)));
+      std::string random_readout(const dy::Tensor& embedding) {
+        auto weights = dy::softmax(fc(embedding)).as_vector();
         std::discrete_distribution<unsigned> d(weights.begin(), weights.end());
         return dict.convert(d(*dynet::rndeng));
       }
@@ -68,7 +68,7 @@ namespace tg {
        * \param oracle the desired label
        * \return the loss
        */
-      dy::Expression compute_loss(const dy::Expression& embedding, const std::string& oracle) {
+      dy::Tensor compute_loss(const dy::Tensor& embedding, const std::string& oracle) {
         if(size() > SAMPLED_READOUT_THRESHOLD) return sampled_readout_loss(embedding, oracle);
         return dy::pickneglogsoftmax(fc(embedding), get_internal_label_id(oracle));
       }
@@ -97,7 +97,7 @@ namespace tg {
        * \param label the label to represent
        * \return a dim(#-of-labels) tensor, all values are 0 except 1 at the position of internal label ID
        */
-      dy::Expression one_hot(const std::string& label) const {
+      dy::Tensor one_hot(const std::string& label) const {
         return dict.one_hot(label);
       }
 
@@ -134,7 +134,7 @@ namespace tg {
        * \param oracle the true answer
        * \return
        */
-      dy::Expression sampled_readout_loss(const dy::Expression& embedding, const std::string& oracle) {
+      dy::Tensor sampled_readout_loss(const dy::Tensor& embedding, const std::string& oracle) {
         std::vector<unsigned> sampled_ids(SAMPLED_READOUT_NUM_SAMPLES);
         auto oracle_id = get_internal_label_id(oracle);
         sampled_ids[0] = oracle_id;

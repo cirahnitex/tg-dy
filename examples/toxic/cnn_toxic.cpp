@@ -26,8 +26,8 @@ public:
   :emb(embedding_size, vocab, [&](const string& token){return init_embeddings.at(token);}), conv0(embedding_size,3,1), conv1(embedding_size,3,1), conv2(embedding_size,3,1), fc(128), ro(labels){
   }
 
-  dy::Expression forward(const vector<string>& sentence) {
-    vector<dy::Expression> xs;
+  dy::Tensor forward(const vector<string>& sentence) {
+    vector<dy::Tensor> xs;
     xs = emb.lookup(sentence, true);
 
     xs = conv0.forward(xs);
@@ -47,7 +47,7 @@ public:
     return ro.readout(forward(sentence));
   }
 
-  dy::Expression compute_loss(const vector<string>& sentence, const unordered_set<string>& labels) {
+  dy::Tensor compute_loss(const vector<string>& sentence, const unordered_set<string>& labels) {
     auto x = ro.compute_loss(forward(sentence), labels);
     return x;
   }
@@ -86,9 +86,9 @@ int main() {
   my_model model(dataset.labels, unordered_set<string>(vocab.begin(), vocab.end()), w2v, 128);
 
   cout << "training" <<endl;
-  dy::mp_train<datum_t>(4, 10, training_set, dev_set, [&](const datum_t& datum){
+  dy::fit<datum_t>(4, 10, training_set, dev_set, [&](const datum_t &datum) {
     return model.compute_loss(datum.input, datum.oracle);
-  }, [](const std::exception& e, const datum_t& datum){
+  }, [](const std::exception &e, const datum_t &datum) {
     cerr << e.what() << endl;
     cerr << "sentence is:";
     print_helper(datum.input, cerr);

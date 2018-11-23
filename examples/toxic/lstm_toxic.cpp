@@ -28,7 +28,7 @@ public:
     :emb(embedding_size, vocab, [&](const string& token){return init_embeddings.at(token);}), lstm(1, 15), ro(labels){
   }
 
-  dy::Expression forward(const vector<string>& sentence) {
+  dy::Tensor forward(const vector<string>& sentence) {
 //    auto output_embs = lstm.forward(emb.lookup(sentence, true)).second;
     auto output_embs = lstm.forward_output_sequence(emb.lookup(sentence, true));
     return dy::max(output_embs);
@@ -65,6 +65,7 @@ int main() {
   const string PATH_TO_WORD2VEC_FILE = "/hltc/0/cl/tools/word_embeddings/w2vgw.d300.en.bin";
   cout << "read dataset" <<endl;
   const auto trainint_set = read_dataset(TRAINING_DATA_PATH);
+  const auto test_set = read_dataset(TEST_DATA_PATH);
   cout << "collect frequent tokens" <<endl;
   const auto vocab = collect_frequent_tokens(trainint_set);
   cout << "import word2vec" <<endl;
@@ -74,19 +75,16 @@ int main() {
   lstm_toxic_model model(trainint_set.labels, vocab, w2v, 128);
 
   cout << "training" <<endl;
-  for(unsigned epoch = 0; epoch<10; epoch++) {
-    cout << "epoch:"<< epoch <<endl;
-    dy::mp_train<datum_t>(8, trainint_set.data, [&](const datum_t& datum){
-      return model.compute_loss(datum.input, datum.oracle);
-    }, [](const std::exception& e, const datum_t& datum){
-      cerr << e.what() << endl;
-      cerr << "sentence is:";
-      print_helper(datum.input, cerr);
-    });
-  }
+  dy::fit<datum_t>(8, 10, trainint_set.data, test_set.data, [&](const datum_t &datum) {
+    return model.compute_loss(datum.input, datum.oracle);
+  }, [](const std::exception &e, const datum_t &datum) {
+    cerr << e.what() << endl;
+    cerr << "sentence is:";
+    print_helper(datum.input, cerr);
+  });
 
   cout << "testing" <<endl;
-  const auto test_set = read_dataset(TEST_DATA_PATH);
+
   for(unsigned i=0; i<64; i++) {
     const auto& datum = test_set.data[i];
     cout << "sentence:";

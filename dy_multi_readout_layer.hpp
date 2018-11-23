@@ -20,8 +20,8 @@ namespace tg {
       multi_readout_layer &operator=(multi_readout_layer&&) = default;
       explicit multi_readout_layer(const std::unordered_set<std::string>& labels):labels(labels.begin(), labels.end()),fc(labels.size()) {
       }
-      std::unordered_set<std::string> readout(const dy::Expression &x) {
-        const auto evidences = dy::as_vector(fc.forward(x));
+      std::unordered_set<std::string> readout(const dy::Tensor &x) {
+        const auto evidences = fc.forward(x).as_vector();
         std::unordered_set<std::string> ret;
         for (unsigned i = 0; i < labels.size(); i++) {
           const auto &label = labels[i];
@@ -31,13 +31,13 @@ namespace tg {
         }
         return ret;
       }
-      dy::Expression compute_loss(const dy::Expression& x, const std::unordered_set<std::string>& oracle) {
+      dy::Tensor compute_loss(const dy::Tensor& x, const std::unordered_set<std::string>& oracle) {
         using namespace std;
         vector<float> oracle_float;
         for(const auto& label:labels) {
           oracle_float.push_back(oracle.count(label)>0?(float)1:(float)0);
         }
-        return dynet::binary_log_loss(dynet::logistic(fc.forward(x)), dy::const_expr(oracle_float));
+        return dynet::binary_log_loss(dynet::logistic(fc.forward(x)), dy::Tensor(oracle_float));
       }
       EASY_SERIALZABLE(labels, fc)
     private:

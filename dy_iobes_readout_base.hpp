@@ -13,7 +13,11 @@ namespace tg {
   namespace dy {
     class iobes_readout_base {
     public:
-      DECLARE_DEFAULT_CONSTRUCTORS(iobes_readout_base)
+      iobes_readout_base() = default;
+      iobes_readout_base(const iobes_readout_base&) = default;
+      iobes_readout_base(iobes_readout_base&&) = default;
+      iobes_readout_base &operator=(const iobes_readout_base&) = default;
+      iobes_readout_base &operator=(iobes_readout_base&&) = default;
       typedef web_srl_graph::item_type labeled_span_type;
       iobes_readout_base(const std::unordered_set<std::string>& prefixes, const std::unordered_set<std::string>& labels):
           ro_prefix(prefixes),
@@ -26,8 +30,8 @@ namespace tg {
        * \param oracle true answer, labeled span
        * \return
        */
-      dy::Expression compute_loss(const std::vector<dy::Expression>& embeddings_in, const std::vector<web_srl_graph::item_type> oracle) {
-        std::vector<dy::Expression> ret;
+      dy::Tensor compute_loss(const std::vector<dy::Tensor>& embeddings_in, const std::vector<web_srl_graph::item_type> oracle) {
+        std::vector<dy::Tensor> ret;
         for(unsigned i=0; i<embeddings_in.size(); i++) {
           std::string prefix_oracle, label_oracle;
           tie(prefix_oracle, label_oracle) = get_prefixed_label_at_token_index(i, oracle);
@@ -48,7 +52,7 @@ namespace tg {
        * \param embeddings_in embedding of each token in sentence
        * \return
        */
-      std::vector<web_srl_graph::item_type> predict(const std::vector<dy::Expression> &embeddings_in) {
+      std::vector<web_srl_graph::item_type> predict(const std::vector<dy::Tensor> &embeddings_in) {
         enum {OUTSIDE, INSIDE} state = OUTSIDE;
         unsigned s_anchor = 0;
         std::string label_anchor;

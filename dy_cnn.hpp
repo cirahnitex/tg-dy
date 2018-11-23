@@ -47,13 +47,13 @@ namespace tg {
         }
       }
 
-      dy::Expression forward(const dy::Expression& x) {
+      dy::Tensor forward(const dy::Tensor& x) {
         ensure_init(x);
         if(with_bias) {
-          return dynet::conv2d(x, dy::expr(filter), dy::expr(bias), {stride_between_rows, stride_between_columns}, disable_padding);
+          return dynet::conv2d(x, dy::Tensor(filter), dy::Tensor(bias), {stride_between_rows, stride_between_columns}, disable_padding);
         }
         else {
-          return dynet::conv2d(x, dy::expr(filter), {stride_between_rows, stride_between_columns}, disable_padding);
+          return dynet::conv2d(x, dy::Tensor(filter), {stride_between_rows, stride_between_columns}, disable_padding);
         }
       }
 
@@ -70,29 +70,29 @@ namespace tg {
       dynet::Parameter filter;
       dynet::Parameter bias;
 
-      void ensure_init(const dy::Expression& x) {
+      void ensure_init(const dy::Tensor& x) {
         if(input_channels > 0) return;
         input_channels = x.dim()[2];
         filter = add_parameters({filter_height, filter_width, input_channels, output_channels});
       }
     };
 
-    dy::Expression maxpooling2d(const dy::Expression& x, unsigned window_width, unsigned window_height, unsigned stride_between_rows, unsigned stride_between_columns, bool disable_padding = true) {
+    dy::Tensor maxpooling2d(const dy::Tensor& x, unsigned window_width, unsigned window_height, unsigned stride_between_rows, unsigned stride_between_columns, bool disable_padding = true) {
       return dynet::maxpooling2d(x, {window_width, window_height}, {stride_between_rows, stride_between_columns}, disable_padding);
     }
 
-    std::vector<dy::Expression> maxpooling1d(const std::vector<dy::Expression>& xs, unsigned window_length, unsigned stride, bool disable_padding = true) {
+    std::vector<dy::Tensor> maxpooling1d(const std::vector<dy::Tensor>& xs, unsigned window_length, unsigned stride, bool disable_padding = true) {
       if(xs.empty()) {throw std::runtime_error("cannot call maxpool1d on empty vector");}
       using namespace std;
       if(disable_padding) {
         const int bound = xs.size() - window_length;
         if(bound<0) {
-          return std::vector<dy::Expression>({dy::max(xs)});
+          return std::vector<dy::Tensor>({dy::max(xs)});
         }
         else {
-          std::vector<dy::Expression> ys;
+          std::vector<dy::Tensor> ys;
           for(int i=0; i<=bound; i+=stride) {
-            std::vector<dy::Expression> inners(xs.begin()+i, xs.begin()+i+window_length);
+            std::vector<dy::Tensor> inners(xs.begin()+i, xs.begin()+i+window_length);
             ys.push_back(dy::max(inners));
           }
           return ys;
@@ -102,11 +102,11 @@ namespace tg {
         int pad_begin = (window_length - 1) / 2;
         int pad_end = window_length - 1 - pad_begin;
         int max_end = xs.size();
-        std::vector<dy::Expression> ys;
+        std::vector<dy::Tensor> ys;
         for(int i=0; i<max_end; i+=stride) {
           int begin = std::max(0, i-pad_begin);
           int end_ = std::min(max_end, i+pad_end);
-          std::vector<dy::Expression> inners(xs.begin()+begin, xs.begin()+end_);
+          std::vector<dy::Tensor> inners(xs.begin()+begin, xs.begin()+end_);
           ys.push_back(dy::max(inners));
         }
         return ys;
@@ -129,8 +129,8 @@ namespace tg {
         bias() {
         if (with_bias) bias = add_parameters({output_channels});
       }
-      std::vector<dy::Expression> forward(const std::vector<dy::Expression>& xs) {
-        if(xs.empty()) return std::vector<dy::Expression>();
+      std::vector<dy::Tensor> forward(const std::vector<dy::Tensor>& xs) {
+        if(xs.empty()) return std::vector<dy::Tensor>();
         this->ensure_init(xs[0]);
         if(disable_padding) {return forward_no_padding(xs);}
         else {
@@ -139,7 +139,7 @@ namespace tg {
           unsigned pad_end = filter_length - 1 - pad_begin;
 
           // zeros at beginning
-          std::vector<Expression> padded(pad_begin, zeros);
+          std::vector<Tensor> padded(pad_begin, zeros);
 
           // values in the middle
           std::copy(xs.begin(), xs.end(), std::back_inserter(padded));
@@ -161,36 +161,36 @@ namespace tg {
       bool disable_padding;
       std::vector<dynet::Parameter> filters;
       dynet::Parameter bias;
-      void ensure_init(const dy::Expression& x) {
+      void ensure_init(const dy::Tensor& x) {
         if(input_channels > 0) return;
         input_channels = x.dim()[0];
         for(auto& filter:filters) {
           filter = add_parameters({output_channels, input_channels});
         }
       }
-      std::vector<dy::Expression> forward_no_padding(const std::vector<dy::Expression>& xs) {
+      std::vector<dy::Tensor> forward_no_padding(const std::vector<dy::Tensor>& xs) {
         const int bound = xs.size() - filter_length;
         if(bound<0) {
-          std::vector<dy::Expression> inners;
+          std::vector<dy::Tensor> inners;
           for(unsigned i=0; i<xs.size(); i++) {
-            inners.push_back(dy::expr(filters[i])*xs[i]);
+            inners.push_back(filters[i]*xs[i]);
           }
           if(with_bias) {
-            return std::vector<dy::Expression>({dy::sum(inners)+dy::expr(bias)});
+            return std::vector<dy::Tensor>({dy::sum(inners)+bias});
           }
           else {
-            return std::vector<dy::Expression>({dy::sum(inners)});
+            return std::vector<dy::Tensor>({dy::sum(inners)});
           }
         }
         else {
-          std::vector<dy::Expression> ys;
+          std::vector<dy::Tensor> ys;
           for(int i=0; i<=bound; i+=stride) {
-            std::vector<dy::Expression> inners;
+            std::vector<dy::Tensor> inners;
             for(unsigned offset=0; offset<filter_length; offset++) {
-              inners.push_back(dy::expr(filters[offset])*xs[bound+offset]);
+              inners.push_back(filters[offset]*xs[bound+offset]);
             }
             if(with_bias) {
-              ys.push_back(dy::sum(inners)+dy::expr(bias));
+              ys.push_back(dy::sum(inners)+bias);
             }
             else {
               ys.push_back(dy::sum(inners));

@@ -30,7 +30,7 @@ public:
 
   bilstm_maxpool_layer(unsigned hidden_dim):bilstm(1, hidden_dim) {}
 
-  dy::Expression forward(const vector<dy::Expression> &features) {
+  dy::Tensor forward(const vector<dy::Tensor> &features) {
     return dy::max(bilstm.forward_output_sequence(features));
   }
 
@@ -53,7 +53,7 @@ public:
     return ro.readout(forward(image));
   }
 
-  dy::Expression compute_loss(const vector<float>& image, const string& oracle) {
+  dy::Tensor compute_loss(const vector<float>& image, const string& oracle) {
     return ro.compute_loss(forward(image), oracle);
   }
 
@@ -65,8 +65,8 @@ private:
   bilstm_maxpool_layer split_by_column_pass;
   dy::readout_layer ro;
 
-  vector<dy::Expression> split_by_row(const vector<float> &image) {
-    vector<dy::Expression> ret;
+  vector<dy::Tensor> split_by_row(const vector<float> &image) {
+    vector<dy::Tensor> ret;
     for (unsigned row = 0; row < height; row++) {
       vector<float> row_vals;
       for (unsigned column = 0; column < width; column++) {
@@ -77,8 +77,8 @@ private:
     return ret;
   }
 
-  vector<dy::Expression> split_by_column(const vector<float> &image) {
-    vector<dy::Expression> ret;
+  vector<dy::Tensor> split_by_column(const vector<float> &image) {
+    vector<dy::Tensor> ret;
     for (unsigned column = 0; column < width; column++) {
       vector<float> column_vals;
       for (unsigned row = 0; row < height; row++) {
@@ -89,7 +89,7 @@ private:
     return ret;
   }
 
-  dy::Expression forward(const vector<float>& image) {
+  dy::Tensor forward(const vector<float>& image) {
     return dy::concatenate({
                              split_by_row_pass.forward(split_by_row(image)),
                              split_by_column_pass.forward(split_by_column(image))
@@ -111,7 +111,7 @@ int main() {
   bilstm_mnist_model model(dataset.width, dataset.height, dataset.labels, HIDDEN_DIM);
 
   cout << "training" <<endl;
-  dy::mp_train<datum_t>(4, 10, training_set, dev_set, [&](const datum_t& datum){
+  dy::fit<datum_t>(4, 10, training_set, dev_set, [&](const datum_t &datum) {
     return model.compute_loss(datum.input, datum.oracle);
   });
 

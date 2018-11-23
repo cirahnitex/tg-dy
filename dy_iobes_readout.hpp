@@ -10,7 +10,11 @@ namespace tg {
   namespace dy {
     class iobes_readout :public iobes_readout_base{
     public:
-      DECLARE_DEFAULT_CONSTRUCTORS(iobes_readout)
+      iobes_readout() = default;
+      iobes_readout(const iobes_readout&) = default;
+      iobes_readout(iobes_readout&&) = default;
+      iobes_readout &operator=(const iobes_readout&) = default;
+      iobes_readout &operator=(iobes_readout&&) = default;
       iobes_readout(const std::unordered_set<std::string>& tokens):
           iobes_readout_base({"I","B","E","S"}, tokens)
       {}

@@ -15,17 +15,17 @@ public:
   XorModel():fc1(4),fc2(1) {
   }
 
-  dy::Expression forward(bool x, bool y) {
-    auto input = dy::const_expr({x?1.0:0.0, y?1.0:0.0});
+  dy::Tensor forward(bool x, bool y) {
+    auto input = dy::Tensor({x?1.0:0.0, y?1.0:0.0});
     return fc2.forward(dy::tanh(fc1.forward(input)));
   }
 
   bool predict(bool x, bool y) {
-    return dy::as_scalar(forward(x, y)) > 0.0;
+    return forward(x, y).as_scalar() > 0.0;
   }
 
-  dy::Expression compute_loss(bool x, bool y, bool oracle) {
-    auto oracle_expr = dy::const_expr(oracle?1.0:0.0);
+  dy::Tensor compute_loss(bool x, bool y, bool oracle) {
+    auto oracle_expr = dy::Tensor(oracle?1.0:0.0);
     return dy::binary_log_loss(dy::logistic(forward(x, y)), oracle_expr);
   }
 

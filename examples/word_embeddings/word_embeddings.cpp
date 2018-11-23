@@ -40,10 +40,10 @@ int main() {
   });
 
   // compute embedding
-  auto embedding = dy::as_vector(embedding_lookup.lookup("king"));
+  auto embedding = embedding_lookup.lookup("king");
 
   // output
-  for (const auto &value:embedding) {
+  for (const auto &value:embedding.as_vector()) {
     cout << value << " ";
   }
   cout << endl;

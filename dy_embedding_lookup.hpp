@@ -14,7 +14,11 @@ namespace tg {
   namespace dy {
     class embedding_lookup {
     public:
-      DECLARE_DEFAULT_CONSTRUCTORS(embedding_lookup)
+      embedding_lookup() = default;
+      embedding_lookup(const embedding_lookup&) = default;
+      embedding_lookup(embedding_lookup&&) = default;
+      embedding_lookup &operator=(const embedding_lookup&) = default;
+      embedding_lookup &operator=(embedding_lookup&&) = default;
       /**
        * construct with a list of tokens. there is no garentee for the internal ID of the tokens.
        * but constructing with the same list of tokens will result in the same internal node ID.
@@ -84,12 +88,12 @@ namespace tg {
         }
       }
 
-      dy::Expression lookup(const std::string& token, bool as_constant = false) const {
+      dy::Tensor lookup(const std::string& token, bool as_constant = false) const {
         return lookup(token_to_id(token), as_constant);
       }
 
-      std::vector<dy::Expression> lookup(const std::vector<std::string>& tokens, bool as_constant = false) const {
-        std::vector<dy::Expression> ret;
+      std::vector<dy::Tensor> lookup(const std::vector<std::string>& tokens, bool as_constant = false) const {
+        std::vector<dy::Tensor> ret;
         for(auto itr = tokens.begin(); itr!=tokens.end(); ++itr) {
           ret.push_back(lookup(*itr, as_constant));
         }
@@ -140,7 +144,7 @@ namespace tg {
       unsigned embedding_size;
       dynet::LookupParameter lookup_table;
 
-      dy::Expression lookup(unsigned token_id, bool as_constant = false) const {
+      dy::Tensor lookup(unsigned token_id, bool as_constant = false) const {
         return as_constant?dynet::const_lookup(dy::cg(), lookup_table, token_id):dynet::lookup(dy::cg(), lookup_table, token_id);
       }
 

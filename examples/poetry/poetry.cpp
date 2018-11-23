@@ -42,7 +42,7 @@ public:
     }
     return ret;
   }
-  dy::Expression compute_loss(const vector<string>& sentence) {
+  dy::Tensor compute_loss(const vector<string>& sentence) {
     vector<string> input({START_OF_SENTENCE});
     copy(sentence.begin(), sentence.end(), back_inserter(input));
     vector<string> oracle(sentence);
@@ -97,7 +97,7 @@ int main() {
   cout << "initialze model" <<endl;
   dy::initialize();
   poetry_model model(EMBEDDING_SIZE, vocab, w2v);
-  dy::mp_train<datum_t>(4, NUM_EPOCHES, training_set, vector<datum_t>(), [&](const datum_t& datum) {
+  dy::fit<datum_t>(4, NUM_EPOCHES, training_set, vector<datum_t>(), [&](const datum_t &datum) {
     return model.compute_loss(datum);
   });
   cout << "testing" <<endl;

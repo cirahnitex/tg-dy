@@ -127,14 +127,14 @@ namespace tg {
       template<typename model_T, typename datum_T>
       static void train(const training_options &o,
                         std::function<model_T()> init,
-                        std::function<dy::Expression(const model_T &model, const datum_T &datum)> compute_loss,
+                        std::function<dy::Tensor(const model_T &model, const datum_T &datum)> compute_loss,
                         const std::vector<datum_T> &data
       ) {
         using namespace std;
         model_T model = load_or_init_model(o.model_dir, init);
         for (unsigned epoch = 1; epoch <= o.num_epochs; epoch++) {
           std::cerr << "epoch " << epoch << std::endl;
-          dy::mp_train<datum_T>(o.num_workers, data, [&](const datum_T &datum) { return compute_loss(model, datum); });
+          dy::fit<datum_T>(o.num_workers, data, [&](const datum_T &datum) { return compute_loss(model, datum); });
           save_model(o.model_dir, model);
         }
       }
@@ -153,7 +153,7 @@ namespace tg {
       template<typename model_T, typename datum_T>
       static void train(const training_options &o,
                         std::function<model_T()> init,
-                        std::function<dy::Expression(const model_T &model, const datum_T &datum)> compute_loss,
+                        std::function<dy::Tensor(const model_T &model, const datum_T &datum)> compute_loss,
                         const std::vector<std::function<std::vector<datum_T>()>> &data_fetchers
       ) {
 
@@ -161,7 +161,7 @@ namespace tg {
         for (unsigned epoch = 1; epoch <= o.num_epochs; epoch++) {
           for (unsigned i = 0; i < data_fetchers.size(); i++) {
             std::cerr << "epoch " << epoch << ", partition " << (i + 1) << "/" << data_fetchers.size() << std::endl;
-            dy::mp_train<datum_T>(o.num_workers, data_fetchers[i](), compute_loss);
+            dy::fit<datum_T>(o.num_workers, data_fetchers[i](), compute_loss);
             save_model(o.model_dir, model);
           }
         }

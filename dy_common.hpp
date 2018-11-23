@@ -10,15 +10,6 @@
 #include <vector>
 #include <dynet/training.h>
 
-#define _RETURN_CACHED_EXPR(ptr, fallback) \
-  try { \
-    return _params_that_have_expr_in_cg().at(ptr);\
-  }\
-  catch(std::out_of_range& e) {\
-    _params_that_have_expr_in_cg()[ptr] = fallback;\
-    return _params_that_have_expr_in_cg()[ptr];\
-  }\
-
 #define AUTO_START_GRAPH(ptr, action) \
   if(tg::dy::_those_who_have_their_graph_started().count(ptr)<=0) {\
     action;\
@@ -27,24 +18,22 @@
 
 #define AUTO_START_THIS_GRAPH(action) AUTO_START_GRAPH(this, action)
 
-#define DECLARE_DEFAULT_CONSTRUCTORS(class_name) \
-  class_name() = default;\
-  class_name(const class_name&) = default;\
-  class_name(class_name&&) = default;\
-  class_name& operator=(const class_name&) = default;\
-  class_name& operator=(class_name&&) = default;\
-
 namespace tg {
   namespace dy {
 
+    typedef dynet::Dim Dim;
+    typedef dynet::Parameter Parameter;
+    typedef dynet::LookupParameter LookupParameter;
+
     inline bool& _is_initialized() {
-      static bool _ = false; return _;
+      static bool _ = false;
+      return _;
     }
 
     /**
      * call this before any other dynet related stuffs are called
      */
-    inline void initialize() {
+    void initialize() {
       if(_is_initialized()) return;
       std::vector<std::string> arguments = {"", "--dynet-mem=512"};
 
@@ -90,16 +79,6 @@ namespace tg {
       return _trainer;
     }
 
-    inline void train_on_loss(const dynet::Expression& loss) {
-      cg().incremental_forward(loss);
-      cg().backward(loss);
-      trainer().update();
-    }
-
-    inline std::unordered_map<const void*, dynet::Expression>& _params_that_have_expr_in_cg() {
-      static std::unordered_map<const void*, dynet::Expression> _exprs;
-      return _exprs;
-    }
     inline bool& _should_check_nan() {
       static bool value = false;
       return value;
@@ -123,7 +102,6 @@ namespace tg {
      * the computation graph have garbage collection built-in so as a user you don't need to call this explicitly
      */
     inline void _renew_cg() {
-      _params_that_have_expr_in_cg().clear();
       _those_who_have_their_graph_started().clear();
       cg().clear();
       if(_should_check_nan()) {
@@ -132,26 +110,34 @@ namespace tg {
       }
     }
 
-    class Expression:public dynet::Expression {
+    class Tensor:public dynet::Expression {
     public:
-      Expression():dynet::Expression(){increment_cnt();};
-      Expression(const dynet::Expression& x):dynet::Expression(x) {increment_cnt();};
-      Expression(const dy::Expression& x):dynet::Expression(x) {increment_cnt();};
-      Expression(dynet::Expression&& x):dynet::Expression(x) {increment_cnt();};
-      Expression(dy::Expression&& x):dynet::Expression(x) {increment_cnt();};
-      Expression &operator=(const dynet::Expression& x) {dynet::Expression::operator=(x); return *this;};
-      Expression &operator=(const dy::Expression& x) {dynet::Expression::operator=(x); return *this;} ;
-      Expression &operator=(dynet::Expression&& x) {dynet::Expression::operator=(x); return *this;};
-      Expression &operator=(dy::Expression&& x) {dynet::Expression::operator=(x); return *this;};
-      ~Expression(){
+      Tensor():dynet::Expression(){increment_cnt();};
+      Tensor(const dynet::Expression& x):dynet::Expression(x) {increment_cnt();};
+      Tensor(const dy::Tensor& x):dynet::Expression(x) {increment_cnt();};
+      Tensor(dynet::Expression&& x):dynet::Expression(x) {increment_cnt();};
+      Tensor(dy::Tensor&& x):dynet::Expression(x) {increment_cnt();};
+      Tensor(const dynet::Parameter& x):dynet::Expression(dynet::parameter(cg(), x)) {increment_cnt();}
+      Tensor(float x):dynet::Expression(dynet::input(dy::cg(), x)){increment_cnt();}
+      Tensor(const std::vector<float> x):dynet::Expression(dynet::input(dy::cg(), {(unsigned)x.size()}, x)) {increment_cnt();}
+      Tensor(const std::initializer_list<float> x):dynet::Expression(dynet::input(dy::cg(), {(unsigned)x.size()}, x)) {increment_cnt();}
+      Tensor(const std::vector<float>& values, const dynet::Dim& dim):dynet::Expression(dynet::input(dy::cg(), dim, values)) {increment_cnt();}
+      Tensor(const std::initializer_list<float>& values, const dynet::Dim& dim):dynet::Expression(dynet::input(dy::cg(), dim, values)) {increment_cnt();}
+      Tensor &operator=(const dynet::Expression& x) {dynet::Expression::operator=(x); return *this;};
+      Tensor &operator=(const dy::Tensor& x) {dynet::Expression::operator=(x); return *this;} ;
+      Tensor &operator=(dynet::Expression&& x) {dynet::Expression::operator=(x); return *this;};
+      Tensor &operator=(dy::Tensor&& x) {dynet::Expression::operator=(x); return *this;};
+      float as_scalar() {return dynet::as_scalar(dy::cg().incremental_forward(*this));}
+      std::vector<float> as_vector() {return dynet::as_vector(dy::cg().incremental_forward(*this));}
+      ~Tensor(){
         num_exprs()--;
         if(num_exprs()==0) dy::_renew_cg();
       }
-      static std::vector<dynet::Expression> vector_cast_to_base(const std::vector<Expression>& x) {
+      static std::vector<dynet::Expression> vector_cast_to_base(const std::vector<Tensor>& x) {
         return std::vector<dynet::Expression>(x.begin(), x.end());
       }
-      static std::vector<Expression> vector_cast_to_parent(const std::vector<dynet::Expression>& x) {
-        return std::vector<Expression>(x.begin(), x.end());
+      static std::vector<Tensor> vector_cast_to_parent(const std::vector<dynet::Expression>& x) {
+        return std::vector<Tensor>(x.begin(), x.end());
       }
       static unsigned get_exprs_counter(){return num_exprs();}
     private:
@@ -159,23 +145,14 @@ namespace tg {
       void increment_cnt() {num_exprs()++;};
     };
 
-    inline dynet::Parameter add_parameters(const dynet::Dim& dim) {
+    inline Parameter add_parameters(const Dim& dim) {
       return pc().add_parameters(dim);
     }
 
-    inline dynet::LookupParameter add_lookup_parameters(unsigned capacity, const dynet::Dim& dim) {
+    inline LookupParameter add_lookup_parameters(unsigned capacity, const Dim& dim) {
       return pc().add_lookup_parameters(capacity, dim);
     }
 
-    /**
-     * get the Expression associated with a given Parameter
-     * (Expression can be used in computation graph to define neural network topology)
-     * \param p the Parameter
-     * \return the Expression
-     */
-    inline dy::Expression expr(const dynet::Parameter& p) {
-      _RETURN_CACHED_EXPR(&p, dynet::parameter(cg(), p))
-    }
 
     /**
      * get the const Expression associated with a given Parameter
@@ -184,44 +161,17 @@ namespace tg {
      * \param p the Parameter
      * \return the const Expression
      */
-    inline dy::Expression const_expr(const dynet::Parameter& p) {
-      _RETURN_CACHED_EXPR(&p, dynet::const_parameter(cg(), p))
+    inline Tensor const_expr(const Parameter& p) {
+      return dynet::const_parameter(cg(), p);
     }
 
-    /**
-     * create a const expression whose value is a scalar
-     * \param value the scalar
-     * \return the const expression
-     */
-    inline dy::Expression const_expr(float value) {
-      return dynet::input(dy::cg(), value);
-    }
-
-    /**
-     * create a const dim(n) tensor expression
-     * \param values the value of the expression
-     * \return the const expression
-     */
-    inline dy::Expression const_expr(const std::vector<float>& values) {
-      return dynet::input(dy::cg(), {(unsigned)values.size()}, values);
-    }
-
-    /**
-     * create a const tensor expression
-     * \param values the values of the expression
-     * \param dim the desired dimension
-     * \return the const expression
-     */
-    inline dy::Expression const_expr(const std::vector<float>& values, const dynet::Dim& dim) {
-      return dynet::input(dy::cg(), dim, values);
-    }
 
     /**
      * find the index of the largest value
      * \param logits must be of dim{n}
      * \return
      */
-    inline unsigned argmax_index(const dy::Expression& logits) {
+    inline unsigned argmax_index(const Tensor& logits) {
       auto logits_value = as_vector(dy::cg().incremental_forward(logits));
 
       float max_value = logits_value[0];
@@ -236,17 +186,6 @@ namespace tg {
       return max_index;
     }
 
-    inline float as_scalar(const dy::Expression& expr) {
-      return dynet::as_scalar(cg().incremental_forward(expr));
-    }
-
-    inline std::vector<float> as_vector(const dy::Expression& expr) {
-      return dynet::as_vector(cg().incremental_forward(expr));
-    }
-
-    inline dynet::Tensor as_tensor(const dy::Expression& expr) {
-      return cg().incremental_forward(expr);
-    }
   }
 }
 

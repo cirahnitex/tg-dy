@@ -34,7 +34,7 @@ namespace tg {
           readout_table(add_parameters({embedding_size+1,capacity})) // embedding +1 for bias
       {}
 
-      std::pair<dy::Expression, dy::Expression> lookup_with_loss(const std::string& token) const {
+      std::pair<dy::Tensor, dy::Tensor> lookup_with_loss(const std::string& token) const {
         auto id = token_to_id(token);
         auto ret_embedding = lookup(id);
         return std::make_pair(ret_embedding, compute_windowed_readout_loss(ret_embedding, std::vector<unsigned>({id})));
@@ -47,10 +47,10 @@ namespace tg {
        * \return 0) the embeddings
        *         1) the lookup-loss
        */
-      std::pair<std::vector<dy::Expression>, dy::Expression> lookup_with_loss(
+      std::pair<std::vector<dy::Tensor>, dy::Tensor> lookup_with_loss(
         const std::vector<std::string> &tokens) const {
         std::vector<unsigned> ids;
-        std::vector<dy::Expression> ret_embeddings;
+        std::vector<dy::Tensor> ret_embeddings;
         for(auto itr = tokens.begin(); itr!=tokens.end(); ++itr) {
           auto id = token_to_id(*itr);
           ids.push_back(id);
@@ -64,15 +64,15 @@ namespace tg {
        * \param embedding the embedding, dim(1) expression
        * \return the token
        */
-      std::string readout(const dy::Expression& embedding) const { return dict->convert(dy::argmax_index(forward(embedding))); }
+      std::string readout(const dy::Tensor& embedding) const { return dict->convert(dy::argmax_index(forward(embedding))); }
 
       /**
        * given an embedding, generate a token according to all token's weight distribution
        * \param embedding dim(1) expression
        * \return the generated token
        */
-      std::string random_readout(const dy::Expression& embedding) const {
-        auto weights = dy::as_vector(dy::softmax(forward(embedding)));
+      std::string random_readout(const dy::Tensor& embedding) const {
+        auto weights = dy::softmax(forward(embedding)).as_vector();
         std::discrete_distribution<unsigned> d(weights.begin(), weights.end());
         return dict->convert(d(*dynet::rndeng));
       }
@@ -82,7 +82,7 @@ namespace tg {
        * \param embeddings a list of embeddings
        * \return the sentence
        */
-      std::vector<std::string> readout(const std::vector<dy::Expression>& embeddings) const {
+      std::vector<std::string> readout(const std::vector<dy::Tensor>& embeddings) const {
         std::vector<std::string> ret;
         for(auto itr = embeddings.begin(); itr!=embeddings.end(); ++itr) {
           ret.push_back(readout(*itr));
@@ -95,7 +95,7 @@ namespace tg {
        * \param embeddings a list of embeddings
        * \return the sentence
        */
-      std::vector<std::string> random_readout(const std::vector<dy::Expression>& embeddings) const {
+      std::vector<std::string> random_readout(const std::vector<dy::Tensor>& embeddings) const {
         std::vector<std::string> ret;
         for(auto itr = embeddings.begin(); itr!=embeddings.end(); ++itr) {
           ret.push_back(random_readout(*itr));
@@ -109,7 +109,7 @@ namespace tg {
        * \param oracle the desired token
        * \return the loss to train on
        */
-      dy::Expression compute_readout_loss(const dy::Expression &embedding, const std::string &oracle) const {
+      dy::Tensor compute_readout_loss(const dy::Tensor &embedding, const std::string &oracle) const {
         return compute_windowed_readout_loss(embedding, std::vector<unsigned>({token_to_id(oracle)}));
       }
 
@@ -120,7 +120,7 @@ namespace tg {
        * \param oracle
        * \return the loss to train on
        */
-      dy::Expression compute_readout_loss(const std::vector<dy::Expression> &embeddings,
+      dy::Tensor compute_readout_loss(const std::vector<dy::Tensor> &embeddings,
                                           const std::vector<std::string> &oracle) const {
         std::vector<unsigned> oracle_ids;
         for(const auto& token:oracle) {
@@ -137,15 +137,14 @@ namespace tg {
     protected:
       dynet::Parameter readout_table;
 
-      dy::Expression forward(const dy::Expression &embedding) const {
-        auto one = dy::const_expr(1);
-        return dy::transpose(dy::transpose(dy::concatenate({embedding, one})) * dy::expr(readout_table));
+      dy::Tensor forward(const dy::Tensor &embedding) const {
+        return dy::transpose(dy::transpose(dy::concatenate({embedding, dy::Tensor(1)})) * dy::Tensor(readout_table));
       }
 
-      dy::Expression compute_windowed_readout_loss(const dy::Expression& embeddings_batch, const std::vector<unsigned>& oracles) const {
+      dy::Tensor compute_windowed_readout_loss(const dy::Tensor& embeddings_batch, const std::vector<unsigned>& oracles) const {
         auto one = dy::ones({1});
         if(capacity<=SAMPLE_THRESHOLD) {
-          auto logits = dy::transpose(dy::transpose(dy::concatenate({embeddings_batch, one})) * dy::expr(readout_table));
+          auto logits = dy::transpose(dy::transpose(dy::concatenate({embeddings_batch, one})) * dy::Tensor(readout_table));
           return dy::sum_batches(dy::pickneglogsoftmax(logits, oracles));
         }
         else {
@@ -178,7 +177,7 @@ namespace tg {
           }
 
           // fetch the readouts involved in sample
-          auto remapped_readout_table = dy::select_cols(dy::expr(readout_table), sampled_token_ids);
+          auto remapped_readout_table = dy::select_cols(dy::Tensor(readout_table), sampled_token_ids);
 
           auto logits = dy::transpose(dy::transpose(dy::concatenate({embeddings_batch, one})) * remapped_readout_table);
           return dy::sum_batches(dy::pickneglogsoftmax(logits, remapped_oracles));

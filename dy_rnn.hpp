@@ -14,13 +14,13 @@
 namespace tg {
   namespace dy {
 
-    typedef std::vector<dy::Expression> rnn_cell_state_t;
+    typedef std::vector<dy::Tensor> rnn_cell_state_t;
 
 
     class rnn_cell_t {
     public:
-      virtual std::pair<rnn_cell_state_t, dy::Expression>
-      forward(const rnn_cell_state_t &prev_state, const dy::Expression &x) = 0;
+      virtual std::pair<rnn_cell_state_t, dy::Tensor>
+      forward(const rnn_cell_state_t &prev_state, const dy::Tensor &x) = 0;
     };
 
 
@@ -55,9 +55,9 @@ namespace tg {
        * \return 0) the cell state after this time step
        *         1) the output
        */
-      std::pair<stacked_cell_state, dy::Expression>
-      forward(const stacked_cell_state &prev_state, const dy::Expression &x) {
-        Expression y = x;
+      std::pair<stacked_cell_state, dy::Tensor>
+      forward(const stacked_cell_state &prev_state, const dy::Tensor &x) {
+        Tensor y = x;
         std::vector<rnn_cell_state_t> output_stacked_cell_state;
         for (unsigned i = 0; i < cells.size(); i++) {
           auto &cell = cells[i];
@@ -75,11 +75,11 @@ namespace tg {
        * \return 0) the cell state after the last time step
        *         1) the list of output in chronological order
        */
-      std::pair<stacked_cell_state, std::vector<dy::Expression>>
-      forward(const stacked_cell_state &prev_state, const std::vector<dy::Expression> &x_sequence) {
-        if (x_sequence.empty()) return std::make_pair(stacked_cell_state(), std::vector<dy::Expression>());
+      std::pair<stacked_cell_state, std::vector<dy::Tensor>>
+      forward(const stacked_cell_state &prev_state, const std::vector<dy::Tensor> &x_sequence) {
+        if (x_sequence.empty()) return std::make_pair(stacked_cell_state(), std::vector<dy::Tensor>());
         auto[_state, y] = forward(prev_state, x_sequence[0]);
-        std::vector<dy::Expression> ys;
+        std::vector<dy::Tensor> ys;
         ys.push_back(std::move(y));
         for (unsigned i = 1; i < x_sequence.size(); i++) {
           std::tie(_state, y) = forward(_state, x_sequence[i]);
@@ -94,8 +94,8 @@ namespace tg {
        * \return 0) the cell state after the last time step
        *         1) the list of output in chronological order
        */
-      std::pair<stacked_cell_state, std::vector<dy::Expression>>
-      forward(const std::vector<dy::Expression> &x_sequence) {
+      std::pair<stacked_cell_state, std::vector<dy::Tensor>>
+      forward(const std::vector<dy::Tensor> &x_sequence) {
         return forward(stacked_cell_state(), x_sequence);
       }
 
@@ -105,8 +105,8 @@ namespace tg {
        * \param scs the stacked-cell-state
        * \return
        */
-      static dy::Expression flattern_stacked_cell_state(const stacked_cell_state& scs) {
-        std::vector<dy::Expression> flatterned_exprs;
+      static dy::Tensor flattern_stacked_cell_state(const stacked_cell_state& scs) {
+        std::vector<dy::Tensor> flatterned_exprs;
         for(const auto& cs:scs) {
           for(const auto& expr:cs) {
             flatterned_exprs.push_back(expr);
@@ -138,14 +138,14 @@ namespace tg {
        * \param x_sequence a list of inputs to apply
        * \return the outputs for each time step, concatenating outputs from both direction
        */
-      std::vector<dy::Expression>
-      forward_output_sequence(const std::vector<dy::Expression> &x_sequence) {
+      std::vector<dy::Tensor>
+      forward_output_sequence(const std::vector<dy::Tensor> &x_sequence) {
         auto forward_ys= forward_rnn.forward(inner_cell_state(), x_sequence).second;
         auto reversed_xs = x_sequence;
         std::reverse(reversed_xs.begin(), reversed_xs.end());
         auto backward_ys = backward_rnn.forward(inner_cell_state(), reversed_xs).second;
         std::reverse(backward_ys.begin(), backward_ys.end());
-        std::vector<dy::Expression> ret;
+        std::vector<dy::Tensor> ret;
         for(unsigned i=0; i<forward_ys.size(); i++) {
           ret.push_back(dy::concatenate({forward_ys[i], backward_ys[i]}));
         }
@@ -157,7 +157,7 @@ namespace tg {
        * \param x_sequence a list of inputs to apply
        * \return concatenating the final output from both direction. i.e. forward output for t[-1] and reversed output for t[0]
        */
-      dy::Expression forward_output_final(const std::vector<dy::Expression> &x_sequence) {
+      dy::Tensor forward_output_final(const std::vector<dy::Tensor> &x_sequence) {
         auto forward_ys= forward_rnn.forward(inner_cell_state(), x_sequence).second;
         auto reversed_xs = x_sequence;
         std::reverse(reversed_xs.begin(), reversed_xs.end());
@@ -171,7 +171,7 @@ namespace tg {
     };
 
 //    struct lstm_cell_state {
-//      Expression cell_state, hidden_state;
+//      Tensor cell_state, hidden_state;
 //    };
 
     class vanilla_lstm_cell_t : public rnn_cell_t {
@@ -190,10 +190,10 @@ namespace tg {
                                                  input_gate(hidden_dim), input_fc(hidden_dim),
                                                  output_gate(hidden_dim) {};
 
-      virtual std::pair<rnn_cell_state_t, dy::Expression>
-      forward(const rnn_cell_state_t &prev_state, const dy::Expression &x) {
+      virtual std::pair<rnn_cell_state_t, dy::Tensor>
+      forward(const rnn_cell_state_t &prev_state, const dy::Tensor &x) {
         ensure_init(x);
-        dy::Expression cell_state, hidden_state;
+        dy::Tensor cell_state, hidden_state;
         if(prev_state.empty()) {
           cell_state = hidden_state = dy::zeros({hidden_dim});
         }
@@ -212,7 +212,7 @@ namespace tg {
       EASY_SERIALZABLE(hidden_dim, forget_gate, input_gate, input_fc, output_gate)
 
     private:
-      void ensure_init(const Expression &x) {
+      void ensure_init(const Tensor &x) {
         if (hidden_dim > 0) return;
         hidden_dim = x.dim()[0];
         forget_gate = linear_layer(hidden_dim);
@@ -246,10 +246,10 @@ namespace tg {
       coupled_lstm_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), forget_gate(hidden_dim), input_fc(hidden_dim),
                                                  output_gate(hidden_dim) {};
 
-      virtual std::pair<rnn_cell_state_t, dy::Expression>
-      forward(const rnn_cell_state_t &prev_state, const dy::Expression &x) {
+      virtual std::pair<rnn_cell_state_t, dy::Tensor>
+      forward(const rnn_cell_state_t &prev_state, const dy::Tensor &x) {
         ensure_init(x);
-        dy::Expression cell_state, hidden_state;
+        dy::Tensor cell_state, hidden_state;
         if(prev_state.empty()) {
           cell_state = hidden_state = dy::zeros({hidden_dim});
         }
@@ -271,7 +271,7 @@ namespace tg {
       EASY_SERIALZABLE(hidden_dim, forget_gate, input_fc, output_gate)
 
     private:
-      void ensure_init(const Expression &x) {
+      void ensure_init(const Tensor &x) {
         if (hidden_dim > 0) return;
         hidden_dim = x.dim()[0];
         forget_gate = linear_layer(hidden_dim);
@@ -303,8 +303,8 @@ namespace tg {
       gru_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), pre_input_gate(hidden_dim), input_fc(hidden_dim),
                                         output_gate(hidden_dim) {};
 
-      virtual std::pair<rnn_cell_state_t, dy::Expression>
-      forward(const rnn_cell_state_t &prev_state, const dy::Expression &x) {
+      virtual std::pair<rnn_cell_state_t, dy::Tensor>
+      forward(const rnn_cell_state_t &prev_state, const dy::Tensor &x) {
         ensure_init(x);
         auto hidden = (prev_state.empty()) ? dy::zeros({hidden_dim}) : prev_state[0];
         auto input_for_gates = dy::concatenate({hidden, x});
@@ -320,7 +320,7 @@ namespace tg {
       EASY_SERIALZABLE(hidden_dim, pre_input_gate, input_fc, output_gate)
 
     private:
-      void ensure_init(const Expression &x) {
+      void ensure_init(const Tensor &x) {
         if (hidden_dim > 0) return;
         hidden_dim = x.dim()[0];
         pre_input_gate = linear_layer(hidden_dim);

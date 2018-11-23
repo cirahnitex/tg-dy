@@ -8,6 +8,7 @@
 #include <dynet/dynet.h>
 #include <dynet/expr.h>
 #include "dy_common.hpp"
+#include "dy_operations.hpp"
 #include "dy_serialization_helper.hpp"
 namespace tg {
   namespace dy {
@@ -19,22 +20,22 @@ namespace tg {
       linear_layer &operator=(const linear_layer&) = default;
       linear_layer &operator=(linear_layer&&) = default;
       explicit linear_layer(unsigned dim_out)
-          : dim_in(0), dim_out(dim_out), W(), b() {
+          : dim_in(0), dim_out(dim_out), W(), b(add_parameters({dim_out})) {
       }
 
-      dy::Expression operator()(const dy::Expression& x) {
+      dy::Tensor operator()(const dy::Tensor& x) {
         return forward(x);
       }
 
-      dy::Expression forward(const dy::Expression& x) {
+      dy::Tensor forward(const dy::Tensor& x) {
         ensure_init(x);
-        return dy::expr(W)*x+dy::expr(b);
+        return W*x+b;
       }
 
-      dy::Expression forward_given_output_positions(const dy::Expression& x, const std::vector<unsigned> output_positions) {
+      dy::Tensor forward_given_output_positions(const dy::Tensor& x, const std::vector<unsigned> output_positions) {
         ensure_init(x);
-        auto selected_W = dynet::select_rows(dy::expr(W), output_positions);
-        auto selected_b = dynet::reshape(dynet::pick(dy::expr(b), output_positions), {(unsigned)output_positions.size()});
+        auto selected_W = dynet::select_rows(dy::Tensor(W), output_positions);
+        auto selected_b = dynet::reshape(dynet::pick(dy::Tensor(b), output_positions), {(unsigned)output_positions.size()});
         return selected_W * x + selected_b;
       }
 
@@ -43,14 +44,13 @@ namespace tg {
     private:
       unsigned dim_in;
       unsigned dim_out;
-      dynet::Parameter W;
-      dynet::Parameter b;
+      dy::Parameter W;
+      dy::Parameter b;
 
-      void ensure_init(const dy::Expression& input) {
+      void ensure_init(const dy::Tensor& input) {
         if(dim_in != 0) return;
         dim_in = input.dim()[0];
         W = add_parameters({dim_out, dim_in});
-        b = add_parameters({dim_out});
       }
     };
   }
