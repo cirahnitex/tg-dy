@@ -26,7 +26,7 @@ int main() {
 
   dy::linear_layer fc1(4);
   dy::linear_layer fc2(1);
-  dy::Tensor x({1,0});
+  dy::tensor x({1,0});
   x = fc1.forward(x);
   x = dy::tanh(x);
   x = fc2.forward(x);

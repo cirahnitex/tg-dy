@@ -11,16 +11,16 @@
 #include "dy_linear_layer.hpp"
 namespace tg {
   namespace dy {
-    class multi_readout_layer {
+    class multi_readout_model {
     public:
-      multi_readout_layer() = default;
-      multi_readout_layer(const multi_readout_layer&) = default;
-      multi_readout_layer(multi_readout_layer&&) = default;
-      multi_readout_layer &operator=(const multi_readout_layer&) = default;
-      multi_readout_layer &operator=(multi_readout_layer&&) = default;
-      explicit multi_readout_layer(const std::unordered_set<std::string>& labels):labels(labels.begin(), labels.end()),fc(labels.size()) {
+      multi_readout_model() = default;
+      multi_readout_model(const multi_readout_model&) = default;
+      multi_readout_model(multi_readout_model&&) = default;
+      multi_readout_model &operator=(const multi_readout_model&) = default;
+      multi_readout_model &operator=(multi_readout_model&&) = default;
+      explicit multi_readout_model(const std::unordered_set<std::string>& labels):labels(labels.begin(), labels.end()),fc(labels.size()) {
       }
-      std::unordered_set<std::string> readout(const dy::Tensor &x) {
+      std::unordered_set<std::string> readout(const dy::tensor &x) {
         const auto evidences = fc.forward(x).as_vector();
         std::unordered_set<std::string> ret;
         for (unsigned i = 0; i < labels.size(); i++) {
@@ -31,13 +31,13 @@ namespace tg {
         }
         return ret;
       }
-      dy::Tensor compute_loss(const dy::Tensor& x, const std::unordered_set<std::string>& oracle) {
+      dy::tensor compute_loss(const dy::tensor& x, const std::unordered_set<std::string>& oracle) {
         using namespace std;
         vector<float> oracle_float;
         for(const auto& label:labels) {
           oracle_float.push_back(oracle.count(label)>0?(float)1:(float)0);
         }
-        return dynet::binary_log_loss(dynet::logistic(fc.forward(x)), dy::Tensor(oracle_float));
+        return dynet::binary_log_loss(dynet::logistic(fc.forward(x)), dy::tensor(oracle_float));
       }
       EASY_SERIALZABLE(labels, fc)
     private:

@@ -66,7 +66,7 @@ namespace tg {
        * \param entry the label to represent
        * \return a dim(#-of-labels) tensor, all values are 0 except 1 at the position of internal label ID
        */
-      dy::Tensor one_hot(const std::string &entry) const {
+      dy::tensor one_hot(const std::string &entry) const {
         std::vector<float> ret(dict->size());
         fill(ret.begin(), ret.end(), 0);
         ret[dict->convert(entry)] = 1;

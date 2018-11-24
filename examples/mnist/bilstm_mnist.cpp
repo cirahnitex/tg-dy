@@ -30,7 +30,7 @@ public:
 
   bilstm_maxpool_layer(unsigned hidden_dim):bilstm(1, hidden_dim) {}
 
-  dy::Tensor forward(const vector<dy::Tensor> &features) {
+  dy::tensor forward(const vector<dy::tensor> &features) {
     return dy::max(bilstm.forward_output_sequence(features));
   }
 
@@ -50,10 +50,10 @@ public:
   bilstm_mnist_model(unsigned width, unsigned height, const unordered_set<string>& labels, unsigned hidden_dim):width(width),height(height),split_by_row_pass(hidden_dim), split_by_column_pass(hidden_dim), ro(labels) {}
 
   string predict(const vector<float> &image) {
-    return ro.readout(forward(image));
+    return ro.predict(forward(image));
   }
 
-  dy::Tensor compute_loss(const vector<float>& image, const string& oracle) {
+  dy::tensor compute_loss(const vector<float>& image, const string& oracle) {
     return ro.compute_loss(forward(image), oracle);
   }
 
@@ -63,10 +63,10 @@ private:
   unsigned height;
   bilstm_maxpool_layer split_by_row_pass;
   bilstm_maxpool_layer split_by_column_pass;
-  dy::readout_layer ro;
+  dy::readout_model ro;
 
-  vector<dy::Tensor> split_by_row(const vector<float> &image) {
-    vector<dy::Tensor> ret;
+  vector<dy::tensor> split_by_row(const vector<float> &image) {
+    vector<dy::tensor> ret;
     for (unsigned row = 0; row < height; row++) {
       vector<float> row_vals;
       for (unsigned column = 0; column < width; column++) {
@@ -77,8 +77,8 @@ private:
     return ret;
   }
 
-  vector<dy::Tensor> split_by_column(const vector<float> &image) {
-    vector<dy::Tensor> ret;
+  vector<dy::tensor> split_by_column(const vector<float> &image) {
+    vector<dy::tensor> ret;
     for (unsigned column = 0; column < width; column++) {
       vector<float> column_vals;
       for (unsigned row = 0; row < height; row++) {
@@ -89,7 +89,7 @@ private:
     return ret;
   }
 
-  dy::Tensor forward(const vector<float>& image) {
+  dy::tensor forward(const vector<float>& image) {
     return dy::concatenate({
                              split_by_row_pass.forward(split_by_row(image)),
                              split_by_column_pass.forward(split_by_column(image))

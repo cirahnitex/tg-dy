@@ -28,7 +28,7 @@ public:
     :emb(embedding_size, vocab, [&](const string& token){return init_embeddings.at(token);}), lstm(1, 15), ro(labels){
   }
 
-  dy::Tensor forward(const vector<string>& sentence) {
+  dy::tensor forward(const vector<string>& sentence) {
 //    auto output_embs = lstm.forward(emb.lookup(sentence, true)).second;
     auto output_embs = lstm.forward_output_sequence(emb.lookup(sentence, true));
     return dy::max(output_embs);
@@ -47,7 +47,7 @@ private:
   dy::embedding_lookup emb;
 //  dy::vanilla_lstm lstm;
   dy::bidirectional_vanilla_lstm lstm;
-  dy::multi_readout_layer ro;
+  dy::multi_readout_model ro;
 };
 
 template<class T>

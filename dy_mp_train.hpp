@@ -19,7 +19,7 @@ namespace tg {
     template<typename DATUM>
   class _mp_train_learner :private dynet::mp::ILearner<DATUM, float> {
     public:
-      _mp_train_learner(unsigned num_workers, unsigned num_epoches, const std::vector<DATUM> &training_set,  const std::vector<DATUM> &dev_set, std::function<dy::Tensor(const DATUM &)> compute_loss, std::function<void(const std::exception&, const DATUM&)> on_error, std::function<void()> save) :
+      _mp_train_learner(unsigned num_workers, unsigned num_epoches, const std::vector<DATUM> &training_set,  const std::vector<DATUM> &dev_set, std::function<dy::tensor(const DATUM &)> compute_loss, std::function<void(const std::exception&, const DATUM&)> on_error, std::function<void()> save) :
           compute_loss(compute_loss), on_error(on_error), save(save) {
         if(training_set.empty()) return;
         compute_loss(training_set[0]); // for its side-effect only. to ensure that all lazy-initialized layers has been initialized before going parallel
@@ -36,11 +36,11 @@ namespace tg {
 
     private:
       virtual float LearnFromDatum(const DATUM &datum, bool learn) {
-        if(dy::Tensor::get_exprs_counter()!=0) {
+        if(dy::tensor::get_exprs_counter()!=0) {
           throw std::runtime_error("NO GLOBAL TENSOR. All dy::Tensor instances must be cleaned up before training on a new Datum. Otherwise severe memory leak will occur while training.");
         }
         try {
-          dy::Tensor loss = compute_loss(datum);
+          dy::tensor loss = compute_loss(datum);
           float ret = loss.as_scalar();
           if(learn) dy::cg().backward(loss);
           return ret;
@@ -54,7 +54,7 @@ namespace tg {
 
       virtual void SaveModel() {save();}
 
-      std::function<dy::Tensor(const DATUM &)> compute_loss;
+      std::function<dy::tensor(const DATUM &)> compute_loss;
       std::function<void(const std::exception&, const DATUM&)> on_error;
       std::function<void()> save;
     };
@@ -73,7 +73,7 @@ namespace tg {
      */
     template<typename DATUM>
     void fit(unsigned num_workers, unsigned num_epoches, const std::vector<DATUM> &training_set,
-             const std::vector<DATUM> &dev_set, std::function<dy::Tensor(const DATUM &)> compute_loss,
+             const std::vector<DATUM> &dev_set, std::function<dy::tensor(const DATUM &)> compute_loss,
              std::function<void(const std::exception &, const DATUM &)> on_error, std::function<void()> save) {
       _mp_train_learner<DATUM>(num_workers, num_epoches, training_set, dev_set, compute_loss, on_error, save);
     }
@@ -91,7 +91,7 @@ namespace tg {
      */
     template<typename DATUM>
     void fit(unsigned num_workers, unsigned num_epoches, const std::vector<DATUM> &training_set,
-             const std::vector<DATUM> &dev_set, std::function<dy::Tensor(const DATUM &)> compute_loss,
+             const std::vector<DATUM> &dev_set, std::function<dy::tensor(const DATUM &)> compute_loss,
              std::function<void(const std::exception &, const DATUM &)> on_error) {
       _mp_train_learner<DATUM>(num_workers, num_epoches, training_set, dev_set, compute_loss, on_error, [](){});
     }
@@ -108,7 +108,7 @@ namespace tg {
      */
     template<typename DATUM>
     void fit(unsigned num_workers, unsigned num_epoches, const std::vector<DATUM> &training_set,
-             const std::vector<DATUM> &dev_set, std::function<dy::Tensor(const DATUM &)> compute_loss) {
+             const std::vector<DATUM> &dev_set, std::function<dy::tensor(const DATUM &)> compute_loss) {
       _mp_train_learner<DATUM>(num_workers, num_epoches, training_set, dev_set, compute_loss, [](const std::exception& e, const DATUM& d){
         std::cerr << "skipped datum because of exception" << std::endl;
         std::cerr << e.what() << std::endl;

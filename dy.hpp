@@ -15,12 +15,12 @@
 #include "dy_lookup_readout.hpp"
 #include "dy_embedding_lookup.hpp"
 #include "dy_mp_train.hpp"
-#include "dy_readout_layer.hpp"
+#include "dy_readout_model.hpp"
 #include "dy_iobes_readout_base.hpp"
 #include "dy_iob_readout.hpp"
 #include "dy_iobes_readout.hpp"
 #include "dy_ioe_readout.hpp"
-#include "dy_multi_readout_layer.hpp"
+#include "dy_multi_readout_model.hpp"
 #include "dy_cnn.hpp"
 
 #endif //DYNET_WRAPPER_DY_HPP

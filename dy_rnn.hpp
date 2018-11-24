@@ -14,13 +14,13 @@
 namespace tg {
   namespace dy {
 
-    typedef std::vector<dy::Tensor> rnn_cell_state_t;
+    typedef std::vector<dy::tensor> rnn_cell_state_t;
 
 
     class rnn_cell_t {
     public:
-      virtual std::pair<rnn_cell_state_t, dy::Tensor>
-      forward(const rnn_cell_state_t &prev_state, const dy::Tensor &x) = 0;
+      virtual std::pair<rnn_cell_state_t, dy::tensor>
+      forward(const rnn_cell_state_t &prev_state, const dy::tensor &x) = 0;
     };
 
 
@@ -59,9 +59,9 @@ namespace tg {
        * \return 0) the cell state after this time step
        *         1) the output
        */
-      std::pair<stacked_cell_state, dy::Tensor>
-      forward(const stacked_cell_state &prev_state, const dy::Tensor &x) {
-        Tensor y = x;
+      std::pair<stacked_cell_state, dy::tensor>
+      forward(const stacked_cell_state &prev_state, const dy::tensor &x) {
+        tensor y = x;
         std::vector<rnn_cell_state_t> output_stacked_cell_state;
         for (unsigned i = 0; i < cells.size(); i++) {
           auto &cell = cells[i];
@@ -79,11 +79,11 @@ namespace tg {
        * \return 0) the cell state after the last time step
        *         1) the list of output in chronological order
        */
-      std::pair<stacked_cell_state, std::vector<dy::Tensor>>
-      forward(const stacked_cell_state &prev_state, const std::vector<dy::Tensor> &x_sequence) {
-        if (x_sequence.empty()) return std::make_pair(default_cell_state(), std::vector<dy::Tensor>());
+      std::pair<stacked_cell_state, std::vector<dy::tensor>>
+      forward(const stacked_cell_state &prev_state, const std::vector<dy::tensor> &x_sequence) {
+        if (x_sequence.empty()) return std::make_pair(default_cell_state(), std::vector<dy::tensor>());
         auto[_state, y] = forward(prev_state, x_sequence[0]);
-        std::vector<dy::Tensor> ys;
+        std::vector<dy::tensor> ys;
         ys.push_back(std::move(y));
         for (unsigned i = 1; i < x_sequence.size(); i++) {
           std::tie(_state, y) = forward(_state, x_sequence[i]);
@@ -98,8 +98,8 @@ namespace tg {
        * \return 0) the cell state after the last time step
        *         1) the list of output in chronological order
        */
-      std::pair<stacked_cell_state, std::vector<dy::Tensor>>
-      forward(const std::vector<dy::Tensor> &x_sequence) {
+      std::pair<stacked_cell_state, std::vector<dy::tensor>>
+      forward(const std::vector<dy::tensor> &x_sequence) {
         return forward(stacked_cell_state(), x_sequence);
       }
 
@@ -109,8 +109,8 @@ namespace tg {
        * \param scs the stacked-cell-state
        * \return
        */
-      static dy::Tensor flattern_stacked_cell_state(const stacked_cell_state& scs) {
-        std::vector<dy::Tensor> flatterned_exprs;
+      static dy::tensor flattern_stacked_cell_state(const stacked_cell_state& scs) {
+        std::vector<dy::tensor> flatterned_exprs;
         for(const auto& cs:scs) {
           for(const auto& expr:cs) {
             flatterned_exprs.push_back(expr);
@@ -142,14 +142,14 @@ namespace tg {
        * \param x_sequence a list of inputs to apply
        * \return the outputs for each time step, concatenating outputs from both direction
        */
-      std::vector<dy::Tensor>
-      forward_output_sequence(const std::vector<dy::Tensor> &x_sequence) {
+      std::vector<dy::tensor>
+      forward_output_sequence(const std::vector<dy::tensor> &x_sequence) {
         auto forward_ys= forward_rnn.forward(forward_rnn.default_cell_state(), x_sequence).second;
         auto reversed_xs = x_sequence;
         std::reverse(reversed_xs.begin(), reversed_xs.end());
         auto backward_ys = backward_rnn.forward(backward_rnn.default_cell_state(), reversed_xs).second;
         std::reverse(backward_ys.begin(), backward_ys.end());
-        std::vector<dy::Tensor> ret;
+        std::vector<dy::tensor> ret;
         for(unsigned i=0; i<forward_ys.size(); i++) {
           ret.push_back(dy::concatenate({forward_ys[i], backward_ys[i]}));
         }
@@ -161,7 +161,7 @@ namespace tg {
        * \param x_sequence a list of inputs to apply
        * \return concatenating the final output from both direction. i.e. forward output for t[-1] and reversed output for t[0]
        */
-      dy::Tensor forward_output_final(const std::vector<dy::Tensor> &x_sequence) {
+      dy::tensor forward_output_final(const std::vector<dy::tensor> &x_sequence) {
         auto forward_ys= forward_rnn.forward(forward_rnn.default_cell_state(), x_sequence).second;
         auto reversed_xs = x_sequence;
         std::reverse(reversed_xs.begin(), reversed_xs.end());
@@ -196,8 +196,8 @@ namespace tg {
         return rnn_cell_state_t({zeros, zeros});
       }
 
-      virtual std::pair<rnn_cell_state_t, dy::Tensor>
-      forward(const rnn_cell_state_t &prev_state, const dy::Tensor &x) {
+      virtual std::pair<rnn_cell_state_t, dy::tensor>
+      forward(const rnn_cell_state_t &prev_state, const dy::tensor &x) {
         if(prev_state.empty()) {
           throw std::runtime_error("RNN: previous cell state empty. call default_cell_state to get a default one");
         }
@@ -245,8 +245,8 @@ namespace tg {
         return rnn_cell_state_t({zeros, zeros});
       }
 
-      virtual std::pair<rnn_cell_state_t, dy::Tensor>
-      forward(const rnn_cell_state_t &prev_state, const dy::Tensor &x) {
+      virtual std::pair<rnn_cell_state_t, dy::tensor>
+      forward(const rnn_cell_state_t &prev_state, const dy::tensor &x) {
         if(prev_state.empty()) {
           throw std::runtime_error("RNN: previous cell state empty. call default_cell_state to get a default one");
         }
@@ -295,8 +295,8 @@ namespace tg {
         return rnn_cell_state_t({dy::zeros({hidden_dim})});
       }
 
-      virtual std::pair<rnn_cell_state_t, dy::Tensor>
-      forward(const rnn_cell_state_t &prev_state, const dy::Tensor &x) {
+      virtual std::pair<rnn_cell_state_t, dy::tensor>
+      forward(const rnn_cell_state_t &prev_state, const dy::tensor &x) {
         if(prev_state.empty()) {
           throw std::runtime_error("RNN: previous cell state empty. call default_cell_state to get a default one");
         }

@@ -88,12 +88,12 @@ namespace tg {
         }
       }
 
-      dy::Tensor lookup(const std::string& token, bool as_constant = false) const {
+      dy::tensor lookup(const std::string& token, bool as_constant = false) const {
         return lookup(token_to_id(token), as_constant);
       }
 
-      std::vector<dy::Tensor> lookup(const std::vector<std::string>& tokens, bool as_constant = false) const {
-        std::vector<dy::Tensor> ret;
+      std::vector<dy::tensor> lookup(const std::vector<std::string>& tokens, bool as_constant = false) const {
+        std::vector<dy::tensor> ret;
         for(auto itr = tokens.begin(); itr!=tokens.end(); ++itr) {
           ret.push_back(lookup(*itr, as_constant));
         }
@@ -144,7 +144,7 @@ namespace tg {
       unsigned embedding_size;
       dynet::LookupParameter lookup_table;
 
-      dy::Tensor lookup(unsigned token_id, bool as_constant = false) const {
+      dy::tensor lookup(unsigned token_id, bool as_constant = false) const {
         return as_constant?dynet::const_lookup(dy::cg(), lookup_table, token_id):dynet::lookup(dy::cg(), lookup_table, token_id);
       }
 

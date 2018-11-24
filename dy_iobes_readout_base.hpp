@@ -30,8 +30,8 @@ namespace tg {
        * \param oracle true answer, labeled span
        * \return
        */
-      dy::Tensor compute_loss(const std::vector<dy::Tensor>& embeddings_in, const std::vector<web_srl_graph::item_type> oracle) {
-        std::vector<dy::Tensor> ret;
+      dy::tensor compute_loss(const std::vector<dy::tensor>& embeddings_in, const std::vector<web_srl_graph::item_type> oracle) {
+        std::vector<dy::tensor> ret;
         for(unsigned i=0; i<embeddings_in.size(); i++) {
           std::string prefix_oracle, label_oracle;
           tie(prefix_oracle, label_oracle) = get_prefixed_label_at_token_index(i, oracle);
@@ -52,15 +52,15 @@ namespace tg {
        * \param embeddings_in embedding of each token in sentence
        * \return
        */
-      std::vector<web_srl_graph::item_type> predict(const std::vector<dy::Tensor> &embeddings_in) {
+      std::vector<web_srl_graph::item_type> predict(const std::vector<dy::tensor> &embeddings_in) {
         enum {OUTSIDE, INSIDE} state = OUTSIDE;
         unsigned s_anchor = 0;
         std::string label_anchor;
         std::vector<web_srl_graph::item_type> ret;
         for(unsigned i=0; i<embeddings_in.size(); ++i) {
           auto embedding = embeddings_in[i];
-          auto prefix = ro_prefix.readout(embedding);
-          auto label = ro_label.readout(embedding);
+          auto prefix = ro_prefix.predict(embedding);
+          auto label = ro_label.predict(embedding);
 
           if(state == OUTSIDE) {
             if(label.empty()) {
@@ -114,8 +114,8 @@ namespace tg {
       EASY_SERIALZABLE(ro_prefix, ro_label)
     protected:
       virtual std::pair<std::string, std::string> get_prefixed_label_at_token_index(unsigned index, const std::vector<web_srl_graph::item_type> &labeled_spans) const = 0;
-      dy::readout_layer ro_prefix;
-      dy::readout_layer ro_label;
+      dy::readout_model ro_prefix;
+      dy::readout_model ro_label;
     };
   }
 

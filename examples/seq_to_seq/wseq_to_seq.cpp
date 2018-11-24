@@ -99,12 +99,12 @@ public:
     }
     return ret;
   }
-  dy::Tensor compute_loss(const vector<string>& f_sentence, vector<string> e_sentence) {
+  dy::tensor compute_loss(const vector<string>& f_sentence, vector<string> e_sentence) {
     const auto [f_sentence_emb, f_lookup_loss] = f_embedding_table.lookup_with_loss(f_sentence);
     auto cell_state = encoder.forward(f_sentence_emb).first;
     e_sentence.push_back(END_OF_SENTENCE);
     const auto [e_sentence_emb, e_lookup_loss] = e_embedding_table.lookup_with_loss(e_sentence);
-    vector<dy::Tensor> decoder_inputs({dy::zeros({embedding_size})});
+    vector<dy::tensor> decoder_inputs({dy::zeros({embedding_size})});
     copy(e_sentence_emb.begin(), e_sentence_emb.end()-1,back_inserter(decoder_inputs));
     auto decoder_outputs = decoder.forward(cell_state, decoder_inputs).second;
     for(auto& x:decoder_outputs) {x = dy::tanh(output_fc.forward(x));}

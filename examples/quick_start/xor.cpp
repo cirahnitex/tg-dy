@@ -15,8 +15,8 @@ public:
   XorModel():fc1(4),fc2(1) {
   }
 
-  dy::Tensor forward(bool x, bool y) {
-    auto input = dy::Tensor({x?1.0:0.0, y?1.0:0.0});
+  dy::tensor forward(bool x, bool y) {
+    auto input = dy::tensor({x?1.0:0.0, y?1.0:0.0});
     return fc2.forward(dy::tanh(fc1.forward(input)));
   }
 
@@ -24,8 +24,8 @@ public:
     return forward(x, y).as_scalar() > 0.0;
   }
 
-  dy::Tensor compute_loss(bool x, bool y, bool oracle) {
-    auto oracle_expr = dy::Tensor(oracle?1.0:0.0);
+  dy::tensor compute_loss(bool x, bool y, bool oracle) {
+    auto oracle_expr = dy::tensor(oracle?1.0:0.0);
     return dy::binary_log_loss(dy::logistic(forward(x, y)), oracle_expr);
   }
 

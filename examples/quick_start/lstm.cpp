@@ -20,7 +20,7 @@ public:
   vector<string> predict(const vector<string>& foreign_sentence) {
     auto sentence_embs = foreign_lookup_table.lookup(foreign_sentence);
     auto cell_state = encoder.forward(sentence_embs).first;
-    dy::Tensor curr_output_emb = dy::zeros({embedding_size});
+    dy::tensor curr_output_emb = dy::zeros({embedding_size});
     vector<string> ret;
     for(unsigned i=0; i<MAX_OUTPUT_SIZE; i++) {
       tie(cell_state, curr_output_emb) = decoder.forward(cell_state, curr_output_emb);
@@ -33,7 +33,7 @@ public:
     return ret;
   }
 
-  dy::Tensor compute_loss(const vector<string>& foreign_sentence, const vector<string>& emit_sentence) {
+  dy::tensor compute_loss(const vector<string>& foreign_sentence, const vector<string>& emit_sentence) {
 
     // encode foreign sentence into a cell state
     auto [sentence_embs, foreign_lookup_loss] = foreign_lookup_table.lookup_with_loss(foreign_sentence);
@@ -41,7 +41,7 @@ public:
 
     // input for the decoder is the emit embeddings with leading zero
     auto [emit_embs, emit_lookup_loss] = emit_lookup_table.lookup_with_loss(emit_sentence);
-    vector<dy::Tensor> inputs_to_decoder({dy::zeros({embedding_size})});
+    vector<dy::tensor> inputs_to_decoder({dy::zeros({embedding_size})});
     std::copy(emit_embs.begin(), emit_embs.end(), back_inserter(inputs_to_decoder));
 
     // oracle for the decoder is the emit sentence embedding with ending EOS

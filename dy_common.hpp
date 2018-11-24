@@ -110,34 +110,34 @@ namespace tg {
       }
     }
 
-    class Tensor:public dynet::Expression {
+    class tensor:public dynet::Expression {
     public:
-      Tensor():dynet::Expression(){increment_cnt();};
-      Tensor(const dynet::Expression& x):dynet::Expression(x) {increment_cnt();};
-      Tensor(const dy::Tensor& x):dynet::Expression(x) {increment_cnt();};
-      Tensor(dynet::Expression&& x):dynet::Expression(x) {increment_cnt();};
-      Tensor(dy::Tensor&& x):dynet::Expression(x) {increment_cnt();};
-      Tensor(const dynet::Parameter& x):dynet::Expression(dynet::parameter(cg(), x)) {increment_cnt();}
-      Tensor(float x):dynet::Expression(dynet::input(dy::cg(), x)){increment_cnt();}
-      Tensor(const std::vector<float> x):dynet::Expression(dynet::input(dy::cg(), {(unsigned)x.size()}, x)) {increment_cnt();}
-      Tensor(const std::initializer_list<float> x):dynet::Expression(dynet::input(dy::cg(), {(unsigned)x.size()}, x)) {increment_cnt();}
-      Tensor(const std::vector<float>& values, const dynet::Dim& dim):dynet::Expression(dynet::input(dy::cg(), dim, values)) {increment_cnt();}
-      Tensor(const std::initializer_list<float>& values, const dynet::Dim& dim):dynet::Expression(dynet::input(dy::cg(), dim, values)) {increment_cnt();}
-      Tensor &operator=(const dynet::Expression& x) {dynet::Expression::operator=(x); return *this;};
-      Tensor &operator=(const dy::Tensor& x) {dynet::Expression::operator=(x); return *this;} ;
-      Tensor &operator=(dynet::Expression&& x) {dynet::Expression::operator=(x); return *this;};
-      Tensor &operator=(dy::Tensor&& x) {dynet::Expression::operator=(x); return *this;};
+      tensor():dynet::Expression(){increment_cnt();};
+      tensor(const dynet::Expression& x):dynet::Expression(x) {increment_cnt();};
+      tensor(const dy::tensor& x):dynet::Expression(x) {increment_cnt();};
+      tensor(dynet::Expression&& x):dynet::Expression(x) {increment_cnt();};
+      tensor(dy::tensor&& x):dynet::Expression(x) {increment_cnt();};
+      tensor(const dynet::Parameter& x):dynet::Expression(dynet::parameter(cg(), x)) {increment_cnt();}
+      tensor(float x):dynet::Expression(dynet::input(dy::cg(), x)){increment_cnt();}
+      tensor(const std::vector<float> x):dynet::Expression(dynet::input(dy::cg(), {(unsigned)x.size()}, x)) {increment_cnt();}
+      tensor(const std::initializer_list<float> x):dynet::Expression(dynet::input(dy::cg(), {(unsigned)x.size()}, x)) {increment_cnt();}
+      tensor(const std::vector<float>& values, const dynet::Dim& dim):dynet::Expression(dynet::input(dy::cg(), dim, values)) {increment_cnt();}
+      tensor(const std::initializer_list<float>& values, const dynet::Dim& dim):dynet::Expression(dynet::input(dy::cg(), dim, values)) {increment_cnt();}
+      tensor &operator=(const dynet::Expression& x) {dynet::Expression::operator=(x); return *this;};
+      tensor &operator=(const dy::tensor& x) {dynet::Expression::operator=(x); return *this;} ;
+      tensor &operator=(dynet::Expression&& x) {dynet::Expression::operator=(x); return *this;};
+      tensor &operator=(dy::tensor&& x) {dynet::Expression::operator=(x); return *this;};
       float as_scalar() {return dynet::as_scalar(dy::cg().incremental_forward(*this));}
       std::vector<float> as_vector() {return dynet::as_vector(dy::cg().incremental_forward(*this));}
-      ~Tensor(){
+      ~tensor(){
         num_exprs()--;
         if(num_exprs()==0) dy::_renew_cg();
       }
-      static std::vector<dynet::Expression> vector_cast_to_base(const std::vector<Tensor>& x) {
+      static std::vector<dynet::Expression> vector_cast_to_base(const std::vector<tensor>& x) {
         return std::vector<dynet::Expression>(x.begin(), x.end());
       }
-      static std::vector<Tensor> vector_cast_to_parent(const std::vector<dynet::Expression>& x) {
-        return std::vector<Tensor>(x.begin(), x.end());
+      static std::vector<tensor> vector_cast_to_parent(const std::vector<dynet::Expression>& x) {
+        return std::vector<tensor>(x.begin(), x.end());
       }
       static unsigned get_exprs_counter(){return num_exprs();}
     private:
@@ -161,7 +161,7 @@ namespace tg {
      * \param p the Parameter
      * \return the const Expression
      */
-    inline Tensor const_expr(const Parameter& p) {
+    inline tensor const_expr(const Parameter& p) {
       return dynet::const_parameter(cg(), p);
     }
 
@@ -171,7 +171,7 @@ namespace tg {
      * \param logits must be of dim{n}
      * \return
      */
-    inline unsigned argmax_index(const Tensor& logits) {
+    inline unsigned argmax_index(const tensor& logits) {
       auto logits_value = as_vector(dy::cg().incremental_forward(logits));
 
       float max_value = logits_value[0];

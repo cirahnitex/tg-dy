@@ -23,19 +23,19 @@ namespace tg {
           : dim_in(0), dim_out(dim_out), W(), b(add_parameters({dim_out})) {
       }
 
-      dy::Tensor operator()(const dy::Tensor& x) {
+      dy::tensor operator()(const dy::tensor& x) {
         return forward(x);
       }
 
-      dy::Tensor forward(const dy::Tensor& x) {
+      dy::tensor forward(const dy::tensor& x) {
         ensure_init(x);
         return W*x+b;
       }
 
-      dy::Tensor forward_given_output_positions(const dy::Tensor& x, const std::vector<unsigned> output_positions) {
+      dy::tensor forward_given_output_positions(const dy::tensor& x, const std::vector<unsigned> output_positions) {
         ensure_init(x);
-        auto selected_W = dynet::select_rows(dy::Tensor(W), output_positions);
-        auto selected_b = dynet::reshape(dynet::pick(dy::Tensor(b), output_positions), {(unsigned)output_positions.size()});
+        auto selected_W = dynet::select_rows(dy::tensor(W), output_positions);
+        auto selected_b = dynet::reshape(dynet::pick(dy::tensor(b), output_positions), {(unsigned)output_positions.size()});
         return selected_W * x + selected_b;
       }
 
@@ -47,7 +47,7 @@ namespace tg {
       dy::Parameter W;
       dy::Parameter b;
 
-      void ensure_init(const dy::Tensor& input) {
+      void ensure_init(const dy::tensor& input) {
         if(dim_in != 0) return;
         dim_in = input.dim()[0];
         W = add_parameters({dim_out, dim_in});

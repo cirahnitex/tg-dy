@@ -11,22 +11,22 @@
 namespace tg {
   namespace dy {
     /**
-     * a layer that predicts a label given a dim(X) tensor
+     * a model that predicts a label given a tensor<X>
      * sometimes this input tensor is called embedding
      */
-    class readout_layer {
+    class readout_model {
     public:
-      readout_layer() = default;
-      readout_layer(const readout_layer&) = default;
-      readout_layer(readout_layer&&) = default;
-      readout_layer &operator=(const readout_layer&) = default;
-      readout_layer &operator=(readout_layer&&) = default;
+      readout_model() = default;
+      readout_model(const readout_model&) = default;
+      readout_model(readout_model&&) = default;
+      readout_model &operator=(const readout_model&) = default;
+      readout_model &operator=(readout_model&&) = default;
 
       /**
        * construct given a set of labels
        * \param labels the set of all possible labels
        */
-      readout_layer(const std::unordered_set<std::string>& labels):
+      readout_model(const std::unordered_set<std::string>& labels):
         dict(labels), fc(dict.size()){
       }
 
@@ -36,7 +36,7 @@ namespace tg {
        * \param labels the set of all possible labels, part-I
        * \param more_labels the set of all possible labels, part-II
        */
-      readout_layer(const std::unordered_set<std::string>& labels, const std::unordered_set<std::string>& more_labels):
+      readout_model(const std::unordered_set<std::string>& labels, const std::unordered_set<std::string>& more_labels):
         dict(labels, more_labels), fc(dict.size()){
       }
 
@@ -45,7 +45,7 @@ namespace tg {
        * \param embedding dim(1) tensor
        * \return the predicted label
        */
-      std::string readout(const dy::Tensor& embedding) {
+      std::string predict(const dy::tensor &embedding) {
         return dict.convert(dy::argmax_index(fc(embedding)));
       }
 
@@ -54,7 +54,7 @@ namespace tg {
        * \param embedding dim(1) tensor
        * \return the generated label
        */
-      std::string random_readout(const dy::Tensor& embedding) {
+      std::string random_predict(const dy::tensor &embedding) {
         auto weights = dy::softmax(fc(embedding)).as_vector();
         std::discrete_distribution<unsigned> d(weights.begin(), weights.end());
         return dict.convert(d(*dynet::rndeng));
@@ -68,7 +68,7 @@ namespace tg {
        * \param oracle the desired label
        * \return the loss
        */
-      dy::Tensor compute_loss(const dy::Tensor& embedding, const std::string& oracle) {
+      dy::tensor compute_loss(const dy::tensor& embedding, const std::string& oracle) {
         if(size() > SAMPLED_READOUT_THRESHOLD) return sampled_readout_loss(embedding, oracle);
         return dy::pickneglogsoftmax(fc(embedding), get_internal_label_id(oracle));
       }
@@ -97,7 +97,7 @@ namespace tg {
        * \param label the label to represent
        * \return a dim(#-of-labels) tensor, all values are 0 except 1 at the position of internal label ID
        */
-      dy::Tensor one_hot(const std::string& label) const {
+      dy::tensor one_hot(const std::string& label) const {
         return dict.one_hot(label);
       }
 
@@ -134,7 +134,7 @@ namespace tg {
        * \param oracle the true answer
        * \return
        */
-      dy::Tensor sampled_readout_loss(const dy::Tensor& embedding, const std::string& oracle) {
+      dy::tensor sampled_readout_loss(const dy::tensor& embedding, const std::string& oracle) {
         std::vector<unsigned> sampled_ids(SAMPLED_READOUT_NUM_SAMPLES);
         auto oracle_id = get_internal_label_id(oracle);
         sampled_ids[0] = oracle_id;

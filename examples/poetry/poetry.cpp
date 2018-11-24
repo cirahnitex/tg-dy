@@ -42,7 +42,7 @@ public:
     }
     return ret;
   }
-  dy::Tensor compute_loss(const vector<string>& sentence) {
+  dy::tensor compute_loss(const vector<string>& sentence) {
     vector<string> input({START_OF_SENTENCE});
     copy(sentence.begin(), sentence.end(), back_inserter(input));
     vector<string> oracle(sentence);

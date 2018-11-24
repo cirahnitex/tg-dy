@@ -26,8 +26,8 @@ public:
   :emb(embedding_size, vocab, [&](const string& token){return init_embeddings.at(token);}), conv0(embedding_size,3,1), conv1(embedding_size,3,1), conv2(embedding_size,3,1), fc(128), ro(labels){
   }
 
-  dy::Tensor forward(const vector<string>& sentence) {
-    vector<dy::Tensor> xs;
+  dy::tensor forward(const vector<string>& sentence) {
+    vector<dy::tensor> xs;
     xs = emb.lookup(sentence, true);
 
     xs = conv0.forward(xs);
@@ -47,7 +47,7 @@ public:
     return ro.readout(forward(sentence));
   }
 
-  dy::Tensor compute_loss(const vector<string>& sentence, const unordered_set<string>& labels) {
+  dy::tensor compute_loss(const vector<string>& sentence, const unordered_set<string>& labels) {
     auto x = ro.compute_loss(forward(sentence), labels);
     return x;
   }
@@ -59,7 +59,7 @@ private:
   dy::conv1d_layer conv1;
   dy::conv1d_layer conv2;
   dy::linear_layer fc;
-  dy::multi_readout_layer ro;
+  dy::multi_readout_model ro;
 };
 
 template<class T>
