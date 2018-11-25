@@ -40,11 +40,12 @@ namespace tg {
       typedef std::vector<rnn_cell_state_t> stacked_cell_state;
 
       rnn(unsigned num_stack, unsigned hidden_dim) : cells() {
-        cells.emplace_back(hidden_dim);
-        cells.resize(num_stack);
+        for(unsigned i=0; i<num_stack; i++) {
+          cells.emplace_back(hidden_dim);
+        }
       }
 
-      stacked_cell_state default_cell_state() {
+      stacked_cell_state default_cell_state() const {
         stacked_cell_state ret;
         for(const auto& cell:cells) {
           ret.push_back(cell.default_cell_state());
@@ -133,7 +134,6 @@ namespace tg {
       bidirectional_rnn(bidirectional_rnn&&) = default;
       bidirectional_rnn &operator=(const bidirectional_rnn&) = default;
       bidirectional_rnn &operator=(bidirectional_rnn&&) = default;
-      explicit bidirectional_rnn(unsigned num_stack) : forward_rnn(num_stack), backward_rnn(num_stack) {}
       bidirectional_rnn(unsigned num_stack, unsigned hidden_dim) : forward_rnn(num_stack, hidden_dim), backward_rnn(num_stack, hidden_dim) {}
       typedef typename rnn<RNN_CELL_T>::stacked_cell_state inner_cell_state;
 
@@ -191,7 +191,7 @@ namespace tg {
                                                  input_gate(hidden_dim), input_fc(hidden_dim),
                                                  output_gate(hidden_dim) {};
 
-      rnn_cell_state_t default_cell_state() {
+      rnn_cell_state_t default_cell_state() const {
         auto zeros = dy::zeros({hidden_dim});
         return rnn_cell_state_t({zeros, zeros});
       }
@@ -240,7 +240,7 @@ namespace tg {
       coupled_lstm_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), forget_gate(hidden_dim), input_fc(hidden_dim),
                                                  output_gate(hidden_dim) {};
 
-      rnn_cell_state_t default_cell_state() {
+      rnn_cell_state_t default_cell_state() const {
         auto zeros = dy::zeros({hidden_dim});
         return rnn_cell_state_t({zeros, zeros});
       }
@@ -291,7 +291,7 @@ namespace tg {
       gru_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), pre_input_gate(hidden_dim), input_fc(hidden_dim),
                                         output_gate(hidden_dim) {};
 
-      rnn_cell_state_t default_cell_state() {
+      rnn_cell_state_t default_cell_state() const {
         return rnn_cell_state_t({dy::zeros({hidden_dim})});
       }
 

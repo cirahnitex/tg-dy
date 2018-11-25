@@ -65,13 +65,14 @@ class attention_model {
 public:
   static constexpr char END_OF_SENTENCE[] = "&eos;";
   static unsigned constexpr MAX_OUTPUT_LENGTH = 128;
+  static constexpr unsigned ATTENTION_HIDDEN_DIM = 8;
   attention_model() = default;
   attention_model(const attention_model&) = default;
   attention_model(attention_model&&) = default;
   attention_model &operator=(const attention_model&) = default;
   attention_model &operator=(attention_model&&) = default;
   attention_model(unsigned embedding_size, const unordered_set<string>& f_vocab, unordered_set<string> e_vocab, const unordered_map<string, vector<float>>& e_w2v):
-    embedding_size(embedding_size), f_embedding_table(embedding_size, f_vocab), e_embedding_table(), encoder(2, embedding_size), decoder(2, embedding_size), attention_fc(1)
+    embedding_size(embedding_size), f_embedding_table(embedding_size, f_vocab), e_embedding_table(), encoder(2, embedding_size), decoder(2, embedding_size), attention_fc1(ATTENTION_HIDDEN_DIM), attention_fc2(8)
   {
     e_vocab.insert(END_OF_SENTENCE);
     e_embedding_table = dy::mono_lookup_readout(embedding_size, e_vocab, [&](const string& t){
@@ -117,13 +118,15 @@ private:
   dy::mono_lookup_readout e_embedding_table;
   dy::bidirectional_vanilla_lstm encoder;
   dy::vanilla_lstm decoder;
-  dy::linear_layer attention_fc;
+  dy::linear_layer attention_fc1;
+  dy::linear_layer attention_fc2;
 
   dy::tensor compute_context(const vector<dy::tensor>& f_hiddens, const dy::vanilla_lstm::stacked_cell_state& prev_cell_state) {
     auto flatterned = dy::vanilla_lstm::flattern_stacked_cell_state(prev_cell_state);
     vector<dy::tensor> xs;
     for(const auto& f_hidden:f_hiddens) {
-      xs.push_back(attention_fc.forward(dy::concatenate({f_hidden, flatterned})));
+      auto x = dy::tanh(attention_fc1.forward(dy::concatenate({f_hidden, flatterned})));
+      xs.push_back(attention_fc2.forward(x));
     }
     return dy::concatenate(f_hiddens,1) * dy::softmax(dy::concatenate(xs));
   }
