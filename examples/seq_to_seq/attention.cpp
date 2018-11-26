@@ -81,13 +81,13 @@ public:
   }
   vector<string> predict(const vector<string>& f_sentence) {
     auto f_embeddings = f_embedding_table.lookup(f_sentence);
-    auto f_hiddens = encoder.forward_output_sequence(f_embeddings);
+    auto f_hiddens = encoder.predict_output_sequence(f_embeddings);
     auto cell_state = decoder.default_cell_state();
     auto y = dy::zeros({embedding_size});
     vector<string> ret;
     for(unsigned i=0; i<MAX_OUTPUT_LENGTH; i++) {
       auto context = compute_context(f_hiddens, cell_state);
-      tie(cell_state, y) = decoder.forward(cell_state, dy::concatenate({context, y}));
+      tie(cell_state, y) = decoder.predict(cell_state, dy::concatenate({context, y}));
       auto out_token = e_embedding_table.readout(y);
       if(out_token == END_OF_SENTENCE) {break;}
       ret.push_back(out_token);
@@ -97,7 +97,7 @@ public:
   }
   dy::tensor compute_loss(const vector<string>& f_sentence, vector<string> e_sentence) {
     auto [f_embeddings, f_lookup_loss] = f_embedding_table.lookup_with_loss(f_sentence);
-    auto f_hiddens = encoder.forward_output_sequence(f_embeddings);
+    auto f_hiddens = encoder.predict_output_sequence(f_embeddings);
     e_sentence.push_back(END_OF_SENTENCE);
     auto [e_embeddings, e_lookup_loss] = e_embedding_table.lookup_with_loss(e_sentence);
     auto cell_state = decoder.default_cell_state();
@@ -106,7 +106,7 @@ public:
     for(unsigned i=0; i<e_sentence.size(); i++) {
       auto input_embedding = i==0?dy::zeros({embedding_size}):e_embeddings[i-1];
       auto context = compute_context(f_hiddens, cell_state);
-      tie(cell_state, y) = decoder.forward(cell_state, dy::concatenate({context, input_embedding}));
+      tie(cell_state, y) = decoder.predict(cell_state, dy::concatenate({context, input_embedding}));
       output_embeddings.push_back(y);
     }
     return e_embedding_table.compute_readout_loss(output_embeddings, e_sentence) + f_lookup_loss + e_lookup_loss;
@@ -125,8 +125,8 @@ private:
     auto flatterned = dy::vanilla_lstm::flattern_stacked_cell_state(prev_cell_state);
     vector<dy::tensor> xs;
     for(const auto& f_hidden:f_hiddens) {
-      auto x = dy::tanh(attention_fc1.forward(dy::concatenate({f_hidden, flatterned})));
-      xs.push_back(attention_fc2.forward(x));
+      auto x = dy::tanh(attention_fc1.predict(dy::concatenate({f_hidden, flatterned})));
+      xs.push_back(attention_fc2.predict(x));
     }
     return dy::concatenate(f_hiddens,1) * dy::softmax(dy::concatenate(xs));
   }

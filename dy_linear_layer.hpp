@@ -23,16 +23,12 @@ namespace tg {
           : dim_in(0), dim_out(dim_out), W(), b(add_parameters({dim_out})) {
       }
 
-      dy::tensor operator()(const dy::tensor& x) {
-        return forward(x);
-      }
-
-      dy::tensor forward(const dy::tensor& x) {
+      dy::tensor predict(const dy::tensor &x) {
         ensure_init(x);
         return W*x+b;
       }
 
-      dy::tensor forward_given_output_positions(const dy::tensor& x, const std::vector<unsigned> output_positions) {
+      dy::tensor predict_given_output_positions(const dy::tensor &x, const std::vector<unsigned> output_positions) {
         ensure_init(x);
         auto selected_W = dy::select_rows(dy::tensor(W), output_positions);
         auto selected_b = dy::reshape(dy::pick(dy::tensor(b), output_positions), {(unsigned)output_positions.size()});

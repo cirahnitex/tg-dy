@@ -21,7 +21,7 @@ namespace tg {
       explicit multi_readout_model(const std::unordered_set<std::string>& labels):labels(labels.begin(), labels.end()),fc(labels.size()) {
       }
       std::unordered_set<std::string> readout(const dy::tensor &x) {
-        const auto evidences = fc.forward(x).as_vector();
+        const auto evidences = fc.predict(x).as_vector();
         std::unordered_set<std::string> ret;
         for (unsigned i = 0; i < labels.size(); i++) {
           const auto &label = labels[i];
@@ -37,7 +37,7 @@ namespace tg {
         for(const auto& label:labels) {
           oracle_float.push_back(oracle.count(label)>0?(float)1:(float)0);
         }
-        return dynet::binary_log_loss(dynet::logistic(fc.forward(x)), dy::tensor(oracle_float));
+        return dynet::binary_log_loss(dynet::logistic(fc.predict(x)), dy::tensor(oracle_float));
       }
       EASY_SERIALZABLE(labels, fc)
     private:

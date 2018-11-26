@@ -31,7 +31,7 @@ public:
   bilstm_maxpool_layer(unsigned hidden_dim):bilstm(1, hidden_dim) {}
 
   dy::tensor forward(const vector<dy::tensor> &features) {
-    return dy::max(bilstm.forward_output_sequence(features));
+    return dy::max(bilstm.predict_output_sequence(features));
   }
 
   EASY_SERIALZABLE(bilstm)

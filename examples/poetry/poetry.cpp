@@ -32,7 +32,7 @@ public:
     dy::vanilla_lstm::stacked_cell_state cell_state;
     auto x = embedding_table.lookup(START_OF_SENTENCE);
     for(unsigned i=0; i<MAX_GENERATED_SENTENCE_LENGTH; i++) {
-      tie(cell_state, x) = lstm.forward(cell_state, x);
+      tie(cell_state, x) = lstm.predict(cell_state, x);
       auto token = embedding_table.random_readout(x);
       if(token == END_OF_SENTENCE) {
         break;
@@ -48,7 +48,7 @@ public:
     vector<string> oracle(sentence);
     oracle.push_back(END_OF_SENTENCE);
     auto sentence_emb = embedding_table.lookup(input);
-    auto output_emb = lstm.forward(sentence_emb).second;
+    auto output_emb = lstm.predict(sentence_emb).second;
     return embedding_table.compute_readout_loss(output_emb, oracle);
   }
   EASY_SERIALZABLE(embedding_table, lstm)

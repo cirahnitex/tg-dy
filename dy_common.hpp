@@ -127,8 +127,8 @@ namespace tg {
       tensor &operator=(const dy::tensor& x) {dynet::Expression::operator=(x); return *this;} ;
       tensor &operator=(dynet::Expression&& x) {dynet::Expression::operator=(x); return *this;};
       tensor &operator=(dy::tensor&& x) {dynet::Expression::operator=(x); return *this;};
-      float as_scalar() {return dynet::as_scalar(dy::cg().incremental_forward(*this));}
-      std::vector<float> as_vector() {return dynet::as_vector(dy::cg().incremental_forward(*this));}
+      float as_scalar() const {return dynet::as_scalar(dy::cg().incremental_forward(*this));}
+      std::vector<float> as_vector() const {return dynet::as_vector(dy::cg().incremental_forward(*this));}
       ~tensor(){
         num_exprs()--;
         if(num_exprs()==0) dy::_renew_cg();

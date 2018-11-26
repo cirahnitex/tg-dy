@@ -17,7 +17,7 @@ public:
 
   dy::tensor forward(bool x, bool y) {
     auto input = dy::tensor({x?1.0:0.0, y?1.0:0.0});
-    return fc2.forward(dy::tanh(fc1.forward(input)));
+    return fc2.predict(dy::tanh(fc1.predict(input)));
   }
 
   bool predict(bool x, bool y) {

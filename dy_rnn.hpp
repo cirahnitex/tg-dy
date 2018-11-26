@@ -61,7 +61,7 @@ namespace tg {
        *         1) the output
        */
       std::pair<stacked_cell_state, dy::tensor>
-      forward(const stacked_cell_state &prev_state, const dy::tensor &x) {
+      predict(const stacked_cell_state &prev_state, const dy::tensor &x) {
         tensor y = x;
         std::vector<rnn_cell_state_t> output_stacked_cell_state;
         for (unsigned i = 0; i < cells.size(); i++) {
@@ -81,13 +81,13 @@ namespace tg {
        *         1) the list of output in chronological order
        */
       std::pair<stacked_cell_state, std::vector<dy::tensor>>
-      forward(const stacked_cell_state &prev_state, const std::vector<dy::tensor> &x_sequence) {
+      predict(const stacked_cell_state &prev_state, const std::vector<dy::tensor> &x_sequence) {
         if (x_sequence.empty()) return std::make_pair(default_cell_state(), std::vector<dy::tensor>());
-        auto[_state, y] = forward(prev_state, x_sequence[0]);
+        auto[_state, y] = predict(prev_state, x_sequence[0]);
         std::vector<dy::tensor> ys;
         ys.push_back(std::move(y));
         for (unsigned i = 1; i < x_sequence.size(); i++) {
-          std::tie(_state, y) = forward(_state, x_sequence[i]);
+          std::tie(_state, y) = predict(_state, x_sequence[i]);
           ys.push_back(std::move(y));
         }
         return std::make_pair(std::move(_state), std::move(ys));
@@ -100,8 +100,8 @@ namespace tg {
        *         1) the list of output in chronological order
        */
       std::pair<stacked_cell_state, std::vector<dy::tensor>>
-      forward(const std::vector<dy::tensor> &x_sequence) {
-        return forward(stacked_cell_state(), x_sequence);
+      predict(const std::vector<dy::tensor> &x_sequence) {
+        return predict(stacked_cell_state(), x_sequence);
       }
 
       /**
@@ -143,11 +143,11 @@ namespace tg {
        * \return the outputs for each time step, concatenating outputs from both direction
        */
       std::vector<dy::tensor>
-      forward_output_sequence(const std::vector<dy::tensor> &x_sequence) {
-        auto forward_ys= forward_rnn.forward(forward_rnn.default_cell_state(), x_sequence).second;
+      predict_output_sequence(const std::vector<dy::tensor> &x_sequence) {
+        auto forward_ys= forward_rnn.predict(forward_rnn.default_cell_state(), x_sequence).second;
         auto reversed_xs = x_sequence;
         std::reverse(reversed_xs.begin(), reversed_xs.end());
-        auto backward_ys = backward_rnn.forward(backward_rnn.default_cell_state(), reversed_xs).second;
+        auto backward_ys = backward_rnn.predict(backward_rnn.default_cell_state(), reversed_xs).second;
         std::reverse(backward_ys.begin(), backward_ys.end());
         std::vector<dy::tensor> ret;
         for(unsigned i=0; i<forward_ys.size(); i++) {
@@ -161,11 +161,11 @@ namespace tg {
        * \param x_sequence a list of inputs to apply
        * \return concatenating the final output from both direction. i.e. forward output for t[-1] and reversed output for t[0]
        */
-      dy::tensor forward_output_final(const std::vector<dy::tensor> &x_sequence) {
-        auto forward_ys= forward_rnn.forward(forward_rnn.default_cell_state(), x_sequence).second;
+      dy::tensor predict_output_final(const std::vector<dy::tensor> &x_sequence) {
+        auto forward_ys= forward_rnn.predict(forward_rnn.default_cell_state(), x_sequence).second;
         auto reversed_xs = x_sequence;
         std::reverse(reversed_xs.begin(), reversed_xs.end());
-        auto backward_ys = backward_rnn.forward(backward_rnn.default_cell_state(), reversed_xs).second;
+        auto backward_ys = backward_rnn.predict(backward_rnn.default_cell_state(), reversed_xs).second;
         return dy::concatenate({forward_ys.back(), backward_ys.back()});
       }
 
@@ -204,11 +204,11 @@ namespace tg {
         auto cell_state = prev_state[0];
         auto hidden_state = prev_state[1];
         auto concat = concatenate({hidden_state, x});
-        auto after_forget = dy::cmult(cell_state, dy::logistic(forget_gate.forward(concat)));
-        auto input_candidate = dy::tanh(input_fc.forward(concat));
-        auto input = dy::cmult(dy::logistic(input_gate.forward(concat)), input_candidate);
+        auto after_forget = dy::cmult(cell_state, dy::logistic(forget_gate.predict(concat)));
+        auto input_candidate = dy::tanh(input_fc.predict(concat));
+        auto input = dy::cmult(dy::logistic(input_gate.predict(concat)), input_candidate);
         auto output_cell_state = after_forget + input;
-        auto output_hidden_state = dy::cmult(dy::logistic(output_gate.forward(concat)), dy::tanh(output_cell_state));
+        auto output_hidden_state = dy::cmult(dy::logistic(output_gate.predict(concat)), dy::tanh(output_cell_state));
         return std::make_pair(rnn_cell_state_t({std::move(output_cell_state),output_hidden_state}),output_hidden_state);
       }
 
@@ -254,12 +254,12 @@ namespace tg {
         auto hidden_state = prev_state[1];
 
         auto concat = concatenate({hidden_state, x});
-        auto forget_coef = dy::logistic(forget_gate.forward(concat));
+        auto forget_coef = dy::logistic(forget_gate.predict(concat));
         auto after_forget = dy::cmult(cell_state, forget_coef);
-        auto input_candidate = dy::tanh(input_fc.forward(concat));
+        auto input_candidate = dy::tanh(input_fc.predict(concat));
         auto input = dy::cmult(1.0 - forget_coef, input_candidate);
         auto output_cell_state = after_forget + input;
-        auto output_hidden_state = dy::cmult(dy::logistic(output_gate.forward(concat)), dy::tanh(output_cell_state));
+        auto output_hidden_state = dy::cmult(dy::logistic(output_gate.predict(concat)), dy::tanh(output_cell_state));
 
         return std::make_pair(rnn_cell_state_t({std::move(output_cell_state),output_hidden_state}),output_hidden_state);
       }
@@ -302,10 +302,10 @@ namespace tg {
         }
         auto hidden = prev_state[0];
         auto input_for_gates = dy::concatenate({hidden, x});
-        auto pre_input_gate_coef = dy::logistic(pre_input_gate.forward(input_for_gates));
-        auto output_gate_coef = dy::logistic(output_gate.forward(input_for_gates));
+        auto pre_input_gate_coef = dy::logistic(pre_input_gate.predict(input_for_gates));
+        auto output_gate_coef = dy::logistic(output_gate.predict(input_for_gates));
         auto gated_concat = dy::concatenate({dy::cmult(hidden, pre_input_gate_coef), x});
-        auto output_candidate = dy::tanh(input_fc.forward(gated_concat));
+        auto output_candidate = dy::tanh(input_fc.predict(gated_concat));
         auto after_forget = dy::cmult(hidden, 1 - output_gate_coef);
         auto output_hidden = after_forget + dy::cmult(output_gate_coef, output_candidate);
         return std::make_pair(rnn_cell_state_t({output_hidden}), output_hidden);

@@ -47,7 +47,7 @@ namespace tg {
         }
       }
 
-      dy::tensor forward(const dy::tensor& x) {
+      dy::tensor predict(const dy::tensor &x) {
         ensure_init(x);
         if(with_bias) {
           return dynet::conv2d(x, dy::tensor(filter), dy::tensor(bias), {stride_between_rows, stride_between_columns}, disable_padding);
@@ -129,7 +129,7 @@ namespace tg {
         bias() {
         if (with_bias) bias = add_parameters({output_channels});
       }
-      std::vector<dy::tensor> forward(const std::vector<dy::tensor>& xs) {
+      std::vector<dy::tensor> predict(const std::vector<dy::tensor> &xs) {
         if(xs.empty()) return std::vector<dy::tensor>();
         this->ensure_init(xs[0]);
         if(disable_padding) {return forward_no_padding(xs);}

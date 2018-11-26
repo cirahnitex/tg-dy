@@ -144,7 +144,7 @@ namespace tg {
           sampled_ids[i] = false_option;
         }
 
-        auto logits = fc.forward_given_output_positions(embedding, sampled_ids);
+        auto logits = fc.predict_given_output_positions(embedding, sampled_ids);
         return dy::pickneglogsoftmax(logits, (unsigned)0);
       }
     };

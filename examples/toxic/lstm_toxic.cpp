@@ -29,8 +29,8 @@ public:
   }
 
   dy::tensor forward(const vector<string>& sentence) {
-//    auto output_embs = lstm.forward(emb.lookup(sentence, true)).second;
-    auto output_embs = lstm.forward_output_sequence(emb.lookup(sentence, true));
+//    auto output_embs = lstm.predict(emb.lookup(sentence, true)).second;
+    auto output_embs = lstm.predict_output_sequence(emb.lookup(sentence, true));
     return dy::max(output_embs);
   }
 

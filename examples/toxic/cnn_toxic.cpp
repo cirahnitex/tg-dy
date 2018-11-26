@@ -30,16 +30,16 @@ public:
     vector<dy::tensor> xs;
     xs = emb.lookup(sentence, true);
 
-    xs = conv0.forward(xs);
+    xs = conv0.predict(xs);
     for(auto& x:xs) {x=dy::rectify(x);}
-    xs = dy::maxpooling1d(conv1.forward(xs), 3, 1);
+    xs = dy::maxpooling1d(conv1.predict(xs), 3, 1);
 
     for(auto& x:xs) {x=dy::rectify(x);}
-    xs = dy::maxpooling1d(conv2.forward(xs), 3, 1);
+    xs = dy::maxpooling1d(conv2.predict(xs), 3, 1);
     for(auto& x:xs) {x=dy::rectify(x);}
 
     auto x = dy::max(xs);
-    x = dy::tanh(fc.forward(x));
+    x = dy::tanh(fc.predict(x));
     return x;
   }
 
