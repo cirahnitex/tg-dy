@@ -1824,15 +1824,27 @@ namespace tg {
  */
     inline tensor weight_norm(const tensor &w, const tensor &g) { return dynet::weight_norm(w, g); }
 
+    inline tensor operator+(const tensor& x, const tensor& y) {return dynet::operator+(x, y);}
+    inline tensor operator+(const tensor& x, float y) {return dynet::operator+(x, y);}
+    inline tensor operator+(const float x, const tensor& y) {return dynet::operator+(x, y);}
     inline tensor operator+(const tensor& x, const Parameter& y) {return x + dy::tensor(y);}
     inline tensor operator+(const Parameter& x, const tensor& y) {return dy::tensor(x) + y;}
 
+    inline tensor operator-(const tensor& x, const tensor& y) {return dynet::operator-(x, y);}
+    inline tensor operator-(const tensor& x, float y) {return dynet::operator-(x, y);}
+    inline tensor operator-(float x, const tensor& y) {return dynet::operator-(x, y);}
+    inline tensor operator-(const tensor& x) {return dynet::operator-(x);}
     inline tensor operator-(const tensor& x, const Parameter& y) {return x - dy::tensor(y);}
     inline tensor operator-(const Parameter& x, const tensor& y) {return dy::tensor(x) - y;}
 
+    inline tensor operator*(const tensor& x, const tensor& y) {return dynet::operator*(x, y);}
+    inline tensor operator*(const tensor& x, float y) {return dynet::operator*(x, y);}
+    inline tensor operator*(float x, const tensor& y) {return dynet::operator*(x, y);}
     inline tensor operator*(const tensor& x, const Parameter& y) {return x * dy::tensor(y);}
     inline tensor operator*(const Parameter& x, const tensor& y) {return dy::tensor(x) * y;}
 
+    inline tensor operator/(const tensor& x, const tensor& y) {return dynet::operator/(x, y);}
+    inline tensor operator/(const tensor& x, float y) {return dynet::operator/(x, y);}
     inline tensor operator/(const tensor& x, const Parameter& y) {return x / dy::tensor(y);}
     inline tensor operator/(const Parameter& x, const tensor& y) {return dy::tensor(x) / y;}
 
