@@ -145,9 +145,9 @@ int main() {
   cout << "import word2vec" <<endl;
   const auto w2v = dy::import_word2vec(PATH_TO_WORD2VEC_FILE);
   cout << "initialize model" <<endl;
-  dy::initialize();
+  dy::initialize(16);
   attention_model model(EMBEDDING_SIZE, f_vocab, e_vocab, w2v);
-  dy::fit<zh_en_t>(16, EPOCHES, training_set, dev_set, [&](const zh_en_t &datum) {
+  dy::fit<zh_en_t>(EPOCHES, training_set, dev_set, [&](const zh_en_t &datum) {
     return model.compute_loss(datum.zh, datum.en);
   });
 

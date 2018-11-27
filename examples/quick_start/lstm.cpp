@@ -106,14 +106,11 @@ int main() {
   });
   const unsigned EMBEDDING_SIZE = 16;
   auto [foreign_vocab, emit_vocab] = collect_vocab(training_set);
-  dy::initialize();
+  dy::initialize(4);
   simple_seq_to_seq_translation_model model(EMBEDDING_SIZE, foreign_vocab, emit_vocab);
-  for(unsigned epoch = 0; epoch < 1000; epoch ++) {
-    for(const auto& datum:training_set) {
-      auto loss = model.compute_loss(ECMAScript_string_utils::split(datum.foreign), ECMAScript_string_utils::split(datum.emit));
-      dy::train_on_loss(loss);
-    }
-  }
+  dy::fit<datum_t>(1000, training_set, [&](const datum_t& datum){
+    return model.compute_loss(ECMAScript_string_utils::split(datum.foreign), ECMAScript_string_utils::split(datum.emit));
+  });
   cout << "predicting" << endl;
   for(const auto& datum:training_set) {
     print_helper(model.predict(ECMAScript_string_utils::split(datum.foreign)));

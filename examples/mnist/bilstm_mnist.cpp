@@ -99,7 +99,7 @@ private:
 
 
 int main() {
-  dy::initialize();
+  dy::initialize(4);
   const string DATASET_PATH = "/hltc/0/cl/corpora/mnist/train.json";
   const unsigned HIDDEN_DIM = 15;
 
@@ -111,7 +111,7 @@ int main() {
   bilstm_mnist_model model(dataset.width, dataset.height, dataset.labels, HIDDEN_DIM);
 
   cout << "training" <<endl;
-  dy::fit<datum_t>(4, 10, training_set, dev_set, [&](const datum_t &datum) {
+  dy::fit<datum_t>(10, training_set, dev_set, [&](const datum_t &datum) {
     return model.compute_loss(datum.input, datum.oracle);
   });
 

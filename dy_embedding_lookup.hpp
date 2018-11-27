@@ -145,7 +145,7 @@ namespace tg {
       dynet::LookupParameter lookup_table;
 
       dy::tensor lookup(unsigned token_id, bool as_constant = false) const {
-        return as_constant?dynet::const_lookup(dy::cg(), lookup_table, token_id):dynet::lookup(dy::cg(), lookup_table, token_id);
+        return as_constant?dynet::const_lookup(dy::_cg(), lookup_table, token_id):dynet::lookup(dy::_cg(), lookup_table, token_id);
       }
 
       static std::vector<float> resize_fill_random(const std::vector<float>& arr, unsigned size) {

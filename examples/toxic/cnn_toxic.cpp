@@ -82,11 +82,11 @@ int main() {
   cout << "import word2vec" <<endl;
   const auto w2v = dy::import_word2vec(PATH_TO_WORD2VEC_FILE);
   cout << "initialze model" <<endl;
-  dy::initialize();
+  dy::initialize(4);
   my_model model(dataset.labels, unordered_set<string>(vocab.begin(), vocab.end()), w2v, 128);
 
   cout << "training" <<endl;
-  dy::fit<datum_t>(4, 10, training_set, dev_set, [&](const datum_t &datum) {
+  dy::fit<datum_t>(10, training_set, dev_set, [&](const datum_t &datum) {
     return model.compute_loss(datum.input, datum.oracle);
   }, [](const std::exception &e, const datum_t &datum) {
     cerr << e.what() << endl;

@@ -36,7 +36,7 @@ private:
 };
 
 int main() {
-  dy::initialize();
+  dy::initialize(1, dy::trainer_type::SIMPLE_SGD, 1);
 
   typedef vector<bool> datum_type;
 
@@ -47,11 +47,9 @@ int main() {
 
   cout << "training" <<endl;
   XorModel model;
-  for(unsigned epoch = 0; epoch<10000; epoch++) {
-    for(const auto& datum:data) {
-      dy::train_on_loss(model.compute_loss(datum[0], datum[1], datum[2]));
-    }
-  }
+  dy::fit<datum_type>(1000, data, [&](const datum_type& datum){
+    return model.compute_loss(datum[0], datum[1], datum[2]);
+  });
 
   cout << "predicting" <<endl;
   for(const auto& datum:data) {

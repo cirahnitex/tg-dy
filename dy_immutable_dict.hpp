@@ -70,7 +70,7 @@ namespace tg {
         std::vector<float> ret(dict->size());
         fill(ret.begin(), ret.end(), 0);
         ret[dict->convert(entry)] = 1;
-        return dynet::input(dy::cg(), {dict->size()}, ret);
+        return dynet::input(dy::_cg(), {dict->size()}, ret);
       }
 
       const std::vector<std::string> &list_entries() const {

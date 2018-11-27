@@ -63,8 +63,8 @@ namespace dynet {
     archive(dim);
     std::vector<dynet::real> values;
     archive(values);
-    if(!p.p) p = tg::dy::pc().add_parameters(dim);
-    if(p.dim() != dim) p = tg::dy::pc().add_parameters(dim);
+    if(!p.p) p = tg::dy::_pc().add_parameters(dim);
+    if(p.dim() != dim) p = tg::dy::_pc().add_parameters(dim);
     p.set_value(values);
   }
 
@@ -92,7 +92,7 @@ namespace dynet {
     archive(size);
     Dim dim;
     archive(dim);
-    p = tg::dy::pc().add_lookup_parameters(size, dim);
+    p = tg::dy::_pc().add_lookup_parameters(size, dim);
     for(unsigned i=0; i<size; i++) {
       std::vector<dynet::real> value;
       archive(value);

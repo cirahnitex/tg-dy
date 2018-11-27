@@ -95,9 +95,9 @@ int main() {
   cout << "import word2vec" <<endl;
   const auto w2v = dy::import_word2vec(PATH_TO_WORD2VEC_FILE);
   cout << "initialze model" <<endl;
-  dy::initialize();
+  dy::initialize(4);
   poetry_model model(EMBEDDING_SIZE, vocab, w2v);
-  dy::fit<datum_t>(4, NUM_EPOCHES, training_set, vector<datum_t>(), [&](const datum_t &datum) {
+  dy::fit<datum_t>(NUM_EPOCHES, training_set, [&](const datum_t &datum) {
     return model.compute_loss(datum);
   });
   cout << "testing" <<endl;

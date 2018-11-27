@@ -71,11 +71,11 @@ int main() {
   cout << "import word2vec" <<endl;
   const auto w2v = dy::import_word2vec(PATH_TO_WORD2VEC_FILE);
   cout << "initialze model" <<endl;
-  dy::initialize();
+  dy::initialize(8);
   lstm_toxic_model model(trainint_set.labels, vocab, w2v, 128);
 
   cout << "training" <<endl;
-  dy::fit<datum_t>(8, 10, trainint_set.data, test_set.data, [&](const datum_t &datum) {
+  dy::fit<datum_t>(10, trainint_set.data, test_set.data, [&](const datum_t &datum) {
     return model.compute_loss(datum.input, datum.oracle);
   }, [](const std::exception &e, const datum_t &datum) {
     cerr << e.what() << endl;

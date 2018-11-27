@@ -12,8 +12,8 @@
 namespace tg {
   namespace dy {
 
-    inline tensor zeros(const Dim& d) {return dynet::zeros(cg(), d);}
-    inline tensor ones(const Dim& d) {return dynet::ones(cg(), d);}
+    inline tensor zeros(const Dim& d) {return dynet::zeros(_cg(), d);}
+    inline tensor ones(const Dim& d) {return dynet::ones(_cg(), d);}
 
 /**
  * \ingroup arithmeticoperations

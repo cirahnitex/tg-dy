@@ -46,7 +46,7 @@ namespace tg {
        * \return the predicted label
        */
       std::string predict(const dy::tensor &embedding) {
-        return dict.convert(dy::argmax_index(fc(embedding)));
+        return dict.convert(dy::argmax_index(fc.predict(embedding)));
       }
 
       /**
@@ -55,7 +55,7 @@ namespace tg {
        * \return the generated label
        */
       std::string random_predict(const dy::tensor &embedding) {
-        auto weights = dy::softmax(fc(embedding)).as_vector();
+        auto weights = dy::softmax(fc.predict(embedding)).as_vector();
         std::discrete_distribution<unsigned> d(weights.begin(), weights.end());
         return dict.convert(d(*dynet::rndeng));
       }
@@ -70,7 +70,7 @@ namespace tg {
        */
       dy::tensor compute_loss(const dy::tensor& embedding, const std::string& oracle) {
         if(size() > SAMPLED_READOUT_THRESHOLD) return sampled_readout_loss(embedding, oracle);
-        return dy::pickneglogsoftmax(fc(embedding), get_internal_label_id(oracle));
+        return dy::pickneglogsoftmax(fc.predict(embedding), get_internal_label_id(oracle));
       }
 
       /**
