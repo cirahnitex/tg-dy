@@ -7,16 +7,19 @@
 using namespace tg;
 using namespace std;
 class XorModel {
+  dy::linear_layer fc1;
+  dy::linear_layer fc2;
 public:
+  EASY_SERIALZABLE(fc1, fc2)
   XorModel(const XorModel&) = default;
   XorModel(XorModel&&) = default;
   XorModel &operator=(const XorModel&) = default;
   XorModel &operator=(XorModel&&) = default;
-  XorModel():fc1(4),fc2(1) {
+  XorModel():fc1(2),fc2(1) {
   }
 
   dy::tensor forward(bool x, bool y) {
-    auto input = dy::tensor({x?1.0:0.0, y?1.0:0.0});
+    auto input = dy::tensor({x?(float)1:(float)0, y?(float)1:(float)0});
     return fc2.predict(dy::tanh(fc1.predict(input)));
   }
 
@@ -25,18 +28,13 @@ public:
   }
 
   dy::tensor compute_loss(bool x, bool y, bool oracle) {
-    auto oracle_expr = dy::tensor(oracle?1.0:0.0);
+    auto oracle_expr = dy::tensor(oracle?(float)1:(float)0);
     return dy::binary_log_loss(dy::logistic(forward(x, y)), oracle_expr);
   }
-
-  EASY_SERIALZABLE(fc1, fc2)
-private:
-  dy::linear_layer fc1;
-  dy::linear_layer fc2;
 };
 
 int main() {
-  dy::initialize(1, dy::trainer_type::SIMPLE_SGD, 1);
+  dy::initialize(1, dy::trainer_type::SIMPLE_SGD, 0.1);
 
   typedef vector<bool> datum_type;
 
@@ -47,7 +45,7 @@ int main() {
 
   cout << "training" <<endl;
   XorModel model;
-  dy::fit<datum_type>(1000, data, [&](const datum_type& datum){
+  dy::fit<datum_type>(500, data, [&](const datum_type& datum){
     return model.compute_loss(datum[0], datum[1], datum[2]);
   });
 

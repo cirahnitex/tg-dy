@@ -35,7 +35,7 @@ public:
 };
 
 int main() {
-  dy::initialize();
+  dy::initialize(2, dy::trainer_type::MOMENTUM_SGD, 0.001);
 
   // define training set
   typedef pair<float, float> datum;
@@ -55,10 +55,8 @@ int main() {
   // initialize model
   height_prediction_model model;
 
-  dy::_trainer().learning_rate = 0.01;
-
   // training
-  dy::fit<datum>(4, 100, training_set, vector<datum>(), [&](const datum& datum){
+  dy::fit<datum>(100, training_set, [&](const datum& datum){
     return model.compute_loss(datum.first, datum.second);
   });
 
