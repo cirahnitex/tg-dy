@@ -138,13 +138,13 @@ namespace tg {
       dynet::Parameter readout_table;
 
       dy::tensor forward(const dy::tensor &embedding) const {
-        return dy::transpose(dy::transpose(dy::concatenate({embedding, dy::tensor(1)})) * dy::tensor(readout_table));
+        return (dy::concatenate({embedding, dy::tensor(1)}).transpose() * dy::tensor(readout_table)).transpose();
       }
 
       dy::tensor compute_windowed_readout_loss(const dy::tensor& embeddings_batch, const std::vector<unsigned>& oracles) const {
         auto one = dy::ones({1});
         if(capacity<=SAMPLE_THRESHOLD) {
-          auto logits = dy::transpose(dy::transpose(dy::concatenate({embeddings_batch, one})) * dy::tensor(readout_table));
+          auto logits = (dy::concatenate({embeddings_batch, one}).transpose() * dy::tensor(readout_table)).transpose();
           return dy::sum_batches(dy::pickneglogsoftmax(logits, oracles));
         }
         else {
@@ -177,9 +177,9 @@ namespace tg {
           }
 
           // fetch the readouts involved in sample
-          auto remapped_readout_table = dy::select_cols(dy::tensor(readout_table), sampled_token_ids);
+          auto remapped_readout_table = dy::tensor(readout_table).select_cols(sampled_token_ids);
 
-          auto logits = dy::transpose(dy::transpose(dy::concatenate({embeddings_batch, one})) * remapped_readout_table);
+          auto logits = (dy::concatenate({embeddings_batch, one}).transpose() * remapped_readout_table).transpose();
           return dy::sum_batches(dy::pickneglogsoftmax(logits, remapped_oracles));
         }
       }

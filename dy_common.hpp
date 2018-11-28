@@ -192,6 +192,116 @@ namespace tg {
         return *this;
       };
 
+      /**
+       * \brief Pick element
+       * \details Pick a single element/row/column/sub-tensor.
+       *          This will result in the dimension of the tensor being reduced
+       *          by 1.
+       *
+       * \param x The input expression
+       * \param v The index of the element to select
+       * \param d The dimension along which to choose the element
+       *
+       * \return The value of x[v] along dimension d
+       */
+      tensor at(unsigned v, unsigned d=0) {
+        return dynet::pick(*this, v, d);
+      }
+
+      /**
+       * \brief Pick range of elements
+       * \details Pick a range of elements from a tensor.
+       *
+       * \param x The input expression
+       * \param s The start index
+       * \param e The end index, excluding itself
+       * \param d The dimension along which to pick
+       *
+       * \return The value of {x[v],...,x[u]}
+       */
+      tensor slice(unsigned s, unsigned e, unsigned d=0) {
+        return dynet::pick_range(*this, s, e, d);
+      }
+
+      /**
+       * \brief Select rows
+       * \details Select a subset of rows of a matrix.
+       *
+       * \param x The input expression
+       * \param rows The rows to extract
+       *
+       * \return An expression containing the selected rows
+       */
+      tensor select_rows(const std::vector<unsigned> &rows) {
+        return dynet::select_rows(*this, rows);
+      }
+
+      /**
+       * \brief Select columns
+       * \details Select a subset of columns of a matrix. select_cols is more
+       *          efficient than select_rows since DyNet uses column-major order.
+       *
+       * \param x The input expression
+       * \param columns The columns to extract
+       *
+       * \return An expression containing the selected columns
+       */
+      tensor select_cols(const std::vector<unsigned> &cols) {
+        return dynet::select_cols(*this, cols);
+      }
+
+      /**
+       * \brief Reshape to another size
+       * \details This node reshapes a tensor to another size, without changing the
+       *          underlying layout of the data. The layout of the data in DyNet is
+       *          column-major, so if we have a 3x4 matrix
+       *
+       *    \f$
+       *      \begin{pmatrix}
+       *        x_{1,1} & x_{1,2} & x_{1,3} & x_{1,4} \\
+       *        x_{2,1} & x_{2,2} & x_{2,3} & x_{2,4} \\
+       *        x_{3,1} & x_{3,2} & x_{3,3} & x_{3,4} \\
+       *      \end{pmatrix}
+       *    \f$
+       *
+       *          and transform it into a 2x6 matrix, it will be rearranged as:
+       *
+       *    \f$
+       *      \begin{pmatrix}
+       *        x_{1,1} & x_{3,1} & x_{2,2} & x_{1,3} & x_{3,3} & x_{2,4} \\
+       *        x_{2,1} & x_{1,2} & x_{3,2} & x_{2,3} & x_{1,4} & x_{3,4} \\
+       *      \end{pmatrix}
+       *    \f$
+       *
+       *         **Note:** This is O(1) for forward, and O(n) for backward.
+       *
+       * \param x The input expression
+       * \param d The new dimensions
+       *
+       * \return The reshaped expression
+       */
+      tensor reshape(const Dim &d) {
+        return dynet::reshape(*this, d);
+      }
+
+      /**
+       * \brief Transpose a matrix
+       * \details Transpose a matrix or tensor, or if dims is specified shuffle the
+       *          dimensions arbitrarily.
+       *          **Note:** This is O(1) if either the row or column dimension is 1,
+       *          and O(n) otherwise.
+       *
+       * \param x The input expression
+       * \param dims The dimensions to swap. The ith dimension of the output will be equal
+       *          to the dims[i] dimension of the input. dims must have the same number
+       *          of dimensions as x.
+       *
+       * \return The transposed/shuffled expression
+       */
+      tensor transpose(const std::vector<unsigned> &dims = {1, 0}) {
+        return dynet::transpose(*this, dims);
+      }
+
       float as_scalar() const { return dynet::as_scalar(dy::_cg().incremental_forward(*this)); }
 
       std::vector<float> as_vector() const { return dynet::as_vector(dy::_cg().incremental_forward(*this)); }

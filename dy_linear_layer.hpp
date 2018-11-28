@@ -30,8 +30,8 @@ namespace tg {
 
       dy::tensor predict_given_output_positions(const dy::tensor &x, const std::vector<unsigned> output_positions) {
         ensure_init(x);
-        auto selected_W = dy::select_rows(dy::tensor(W), output_positions);
-        auto selected_b = dy::reshape(dy::pick(dy::tensor(b), output_positions), {(unsigned)output_positions.size()});
+        auto selected_W = dy::tensor(W).select_rows(output_positions);
+        auto selected_b = dy::tensor(b).select_rows(output_positions);
         return selected_W * x + selected_b;
       }
 

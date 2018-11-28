@@ -72,7 +72,7 @@ private:
       for (unsigned column = 0; column < width; column++) {
         row_vals.push_back(image[row * width + column]);
       }
-      ret.push_back(dy::const_expr(row_vals));
+      ret.push_back(row_vals);
     }
     return ret;
   }
@@ -84,7 +84,7 @@ private:
       for (unsigned row = 0; row < height; row++) {
         column_vals.push_back(image[row * width + column]);
       }
-      ret.push_back(dy::const_expr(column_vals));
+      ret.push_back(column_vals);
     }
     return ret;
   }

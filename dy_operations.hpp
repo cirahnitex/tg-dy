@@ -1074,102 +1074,6 @@ namespace tg {
 
 /**
  * \ingroup flowoperations
- * \brief Reshape to another size
- * \details This node reshapes a tensor to another size, without changing the
- *          underlying layout of the data. The layout of the data in DyNet is
- *          column-major, so if we have a 3x4 matrix
- *
- *    \f$
- *      \begin{pmatrix}
- *        x_{1,1} & x_{1,2} & x_{1,3} & x_{1,4} \\
- *        x_{2,1} & x_{2,2} & x_{2,3} & x_{2,4} \\
- *        x_{3,1} & x_{3,2} & x_{3,3} & x_{3,4} \\
- *      \end{pmatrix}
- *    \f$
- *
- *          and transform it into a 2x6 matrix, it will be rearranged as:
- *
- *    \f$
- *      \begin{pmatrix}
- *        x_{1,1} & x_{3,1} & x_{2,2} & x_{1,3} & x_{3,3} & x_{2,4} \\
- *        x_{2,1} & x_{1,2} & x_{3,2} & x_{2,3} & x_{1,4} & x_{3,4} \\
- *      \end{pmatrix}
- *    \f$
- *
- *         **Note:** This is O(1) for forward, and O(n) for backward.
- *
- * \param x The input expression
- * \param d The new dimensions
- *
- * \return The reshaped expression
- */
-
-    inline tensor reshape(const tensor &x, const Dim &d) { return dynet::reshape(x, d); }
-
-/**
- * \ingroup flowoperations
- * \brief Transpose a matrix
- * \details Transpose a matrix or tensor, or if dims is specified shuffle the
- *          dimensions arbitrarily.
- *          **Note:** This is O(1) if either the row or column dimension is 1,
- *          and O(n) otherwise.
- *
- * \param x The input expression
- * \param dims The dimensions to swap. The ith dimension of the output will be equal
- *          to the dims[i] dimension of the input. dims must have the same number
- *          of dimensions as x.
- *
- * \return The transposed/shuffled expression
- */
-    inline tensor
-    transpose(const tensor &x, const std::vector<unsigned> &dims = {1, 0}) { return dynet::transpose(x, dims); }
-
-/**
- * \ingroup flowoperations
- * \brief Select rows
- * \details Select a subset of rows of a matrix.
- *
- * \param x The input expression
- * \param rows The rows to extract
- *
- * \return An expression containing the selected rows
- */
-    inline tensor select_rows(const tensor &x, const std::vector<unsigned> &rows) {
-      return dynet::select_rows(x, rows);
-    }
-
-/**
- * \ingroup flowoperations
- * \brief Select columns
- * \details Select a subset of columns of a matrix. select_cols is more
- *          efficient than select_rows since DyNet uses column-major order.
- *
- * \param x The input expression
- * \param columns The columns to extract
- *
- * \return An expression containing the selected columns
- */
-    inline tensor select_cols(const tensor &x, const std::vector<unsigned> &cols) {
-      return dynet::select_cols(x, cols);
-    }
-
-/**
- * \ingroup flowoperations
- * \brief Pick element
- * \details Pick a single element/row/column/sub-tensor from an expression.
- *          This will result in the dimension of the tensor being reduced
- *          by 1.
- *
- * \param x The input expression
- * \param v The index of the element to select
- * \param d The dimension along which to choose the element
- *
- * \return The value of x[v] along dimension d
- */
-    inline tensor pick(const tensor &x, unsigned v, unsigned d = 0) { return dynet::pick(x, v, d); }
-
-/**
- * \ingroup flowoperations
  * \brief Batched pick
  * \details Pick elements from multiple batches.
  *
@@ -1183,22 +1087,6 @@ namespace tg {
     inline tensor pick(const tensor &x, const std::vector<unsigned> &v, unsigned d = 0) {
       return dynet::pick(x, v, d);
     }
-
-
-/**
- * \ingroup flowoperations
- * \brief Pick range of elements
- * \details Pick a range of elements from an expression.
- *
- * \param x The input expression
- * \param s The start index
- * \param e The end index, excluding itself
- * \param d The dimension along which to pick
- *
- * \return The value of {x[v],...,x[u]}
- */
-    inline tensor
-    pick_range(const tensor &x, unsigned s, unsigned e, unsigned d = 0) { return dynet::pick_range(x, s, e, d); }
 
 
 /**

@@ -88,10 +88,6 @@ int main() {
   cout << "training" <<endl;
   dy::fit<datum_t>(10, training_set, dev_set, [&](const datum_t &datum) {
     return model.compute_loss(datum.input, datum.oracle);
-  }, [](const std::exception &e, const datum_t &datum) {
-    cerr << e.what() << endl;
-    cerr << "sentence is:";
-    print_helper(datum.input, cerr);
   });
 
   cout << "predicting" <<endl;
