@@ -779,24 +779,6 @@ namespace tg {
  */
     inline tensor pickneglogsoftmax(const tensor &x, unsigned v) { return dynet::pickneglogsoftmax(x, v); }
 
-/**
- * \ingroup lossoperations
- * \brief Modifiable negative softmax log likelihood
- * \details This function calculates the negative log likelihood after the softmax with
- *          respect to index ``*pv``. This computes the same value as the previous function
- *          that passes the index ``v`` by value, but instead passes by pointer so the value
- *          ``*pv`` can be modified without re-constructing the computation graph. This can be
- *          used in situations where we want to create a computation graph once, then feed it
- *          different data points.
- *
- * \param x A vector of scores
- * \param pv A pointer to the index of the correct element
- *
- * \return The negative log likelihood of element ``*pv`` after taking the softmax
- */
-    inline tensor pickneglogsoftmax(const tensor &x, const unsigned *pv) {
-      return dynet::pickneglogsoftmax(x, pv);
-    }
 
 /**
  * \ingroup lossoperations
@@ -814,20 +796,6 @@ namespace tg {
       return dynet::pickneglogsoftmax(x, v);
     }
 
-/**
- * \ingroup lossoperations
- * \brief Modifiable batched negative softmax log likelihood
- * \details This function is a combination of modifiable pickneglogsoftmax and batched
- *          pickneglogsoftmax: ``pv`` can be modified without re-creating the computation graph.
- *
- * \param x An expression with vectors of scores over N batch elements
- * \param pv A pointer to the indexes
- *
- * \return The negative log likelihoods over all the batch elements
- */
-    inline tensor pickneglogsoftmax(const tensor &x, const std::vector<unsigned> *pv) {
-      return dynet::pickneglogsoftmax(x, pv);
-    }
 
 /**
  * \ingroup lossoperations
@@ -843,25 +811,6 @@ namespace tg {
  */
     inline tensor hinge(const tensor &x, unsigned index, float m = 1.0) { return dynet::hinge(x, index, m); }
 
-/**
- * \ingroup lossoperations
- * \brief Modifiable hinge loss
- * \details This function calculates the hinge loss with
- *          with respect to index ``*pindex``. This computes the same value as the previous function
- *          that passes the index ``index`` by value, but instead passes by pointer so the value
- *          ``*pindex`` can be modified without re-constructing the computation graph. This can be
- *          used in situations where we want to create a computation graph once, then feed it
- *          different data points.
- *
- * \param x A vector of scores
- * \param pindex A pointer to the index of the correct candidate
- * \param m The margin
- *
- * \return The hinge loss of candidate ``*pindex`` with respect to margin ``m``
- */
-    inline tensor hinge(const tensor &x, const unsigned *pindex, float m = 1.0) {
-      return dynet::hinge(x, pindex, m);
-    }
 
 /**
  * \ingroup lossoperations
@@ -880,21 +829,6 @@ namespace tg {
       return dynet::hinge(x, indices, m);
     }
 
-/**
- * \ingroup lossoperations
- * \brief Batched modifiable hinge loss
- * \details A combination of the previous batched and modifiable hinge loss functions, where
- *          vector ``*pindices`` can be modified.
- *
- * \param x A mini-batch of vectors with ``indices.size()`` batch elements
- * \param pindices Pointer to the indices of the correct candidates for each batch element
- * \param m The margin
- *
- * \return The hinge loss of each mini-batch
- */
-    inline tensor hinge(const tensor &x, const std::vector<unsigned> *pindices, float m = 1.0) {
-      return dynet::hinge(x, pindices, m);
-    }
 
 /**
  * \ingroup lossoperations
@@ -912,20 +846,6 @@ namespace tg {
     inline tensor hinge_dim(const tensor &x, const std::vector<unsigned> &indices, unsigned d = 0,
                                 float m = 1.0) { return dynet::hinge_dim(x, indices, d, m); }
 
-/**
- * \ingroup lossoperations
- * \brief Modifiable dimensionwise hinge loss
- * \details This function calculates the modifiable version of dimensionwise hinge loss.
- *
- * \param x A vector of scores
- * \param pindex A pointer to the index of the correct candidate
- * \param d The dimension over which to calculate the loss (0 or 1)
- * \param m The margin
- *
- * \return A vector of hinge losses for each index in ``indices``.
- */
-    inline tensor hinge_dim(const tensor &x, const std::vector<unsigned> *pindex, unsigned d = 0,
-                                float m = 1.0) { return dynet::hinge_dim(x, pindex, d, m); }
 
 /**
  * \ingroup lossoperations
@@ -943,22 +863,6 @@ namespace tg {
     inline tensor hinge_dim(const tensor &x, const std::vector<std::vector<unsigned> > &indices, unsigned d = 0,
                                 float m = 1.0) { return dynet::hinge_dim(x, indices, d, m); }
 
-/**
- * \ingroup lossoperations
- * \brief Batched modifiable hinge loss
- * \details A combination of the previous batched and modifiable hinge loss functions, where
- *          vector ``*pindices`` can be modified.
- *
- * \param x A mini-batch of vectors with ``indices.size()`` batch elements
- * \param pindices Pointer to the indices of the correct candidates for each batch element
- * \param d The dimension over which to calculate the loss (0 or 1)
- * \param m The margin
- *
- * \return The hinge loss of each mini-batch
- */
-    inline tensor
-    hinge_dim(const tensor &x, const std::vector<std::vector<unsigned> > *pindices, unsigned d = 0,
-              float m = 1.0) { return dynet::hinge_dim(x, pindices, d, m); }
 
 /**
  * \ingroup lossoperations
@@ -992,22 +896,6 @@ namespace tg {
       return dynet::sparsemax_loss(x, target_support);
     }
 
-/**
- * \ingroup lossoperations
- * \brief Modifiable sparsemax loss
- * \details Similar to the sparsemax loss, but with ptarget_support being a pointer
- *          to a vector, allowing it to be modified without re-creating the compuation
- *          graph.
- *          **Note:** This function is not yet implemented on GPU.
- *
- * \param x A vector of scores
- * \param ptarget_support A pointer to the target correct labels.
- *
- * \return The sparsemax loss of the labels
- */
-    inline tensor sparsemax_loss(const tensor &x, const std::vector<unsigned> *ptarget_support) {
-      return dynet::sparsemax_loss(x, ptarget_support);
-    }
 
 /**
  * \ingroup lossoperations
@@ -1139,19 +1027,6 @@ namespace tg {
  */
     inline tensor poisson_loss(const tensor &x, unsigned y) { return dynet::poisson_loss(x, y); }
 
-/**
- * \ingroup lossoperations
- * \brief Modifiable Poisson loss
- * \details Similar to Poisson loss, but with the target value passed by
- *          pointer so that it can be modified without re-constructing the
- *          computation graph.
- *
- * \param x The parameter of the Poisson distribution.
- * \param py A pointer to the target value
- *
- * \return The Poisson loss
- */
-    inline tensor poisson_loss(const tensor &x, const unsigned *py) { return dynet::poisson_loss(x, py); }
 
 ////////////////////////////////////////////////
 // Flow operations                            //
@@ -1265,21 +1140,6 @@ namespace tg {
 
 /**
  * \ingroup flowoperations
- * \brief Modifiable select rows
- * \details Select a subset of rows of a matrix, where the elements of prows
- *          can be modified without re-creating the computation graph.
- *
- * \param x The input expression
- * \param prows The rows to extract
- *
- * \return An expression containing the selected rows
- */
-    inline tensor select_rows(const tensor &x, const std::vector<unsigned> *prows) {
-      return dynet::select_rows(x, prows);
-    }
-
-/**
- * \ingroup flowoperations
  * \brief Select columns
  * \details Select a subset of columns of a matrix. select_cols is more
  *          efficient than select_rows since DyNet uses column-major order.
@@ -1291,21 +1151,6 @@ namespace tg {
  */
     inline tensor select_cols(const tensor &x, const std::vector<unsigned> &cols) {
       return dynet::select_cols(x, cols);
-    }
-
-/**
- * \ingroup flowoperations
- * \brief Modifiable select columns
- * \details Select a subset of columns of a matrix, where the elements of pcols
- *          can be modified without re-creating the computation graph.
- *
- * \param x The input expression
- * \param pcolumns The columns to extract
- *
- * \return An expression containing the selected columns
- */
-    inline tensor select_cols(const tensor &x, const std::vector<unsigned> *pcols) {
-      return dynet::select_cols(x, pcols);
     }
 
 /**
@@ -1339,37 +1184,6 @@ namespace tg {
       return dynet::pick(x, v, d);
     }
 
-/**
- * \ingroup flowoperations
- * \brief Modifiable pick element
- * \details Pick a single element from an expression, where the index is
- *          passed by pointer so we do not need to re-create the computation
- *          graph every time.
- *
- * \param x The input expression
- * \param pv Pointer to the index of the element to select
- * \param d The dimension along which to choose the elements
- *
- * \return The value of x[*pv]
- */
-    inline tensor pick(const tensor &x, const unsigned *pv, unsigned d = 0) { return dynet::pick(x, pv, d); }
-
-/**
- * \ingroup flowoperations
- * \brief Modifiable batched pick element
- * \details Pick multiple elements from an input expression, where the indices
- *          are passed by pointer so we do not need to re-create the computation
- *          graph every time.
- *
- * \param x The input expression
- * \param pv A pointer to vector of indicies to choose
- * \param d The dimension along which to choose the elements
- *
- * \return A mini-batched expression containing the picked elements
- */
-    inline tensor pick(const tensor &x, const std::vector<unsigned> *pv, unsigned d = 0) {
-      return dynet::pick(x, pv, d);
-    }
 
 /**
  * \ingroup flowoperations
@@ -1378,7 +1192,7 @@ namespace tg {
  *
  * \param x The input expression
  * \param s The start index
- * \param e The end index
+ * \param e The end index, excluding itself
  * \param d The dimension along which to pick
  *
  * \return The value of {x[v],...,x[u]}
@@ -1386,8 +1200,6 @@ namespace tg {
     inline tensor
     pick_range(const tensor &x, unsigned s, unsigned e, unsigned d = 0) { return dynet::pick_range(x, s, e, d); }
 
-// DEPRECATED
-    inline tensor pickrange(const tensor &x, unsigned s, unsigned e) { return dynet::pickrange(x, s, e); }
 
 /**
  * \ingroup flowoperations
