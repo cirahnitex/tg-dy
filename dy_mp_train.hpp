@@ -108,7 +108,7 @@ namespace tg {
     template<typename DATUM>
     class _mp_train_learner : private dynet::mp::ILearner<DATUM, float> {
     public:
-      _mp_train_learner(unsigned num_workers, unsigned num_epoches, const std::vector<DATUM> &training_set,
+      _mp_train_learner(unsigned num_workers, unsigned num_epochs, const std::vector<DATUM> &training_set,
                         const std::vector<DATUM> &dev_set, std::function<dy::tensor(const DATUM &)> compute_loss,
                         std::function<void()> save)
         :
@@ -117,10 +117,10 @@ namespace tg {
         compute_loss(
           training_set[0]); // for its side-effect only. to ensure that all lazy-initialized layers has been initialized before going parallel
         if (num_workers <= 1) {
-          dynet::mp::run_single_process_patched(this, dy::_trainer(), training_set, dev_set, num_epoches, dev_set.size(),
+          dynet::mp::run_single_process_patched(this, dy::_trainer(), training_set, dev_set, num_epochs, dev_set.size(),
                                         dev_set.empty()?training_set.size():dev_set.size(), 1);
         } else {
-          dynet::mp::run_multi_process(num_workers, this, dy::_trainer(), training_set, dev_set, num_epoches,
+          dynet::mp::run_multi_process(num_workers, this, dy::_trainer(), training_set, dev_set, num_epochs,
                                        dev_set.size(), dev_set.size());
         }
 
@@ -151,48 +151,48 @@ namespace tg {
      * data-parallel training.
      * this function returns after all the data have finished training
      * \tparam DATUM type of a single datum
-     * \param num_epoches number of epoches
+     * \param num_epochs number of epochs
      * \param training_set all training data
      * \param dev_set all dev data
      * \param compute_loss a function that accepts a datum and returns the loss
      * \param on_save how to save your model
      */
     template<typename DATUM>
-    void fit(unsigned num_epoches, const std::vector<DATUM> &training_set,
+    void fit(unsigned num_epochs, const std::vector<DATUM> &training_set,
              const std::vector<DATUM> &dev_set, std::function<dy::tensor(const DATUM &)> compute_loss,
              std::function<void()> save) {
-      _mp_train_learner<DATUM>(_num_workers(), num_epoches, training_set, dev_set, compute_loss, save);
+      _mp_train_learner<DATUM>(_num_workers(), num_epochs, training_set, dev_set, compute_loss, save);
     }
 
     /**
      * data-parallel training.
      * this function returns after all the data have finished training
      * \tparam DATUM type of a single datum
-     * \param num_epoches number of epoches
+     * \param num_epochs number of epochs
      * \param training_set all training data
      * \param dev_set all dev data
      * \param compute_loss a function that accepts a datum and returns the loss
      */
     template<typename DATUM>
-    void fit(unsigned num_epoches, const std::vector<DATUM> &training_set,
+    void fit(unsigned num_epochs, const std::vector<DATUM> &training_set,
              const std::vector<DATUM> &dev_set, std::function<dy::tensor(const DATUM &)> compute_loss) {
-      _mp_train_learner<DATUM>(_num_workers(), num_epoches, training_set, dev_set, compute_loss, []() {});
+      _mp_train_learner<DATUM>(_num_workers(), num_epochs, training_set, dev_set, compute_loss, []() {});
     }
 
     /**
      * data-parallel training.
      * this function returns after all the data have finished training
      * \tparam DATUM type of a single datum
-     * \param num_epoches number of epoches
+     * \param num_epochs number of epochs
      * \param training_set all training data
      * \param compute_loss a function that accepts a datum and returns the loss
      * \param on_save how to save your model
      */
     template<typename DATUM>
-    void fit(unsigned num_epoches, const std::vector<DATUM> &training_set,
+    void fit(unsigned num_epochs, const std::vector<DATUM> &training_set,
              std::function<dy::tensor(const DATUM &)> compute_loss,
              std::function<void()> save) {
-      _mp_train_learner<DATUM>(_num_workers(), num_epoches, training_set, std::vector<DATUM>(), compute_loss,
+      _mp_train_learner<DATUM>(_num_workers(), num_epochs, training_set, std::vector<DATUM>(), compute_loss,
                                save);
     }
 
@@ -200,14 +200,14 @@ namespace tg {
      * data-parallel training.
      * this function returns after all the data have finished training
      * \tparam DATUM type of a single datum
-     * \param num_epoches number of epoches
+     * \param num_epochs number of epochs
      * \param training_set all training data
      * \param compute_loss a function that accepts a datum and returns the loss
      */
     template<typename DATUM>
-    void fit(unsigned num_epoches, const std::vector<DATUM> &training_set,
+    void fit(unsigned num_epochs, const std::vector<DATUM> &training_set,
              std::function<dy::tensor(const DATUM &)> compute_loss) {
-      _mp_train_learner<DATUM>(_num_workers(), num_epoches, training_set, std::vector<DATUM>(), compute_loss,
+      _mp_train_learner<DATUM>(_num_workers(), num_epochs, training_set, std::vector<DATUM>(), compute_loss,
                                []() {});
     }
   }

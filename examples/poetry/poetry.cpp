@@ -29,7 +29,7 @@ public:
   }
   vector<string> predict() {
     vector<string> ret;
-    dy::vanilla_lstm::stacked_cell_state cell_state;
+    auto cell_state = lstm.default_cell_state();
     auto x = embedding_table.lookup(START_OF_SENTENCE);
     for(unsigned i=0; i<MAX_GENERATED_SENTENCE_LENGTH; i++) {
       tie(cell_state, x) = lstm.predict(cell_state, x);
@@ -87,7 +87,7 @@ int main() {
   const string PATH_TO_WORD2VEC_FILE = "/hltc/0/cl/tools/word_embeddings/w2vgw.d300.en.bin";
   const unsigned VOCAB_SIZE = 5000;
   const unsigned EMBEDDING_SIZE = 50;
-  const unsigned NUM_EPOCHES = 30;
+  const unsigned NUM_EPOCHS = 30;
   cout << "read dataset" <<endl;
   auto training_set = read_dataset(DATASET_PATH);
   cout << "collect vocab" <<endl;
@@ -97,7 +97,7 @@ int main() {
   cout << "initialze model" <<endl;
   dy::initialize(4);
   poetry_model model(EMBEDDING_SIZE, vocab, w2v);
-  dy::fit<datum_t>(NUM_EPOCHES, training_set, [&](const datum_t &datum) {
+  dy::fit<datum_t>(NUM_EPOCHS, training_set, [&](const datum_t &datum) {
     return model.compute_loss(datum);
   });
   cout << "testing" <<endl;
