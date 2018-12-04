@@ -13,6 +13,7 @@
 #include "dy_linear_layer.hpp"
 #include "dy_rnn.hpp"
 #include "dy_lookup_readout.hpp"
+#include "dy_bi_lookup_readout.hpp"
 #include "dy_embedding_lookup.hpp"
 #include "dy_mp_train.hpp"
 #include "dy_readout_model.hpp"

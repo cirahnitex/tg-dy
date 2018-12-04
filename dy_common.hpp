@@ -204,7 +204,7 @@ namespace tg {
        *
        * \return The value of x[v] along dimension d
        */
-      tensor at(unsigned v, unsigned d=0) {
+      tensor at(unsigned v, unsigned d=0) const {
         return dynet::pick(*this, v, d);
       }
 
@@ -219,7 +219,7 @@ namespace tg {
        *
        * \return The value of {x[v],...,x[u]}
        */
-      tensor slice(unsigned s, unsigned e, unsigned d=0) {
+      tensor slice(unsigned s, unsigned e, unsigned d=0) const {
         return dynet::pick_range(*this, s, e, d);
       }
 
@@ -232,7 +232,7 @@ namespace tg {
        *
        * \return An expression containing the selected rows
        */
-      tensor select_rows(const std::vector<unsigned> &rows) {
+      tensor select_rows(const std::vector<unsigned> &rows) const {
         return dynet::select_rows(*this, rows);
       }
 
@@ -246,7 +246,7 @@ namespace tg {
        *
        * \return An expression containing the selected columns
        */
-      tensor select_cols(const std::vector<unsigned> &cols) {
+      tensor select_cols(const std::vector<unsigned> &cols) const {
         return dynet::select_cols(*this, cols);
       }
 
@@ -280,7 +280,7 @@ namespace tg {
        *
        * \return The reshaped expression
        */
-      tensor reshape(const Dim &d) {
+      tensor reshape(const Dim &d) const {
         return dynet::reshape(*this, d);
       }
 
@@ -298,7 +298,7 @@ namespace tg {
        *
        * \return The transposed/shuffled expression
        */
-      tensor transpose(const std::vector<unsigned> &dims = {1, 0}) {
+      tensor transpose(const std::vector<unsigned> &dims = {1, 0}) const {
         return dynet::transpose(*this, dims);
       }
 

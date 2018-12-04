@@ -7,7 +7,6 @@
 #include "dy_common.hpp"
 #include "dy_operations.hpp"
 #include <dynet/dynet.h>
-#include <dict.hpp>
 #include <dynet/dict.h>
 #include <cereal/types/base_class.hpp>
 #include "dy_embedding_lookup.hpp"
@@ -135,7 +134,7 @@ namespace tg {
         ar(cereal::base_class<embedding_lookup>(this), readout_table);
       }
     protected:
-      dynet::Parameter readout_table;
+      dy::Parameter readout_table;
 
       dy::tensor forward(const dy::tensor &embedding) const {
         return (dy::concatenate({embedding, dy::tensor(1)}).transpose() * dy::tensor(readout_table)).transpose();
@@ -165,7 +164,7 @@ namespace tg {
               }
             }
 
-            // randomly sample some other unrelated tokens. the neural network to learn to avoid them
+            // randomly sample some other unrelated tokens. the neural network should learn to avoid them
             for(unsigned i=0; i<SAMPLE_THRESHOLD; i++) {
               const auto rand_id = dynet::rand0n(capacity);
               if(ori_to_remapped_oracle.count(rand_id)<=0) {

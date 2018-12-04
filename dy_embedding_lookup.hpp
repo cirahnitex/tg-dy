@@ -120,6 +120,10 @@ namespace tg {
         return ret;
       }
 
+      const std::vector<std::string>& list_real_tokens() const {
+        return dict->get_words();
+      }
+
       template<class Archive>
       void save(Archive& a) const {
         a(dict->get_words());
