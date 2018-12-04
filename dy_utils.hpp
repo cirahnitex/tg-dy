@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <ECMAScript_string_utils.hpp>
+#include <queue>
 
 namespace tg {
   namespace dy {
@@ -69,6 +70,50 @@ namespace tg {
       first.resize(first_size);
       return std::make_pair(std::move(first), std::move(second));
     }
+
+    template<class T>
+    class beam_bucket {
+      std::size_t beam_size;
+      std::function<bool(const T& a, const T& b)> better_than;
+      std::priority_queue<T, std::vector<T>, decltype(better_than)> items;
+    public:
+      beam_bucket(std::size_t beam_size, std::function<bool(const T& a, const T& b)> better_than):beam_size(beam_size), better_than(better_than), items(better_than) {}
+      void insert(const T& item) {
+        if(items.size()<beam_size) {
+          items.push(item);
+          return;
+        }
+        else {
+          if(beam_size==0) return;
+          if(better_than(item, items.top())) {
+            items.pop();
+            items.push(item);
+          }
+        }
+      }
+      void insert(T&& item) {
+        if(items.size()<beam_size) {
+          items.push(std::move(item));
+          return;
+        }
+        else {
+          if(beam_size==0) return;
+          if(better_than(static_cast<const T&>(item), items.top())) {
+            items.pop();
+            items.push(std::move(item));
+          }
+        }
+      }
+      std::vector<T> move_sorted_values() {
+        std::vector<T> ret;
+        while(!items.empty()) {
+          ret.push_back(items.top());
+          items.pop();
+        }
+        std::reverse(ret.begin(), ret.end());
+        return ret;
+      }
+    };
   }
 }
 
