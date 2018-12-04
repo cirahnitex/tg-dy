@@ -116,6 +116,8 @@ namespace tg {
         }
         return bucket.move_sorted_values();
       }
+      const std::vector<std::string>& list_l1_real_tokens() {return l0_lookup.list_real_tokens();}
+      const std::vector<std::string>& list_l0_real_tokens() {return l1_lookup.list_real_tokens();}
     };
   }
 }
