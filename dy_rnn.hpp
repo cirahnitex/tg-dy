@@ -120,6 +120,21 @@ namespace tg {
         return dy::concatenate(flatterned_exprs);
       }
 
+      stacked_cell_state unflattern_stacked_cell_state(const dy::tensor& x) {
+        stacked_cell_state ret;
+        unsigned pivot = 0;
+        unsigned length = x.dim()[0] / cells.size() / RNN_CELL_T::num_cell_state_parts;
+        for(unsigned i=0; i<cells.size(); i++) {
+          rnn_cell_state_t cell_state;
+          for(unsigned j=0; j<RNN_CELL_T::num_cell_state_parts; j++) {
+            cell_state.push_back(x.slice(pivot, pivot+length));
+            pivot += length;
+          }
+          ret.push_back(cell_state);
+        }
+        return ret;
+      }
+
       EASY_SERIALZABLE(cells)
 
     protected:
@@ -177,6 +192,7 @@ namespace tg {
 
     class vanilla_lstm_cell_t : public rnn_cell_t {
     public:
+      static constexpr unsigned num_cell_state_parts = 2;
       vanilla_lstm_cell_t() = default;
 
       vanilla_lstm_cell_t(const vanilla_lstm_cell_t &) = default;
@@ -227,6 +243,7 @@ namespace tg {
 
     class coupled_lstm_cell_t : public rnn_cell_t {
     public:
+      static constexpr unsigned num_cell_state_parts = 2;
       coupled_lstm_cell_t() = default;
 
       coupled_lstm_cell_t(const coupled_lstm_cell_t &) = default;
@@ -278,6 +295,7 @@ namespace tg {
 
     class gru_cell_t : public rnn_cell_t {
     public:
+      static constexpr unsigned num_cell_state_parts = 1;
       gru_cell_t() = default;
 
       gru_cell_t(const gru_cell_t &) = default;
