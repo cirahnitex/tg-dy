@@ -122,10 +122,10 @@ private:
   dy::linear_layer attention_fc2;
 
   dy::tensor compute_context(const vector<dy::tensor>& f_hiddens, const dy::vanilla_lstm::stacked_cell_state& prev_cell_state) {
-    auto flatterned = dy::vanilla_lstm::flattern_stacked_cell_state(prev_cell_state);
+    auto flattened = dy::vanilla_lstm::flatten_stacked_cell_state(prev_cell_state);
     vector<dy::tensor> xs;
     for(const auto& f_hidden:f_hiddens) {
-      auto x = dy::tanh(attention_fc1.predict(dy::concatenate({f_hidden, flatterned})));
+      auto x = dy::tanh(attention_fc1.predict(dy::concatenate({f_hidden, flattened})));
       xs.push_back(attention_fc2.predict(x));
     }
     return dy::concatenate(f_hiddens,1) * dy::softmax(dy::concatenate(xs));

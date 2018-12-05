@@ -103,6 +103,25 @@ namespace tg {
       }
 
       /**
+       * get the topX readouts from an embedding
+       * \param embedding
+       * \param topX
+       * \return a list of tokens, together with a loss for each token. tokens are sorted from best to worst
+       */
+      std::vector<std::pair<std::string, float>> top_readouts(const dy::tensor& embedding, unsigned topX) {
+        auto losses = (-dy::log_softmax(forward(embedding))).as_vector();
+        std::vector<unsigned> ids(real_dict_size());
+        std::iota(ids.begin(), ids.end(), 0);
+        std::sort(ids.begin(), ids.end(), [&](unsigned a, unsigned b){return losses[a]<losses[b];});
+        std::vector<std::pair<std::string, float>> ret;
+        for(unsigned i=0; i<topX; i++) {
+          if(i>=ids.size()) break;
+          ret.push_back(std::make_pair(dict->convert(ids[i]), losses[ids[i]]));
+        }
+        return ret;
+      }
+
+      /**
        * train the model to read out a token from an embedding
        * \param embedding the embedding
        * \param oracle the desired token

@@ -110,7 +110,7 @@ namespace tg {
        * \param scs the stacked-cell-state
        * \return
        */
-      static dy::tensor flattern_stacked_cell_state(const stacked_cell_state& scs) {
+      static dy::tensor flatten_stacked_cell_state(const stacked_cell_state& scs) {
         std::vector<dy::tensor> flatterned_exprs;
         for(const auto& cs:scs) {
           for(const auto& expr:cs) {
@@ -120,7 +120,7 @@ namespace tg {
         return dy::concatenate(flatterned_exprs);
       }
 
-      stacked_cell_state unflattern_stacked_cell_state(const dy::tensor& x) {
+      stacked_cell_state unflatten_stacked_cell_state(const dy::tensor& x) {
         stacked_cell_state ret;
         unsigned pivot = 0;
         unsigned length = x.dim()[0] / cells.size() / RNN_CELL_T::num_cell_state_parts;
