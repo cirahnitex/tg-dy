@@ -43,7 +43,7 @@ namespace tg {
     /**
      * call this before any other dynet related stuffs are called
      */
-    void initialize(unsigned num_workers=1, trainer_type trainer = ADAM, float learning_rate = 0.01, unsigned memory=512) {
+    inline void initialize(unsigned num_workers=1, trainer_type trainer = ADAM, float learning_rate = 0.01, unsigned memory=512) {
       if (_is_initialized()) return;
       std::vector<std::string> arguments = {"", "--dynet-mem="+std::to_string(memory)};
 
