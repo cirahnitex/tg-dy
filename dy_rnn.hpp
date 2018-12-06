@@ -101,7 +101,7 @@ namespace tg {
        */
       std::pair<stacked_cell_state, std::vector<dy::tensor>>
       predict(const std::vector<dy::tensor> &x_sequence) {
-        return predict(stacked_cell_state(), x_sequence);
+        return predict(default_cell_state(), x_sequence);
       }
 
       /**
