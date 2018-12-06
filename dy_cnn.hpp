@@ -77,11 +77,11 @@ namespace tg {
       }
     };
 
-    dy::tensor maxpooling2d(const dy::tensor& x, unsigned window_width, unsigned window_height, unsigned stride_between_rows, unsigned stride_between_columns, bool disable_padding = true) {
+    inline dy::tensor maxpooling2d(const dy::tensor& x, unsigned window_width, unsigned window_height, unsigned stride_between_rows, unsigned stride_between_columns, bool disable_padding = true) {
       return dynet::maxpooling2d(x, {window_width, window_height}, {stride_between_rows, stride_between_columns}, disable_padding);
     }
 
-    std::vector<dy::tensor> maxpooling1d(const std::vector<dy::tensor>& xs, unsigned window_length, unsigned stride, bool disable_padding = true) {
+    inline std::vector<dy::tensor> maxpooling1d(const std::vector<dy::tensor>& xs, unsigned window_length, unsigned stride, bool disable_padding = true) {
       if(xs.empty()) {throw std::runtime_error("cannot call maxpool1d on empty vector");}
       using namespace std;
       if(disable_padding) {
