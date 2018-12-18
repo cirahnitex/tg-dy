@@ -148,9 +148,17 @@ namespace tg {
       }
 
       template <class Archive>
-      void serialize(Archive& ar)
+      void save(Archive& ar) const
       {
-        ar(cereal::base_class<embedding_lookup>(this), readout_table);
+        embedding_lookup::save(ar);
+        ar(readout_table);
+      }
+
+      template <class Archive>
+      void load(Archive& ar)
+      {
+        embedding_lookup::load(ar);
+        ar(readout_table);
       }
     protected:
       dy::Parameter readout_table;

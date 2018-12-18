@@ -10,6 +10,7 @@
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/unordered_set.hpp>
+#include <cereal/types/string.hpp>
 
 #define EASY_SERIALZABLE(...) template<class Archive> \
 void serialize(Archive & archive) \
