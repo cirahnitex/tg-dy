@@ -132,6 +132,59 @@ namespace tg {
       }
 
       /**
+       * train the model to readout (any one from a token set) from an embedding
+       * \param embedding the embedding
+       * \param possible_oracles the desired token set. reading out any of them is considered correct.
+       * \return
+       */
+      dy::tensor compute_readout_loss_multi_oracle(const dy::tensor& embedding, const std::vector<std::string>& possible_oracles) const {
+        std::vector<unsigned> oracle_ids;
+        for(const auto& token:possible_oracles) {
+          oracle_ids.push_back(token_to_id(token));
+        }
+        auto one = dy::ones({1});
+        if(capacity<=SAMPLE_THRESHOLD) {
+          auto logits = (dy::concatenate({embedding, one}).transpose() * dy::tensor(readout_table)).transpose();
+          return -dy::max_dim(dy::log_softmax(logits).select_rows(oracle_ids));
+        }
+        else {
+          std::vector<unsigned> sampled_token_ids;
+          std::vector<unsigned> remapped_oracles;
+          {
+            std::unordered_map<unsigned, unsigned> ori_to_remapped_oracle;
+
+            // put all oracle tokens in sample. the neural network should learn to correctly select them
+            for(auto token_id:oracle_ids) {
+              try {
+                remapped_oracles.push_back(ori_to_remapped_oracle.at(token_id));
+              }
+              catch(...) {
+                ori_to_remapped_oracle[token_id] = sampled_token_ids.size();
+                remapped_oracles.push_back(sampled_token_ids.size());
+                sampled_token_ids.push_back(token_id);
+              }
+            }
+
+            // randomly sample some other unrelated tokens. the neural network should learn to avoid them
+            for(unsigned i=0; i<SAMPLE_THRESHOLD; i++) {
+              const auto rand_id = dynet::rand0n(capacity);
+              if(ori_to_remapped_oracle.count(rand_id)<=0) {
+                ori_to_remapped_oracle[rand_id] = sampled_token_ids.size();
+                sampled_token_ids.push_back(rand_id);
+              }
+            }
+
+          }
+
+          // fetch the readouts involved in sample
+          auto remapped_readout_table = dy::tensor(readout_table).select_cols(sampled_token_ids);
+
+          auto logits = (dy::concatenate({embedding, one}).transpose() * remapped_readout_table).transpose();
+          return -dy::max_dim(dy::log_softmax(logits).select_rows(remapped_oracles));
+        }
+      }
+
+      /**
        * train the model to read out a sentence from its token embeddings.
        * this function is much faster than calling compute_readout_loss on each individual token embeddings.
        * \param embeddings
