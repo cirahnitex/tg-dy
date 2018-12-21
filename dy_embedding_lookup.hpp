@@ -10,7 +10,7 @@
 #include <dynet/dict.h>
 #include <regex>
 #include "dy_serialization_helper.hpp"
-#define _DYNET_WRAPPER_DEFAULT_UNK "&unk;"
+
 namespace tg {
   namespace dy {
     class embedding_lookup {

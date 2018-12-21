@@ -9,6 +9,7 @@
 #include <dynet/expr.h>
 #include <vector>
 #include <dynet/training.h>
+#define _DYNET_WRAPPER_DEFAULT_UNK "&unk;"
 
 #define AUTO_START_GRAPH(ptr, action) \
   if(tg::dy::_those_who_have_their_graph_started().count(ptr)<=0) {\

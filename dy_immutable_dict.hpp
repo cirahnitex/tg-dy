@@ -30,6 +30,7 @@ namespace tg {
           dict->convert(entry);
         }
         dict->freeze();
+        dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);
       }
 
       explicit immutable_dict(const std::unordered_set<std::string> &entries, const std::unordered_set<std::string> &more_entries) :
@@ -41,6 +42,7 @@ namespace tg {
           dict->convert(entry);
         }
         dict->freeze();
+        dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);
       }
 
       /**
@@ -91,6 +93,7 @@ namespace tg {
           dict->convert(entry);
         }
         dict->freeze();
+        dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);
       }
 
     private:
