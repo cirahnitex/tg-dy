@@ -102,7 +102,7 @@ namespace tg {
             ->desc("the path where the model is stored")
             ->name("model_path");
           p.add(cmdlp::value_option<unsigned>(num_epochs))
-            ->fallback(10)
+            ->fallback(64)
             ->name_value("number")
             ->desc("number of epoches to run")
             ->name("num_epochs");
