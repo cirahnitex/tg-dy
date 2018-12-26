@@ -92,23 +92,23 @@ namespace tg {
     public:
 
       struct training_options {
-        std::string model_dir;
+        std::string model_path;
         unsigned num_epochs;
         unsigned num_workers;
 
         void init(cmdlp::parser &p) {
-          p.add(cmdlp::value_option<std::string>(model_dir))
-            ->name_value("directory path")
-            ->desc("the directory where the model is stored")
-            ->name("model_dir");
+          p.add(cmdlp::value_option<std::string>(model_path))
+            ->name_value("file path")
+            ->desc("the path where the model is stored")
+            ->name("model_path");
           p.add(cmdlp::value_option<unsigned>(num_epochs))
             ->fallback(10)
-            ->name_value("natural number")
+            ->name_value("number")
             ->desc("number of epoches to run")
             ->name("num_epochs");
           p.add(cmdlp::value_option<unsigned>(num_workers))
-            ->fallback(4)
-            ->name_value("natural number")
+            ->fallback(15)
+            ->name_value("number")
             ->desc("the number of parallel processes to spawn")
             ->name("num_workers");
         }
