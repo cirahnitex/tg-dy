@@ -23,5 +23,6 @@
 #include "dy_ioe_readout.hpp"
 #include "dy_multi_readout_model.hpp"
 #include "dy_cnn.hpp"
+#include "dy_normalization_layer.hpp"
 
 #endif //DYNET_WRAPPER_DY_HPP

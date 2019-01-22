@@ -4,35 +4,63 @@
 using namespace tg;
 using namespace std;
 
+using datum_t = pair<vector<float>, string>;
+
+class model {
+  dy::normalization_layer norm;
+  dy::readout_model ro;
+  dy::tensor shared_op(const vector<float> &x) {
+    return norm.predict(x);
+  }
+public:
+  model():norm(),ro({"small","medium","big"}){};
+  model(const model&) = default;
+  model(model&&) = default;
+  model &operator=(const model&) = default;
+  model &operator=(model&&) = default;
+  string predict(const vector<float>& x) {
+    return ro.predict(shared_op(x));
+  }
+  dy::tensor compute_loss(const vector<float>& x, const string& oracle) {
+    return ro.compute_loss(shared_op(x), oracle);
+  }
+};
 
 int main() {
   dy::initialize(1, dy::trainer_type::SIMPLE_SGD);
 
-  unordered_set<string> l0_vocab = {
-    "a", "b", "c", "d", "e", "f", "g","h","i","j","k","l","m","n"
-  };
-  unordered_set<string> l1_vocab = {
-    "A", "B", "C", "D", "E", "F", "G","H","I","J","K","L","M","N"
-  };
-  dy::bi_lookup_readout bilr(3, l0_vocab, l1_vocab);
-//  auto x = bilr.create_lookup_with_loss_computer({"a","b","c"}, {"A","B","C"});
-  typedef pair<string, string> datum;
-  vector<datum> data({
-    make_pair("a","A"),
-    make_pair("b","B"),
-    make_pair("c","C")
-  });
-  auto start = std::chrono::steady_clock::now();
-  dy::fit<datum>(1000, data, [&](const datum& datum){
-    auto loss_computer = bilr.create_lookup_with_loss_computer({"a", "b", "c"}, {"A", "B", "C"});
-    return loss_computer(datum.first, datum.second).second;
-  });
-  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>
-    (std::chrono::steady_clock::now() - start);
-  cout << duration.count()<<endl;
 
-  for(const string& l0:l0_vocab) {
-    cout << "l0:"<<l0<<" translation:"<<bilr.translate_l0_to_l1_slow(l0,1).front().first<<endl;
+  vector<datum_t> dataset({
+                            make_pair<vector<float>, string>({11,16,19,19,17,16,10,19,19,14},"big"),
+                            make_pair<vector<float>, string>({12,11,19,11,14,18,19,12,18,11},"medium"),
+                            make_pair<vector<float>, string>({19,12,10,18,17,17,10,15,16,19},"big"),
+                            make_pair<vector<float>, string>({17,19,14,11,16,17,17,18,12,18},"big"),
+                            make_pair<vector<float>, string>({12,18,19,17,11,18,10,10,17,19},"big"),
+                            make_pair<vector<float>, string>({19,12,14,16,19,13,12,12,15,16},"medium"),
+                            make_pair<vector<float>, string>({15,17,16,12,15,10,18,15,11,17},"medium"),
+                            make_pair<vector<float>, string>({14,15,10,10,14,15,14,13,11,10},"small"),
+                            make_pair<vector<float>, string>({10,18,17,10,15,15,10,18,11,10},"small"),
+                            make_pair<vector<float>, string>({16,16,16,11,15,18,15,19,19,14},"big"),
+                            make_pair<vector<float>, string>({11,19,14,11,18,15,18,16,13,13},"medium"),
+                            make_pair<vector<float>, string>({18,11,18,12,13,17,10,16,10,10},"small"),
+                            make_pair<vector<float>, string>({11,13,16,14,17,17,13,19,14,16},"medium"),
+                            make_pair<vector<float>, string>({19,18,11,11,14,11,16,11,12,15},"small"),
+                            make_pair<vector<float>, string>({16,11,16,12,11,12,18,16,14,14},"small"),
+                            make_pair<vector<float>, string>({15,13,13,12,13,19,10,15,18,14},"medium"),
+                            make_pair<vector<float>, string>({18,19,14,17,19,10,19,13,17,13},"big"),
+                            make_pair<vector<float>, string>({12,17,12,11,18,18,12,17,13,19},"medium"),
+                            make_pair<vector<float>, string>({19,10,16,15,15,13,19,13,19,18},"big"),
+                            make_pair<vector<float>, string>({17,17,18,19,11,19,12,18,19,18},"big")
+  });
+
+  model m;
+  dy::fit<datum_t>(100, dataset, [&](const datum_t& datum){
+    return m.compute_loss(datum.first, datum.second);
+  });
+
+  for(const datum_t& datum:dataset) {
+    cout << "oracle: "<< datum.second <<"\t";
+    cout << "predicted: "<< m.predict(datum.first) <<endl;
   }
 
   return 0;
