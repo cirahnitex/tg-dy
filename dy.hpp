@@ -24,5 +24,6 @@
 #include "dy_multi_readout_model.hpp"
 #include "dy_cnn.hpp"
 #include "dy_normalization_layer.hpp"
+#include "dy_binary_readout_model.hpp"
 
 #endif //DYNET_WRAPPER_DY_HPP
