@@ -46,7 +46,7 @@ dataset_t read_dataset(const std::string& path) {
   using namespace std;
   ifstream ifs(path);
   Json::Value json;
-  Json::Reader().parse(ifs, json);
+  ifs >> json;
   dataset_t ret;
   ret.parse_json(json);
   return ret;

@@ -29,8 +29,8 @@ public:
   }
 
   dy::tensor forward(const vector<string>& sentence) {
-//    auto output_embs = lstm.predict(emb.lookup(sentence, true)).second;
-    auto output_embs = lstm.predict_output_sequence(emb.lookup(sentence, true));
+    auto output_embs = lstm.predict(emb.lookup(sentence, true)).second; // for LSTM model
+//    auto output_embs = lstm.predict_output_sequence(emb.lookup(sentence, true)); // for bi-LSTM model
     return dy::max(output_embs);
   }
 
@@ -45,8 +45,8 @@ public:
   EASY_SERIALZABLE(emb, lstm, ro)
 private:
   dy::embedding_lookup emb;
-//  dy::vanilla_lstm lstm;
-  dy::bidirectional_vanilla_lstm lstm;
+  dy::vanilla_lstm lstm; // for LSTM model
+//  dy::bidirectional_vanilla_lstm lstm; // for bi-LSTM model
   dy::multi_readout_model ro;
 };
 
