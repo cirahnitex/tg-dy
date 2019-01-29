@@ -605,7 +605,7 @@ namespace tg {
  * \return An expression where the ith element is equal to max(xs[0][i], xs[1][i], ...)
  */
     inline tensor max(const std::vector<tensor> &xs) {
-      if(xs.empty()) {throw new std::runtime_error("cannot perform max on empty list");}
+      if(xs.empty()) {throw std::runtime_error("cannot perform max on empty list");}
       auto extra_dim = xs[0].dim().nd;
       return dynet::max_dim(dynet::concatenate(tensor::vector_cast_to_base(xs), extra_dim), extra_dim);
     }
