@@ -11,6 +11,12 @@
 #include "dy_linear_layer.hpp"
 namespace tg {
   namespace dy {
+    /**
+     * a multi-readout model does the following when predicting:
+     * * takes an embedding
+     * * predicts zero or many labels
+     * this is equivalent to have a binary readout for every possible label
+     */
     class multi_readout_model {
     public:
       multi_readout_model() = default;
@@ -18,8 +24,17 @@ namespace tg {
       multi_readout_model(multi_readout_model&&) = default;
       multi_readout_model &operator=(const multi_readout_model&) = default;
       multi_readout_model &operator=(multi_readout_model&&) = default;
+      /**
+       * construct a multi-readout model
+       * \param labels the set of all possible labels
+       */
       explicit multi_readout_model(const std::unordered_set<std::string>& labels):labels(labels.begin(), labels.end()),fc(labels.size()) {
       }
+      /**
+       * perform a prediction
+       * \param x the embedding
+       * \return predicted labels
+       */
       std::unordered_set<std::string> readout(const dy::tensor &x) {
         const auto evidences = fc.predict(x).as_vector();
         std::unordered_set<std::string> ret;
@@ -31,6 +46,12 @@ namespace tg {
         }
         return ret;
       }
+      /**
+       * computes the loss given training data
+       * \param x the embedding
+       * \param oracle the golden answer
+       * \return the loss
+       */
       dy::tensor compute_loss(const dy::tensor& x, const std::unordered_set<std::string>& oracle) {
         using namespace std;
         vector<float> oracle_float;

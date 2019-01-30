@@ -11,6 +11,11 @@
 
 namespace tg {
   namespace dy {
+    /*
+     * a binary readout model does the following when predicting
+     * * takes an embedding (tensor<X>)
+     * * predicts a true/false answer
+     */
     class binary_readout_model {
       linear_layer fc;
     public:
@@ -20,10 +25,21 @@ namespace tg {
       binary_readout_model(binary_readout_model&&) = default;
       binary_readout_model &operator=(const binary_readout_model&) = default;
       binary_readout_model &operator=(binary_readout_model&&) = default;
+      /**
+       * performs prediction
+       * \param x tensor<X> the embedding
+       * \return the answer
+       */
       bool predict(const tensor &x) {
         return fc.predict(x).as_scalar() > 0;
       }
 
+      /**
+       * compute loss
+       * \param x tensor<X> the embedding
+       * \param oracle the golden answer
+       * \return the loss
+       */
       tensor compute_loss(const tensor &x, bool oracle) {
         return dy::binary_log_loss(dy::logistic(fc.predict(x)), oracle);
       }

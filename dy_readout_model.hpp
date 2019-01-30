@@ -42,7 +42,7 @@ namespace tg {
 
       /**
        * given an embedding, predict a label
-       * \param embedding dim(1) tensor
+       * \param embedding tensor<X>
        * \return the predicted label
        */
       std::string predict(const dy::tensor &embedding) {
@@ -51,7 +51,7 @@ namespace tg {
 
       /**
        * given an embedding, generate a label according to all label's weight distribution
-       * \param embedding dim(1) tensor
+       * \param embedding tensor<X>
        * \return the generated label
        */
       std::string random_predict(const dy::tensor &embedding) {
@@ -64,7 +64,7 @@ namespace tg {
        * given an embedding and a desired label, compute the loss
        * if there are too many labels, it will compute sampled_readout_loss instead
        * two private constants control the behavior of sampled_readout_loss, see later documentations
-       * \param embedding dim(1) tensor
+       * \param embedding tensor<X>
        * \param oracle the desired label
        * \return the loss
        */
@@ -95,7 +95,7 @@ namespace tg {
       /**
        * get the one-hot representation of the label, according to the internal label ID
        * \param label the label to represent
-       * \return a dim(#-of-labels) tensor, all values are 0 except 1 at the position of internal label ID
+       * \return tensor<#-of-labels>, all values are 0 except 1 at the position of internal label ID
        */
       dy::tensor one_hot(const std::string& label) const {
         return dict.one_hot(label);
