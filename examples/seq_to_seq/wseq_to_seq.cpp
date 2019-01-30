@@ -110,7 +110,7 @@ public:
     for(auto& x:decoder_outputs) {x = dy::tanh(output_fc.predict(x));}
     return e_embedding_table.compute_readout_loss(decoder_outputs, e_sentence) + f_lookup_loss + e_lookup_loss;
   }
-  EASY_SERIALZABLE(embedding_size, f_embedding_table, e_embedding_table, encoder, decoder, output_fc)
+  EASY_SERIALIZABLE(embedding_size, f_embedding_table, e_embedding_table, encoder, decoder, output_fc)
 private:
   unsigned embedding_size;
   dy::mono_lookup_readout f_embedding_table;

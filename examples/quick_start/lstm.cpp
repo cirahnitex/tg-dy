@@ -53,7 +53,7 @@ public:
     return emit_lookup_table.compute_readout_loss(output_embs, oracle_for_decoder) + foreign_lookup_loss + emit_lookup_loss;
   }
 
-  EASY_SERIALZABLE(embedding_size, foreign_lookup_table, emit_lookup_table, encoder, decoder)
+  EASY_SERIALIZABLE(embedding_size, foreign_lookup_table, emit_lookup_table, encoder, decoder)
 private:
   unsigned embedding_size;
   dy::mono_lookup_readout foreign_lookup_table;

@@ -57,7 +57,7 @@ namespace tg {
         }
       }
 
-      EASY_SERIALZABLE(input_channels, output_channels, filter_height, filter_width, stride_between_rows, stride_between_columns, with_bias, disable_padding, filter, bias)
+      EASY_SERIALIZABLE(input_channels, output_channels, filter_height, filter_width, stride_between_rows, stride_between_columns, with_bias, disable_padding, filter, bias)
     private:
       unsigned input_channels;
       unsigned output_channels;
@@ -151,7 +151,7 @@ namespace tg {
           return forward_no_padding(padded);
         }
       }
-      EASY_SERIALZABLE(input_channels, output_channels, filter_length, stride, with_bias, disable_padding)
+      EASY_SERIALIZABLE(input_channels, output_channels, filter_length, stride, with_bias, disable_padding)
     private:
       unsigned input_channels;
       unsigned output_channels;

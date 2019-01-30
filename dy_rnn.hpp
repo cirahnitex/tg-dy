@@ -135,7 +135,7 @@ namespace tg {
         return ret;
       }
 
-      EASY_SERIALZABLE(cells)
+      EASY_SERIALIZABLE(cells)
 
     protected:
       std::vector<RNN_CELL_T> cells;
@@ -228,7 +228,7 @@ namespace tg {
         return std::make_pair(rnn_cell_state_t({std::move(output_cell_state),output_hidden_state}),output_hidden_state);
       }
 
-      EASY_SERIALZABLE(hidden_dim, forget_gate, input_gate, input_fc, output_gate)
+      EASY_SERIALIZABLE(hidden_dim, forget_gate, input_gate, input_fc, output_gate)
 
     private:
       unsigned hidden_dim;
@@ -281,7 +281,7 @@ namespace tg {
         return std::make_pair(rnn_cell_state_t({std::move(output_cell_state),output_hidden_state}),output_hidden_state);
       }
 
-      EASY_SERIALZABLE(hidden_dim, forget_gate, input_fc, output_gate)
+      EASY_SERIALIZABLE(hidden_dim, forget_gate, input_fc, output_gate)
 
     private:
       unsigned hidden_dim;
@@ -329,7 +329,7 @@ namespace tg {
         return std::make_pair(rnn_cell_state_t({output_hidden}), output_hidden);
       }
 
-      EASY_SERIALZABLE(hidden_dim, pre_input_gate, input_fc, output_gate)
+      EASY_SERIALIZABLE(hidden_dim, pre_input_gate, input_fc, output_gate)
 
     private:
       unsigned hidden_dim;

@@ -111,7 +111,7 @@ public:
     }
     return e_embedding_table.compute_readout_loss(output_embeddings, e_sentence) + f_lookup_loss + e_lookup_loss;
   }
-  EASY_SERIALZABLE(embedding_size, f_embedding_table, e_embedding_table, encoder, decoder, attention_fc)
+  EASY_SERIALIZABLE(embedding_size, f_embedding_table, e_embedding_table, encoder, decoder, attention_fc)
 private:
   unsigned embedding_size;
   dy::mono_lookup_readout f_embedding_table;

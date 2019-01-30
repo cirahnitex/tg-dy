@@ -42,7 +42,7 @@ public:
     return ro.compute_loss(forward(sentence), labels);
   }
 
-  EASY_SERIALZABLE(emb, lstm, ro)
+  EASY_SERIALIZABLE(emb, lstm, ro)
 private:
   dy::embedding_lookup emb;
   dy::vanilla_lstm lstm; // for LSTM model

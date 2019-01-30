@@ -50,7 +50,7 @@ namespace tg {
         }
       }
     public:
-      EASY_SERIALZABLE(l0_lookup, l1_lookup, l0_readout, l1_readout)
+      EASY_SERIALIZABLE(l0_lookup, l1_lookup, l0_readout, l1_readout)
       bi_lookup_readout() = default;
       bi_lookup_readout(const bi_lookup_readout&) = default;
       bi_lookup_readout(bi_lookup_readout&&) = default;

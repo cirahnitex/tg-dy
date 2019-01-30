@@ -51,7 +51,7 @@ public:
     auto output_emb = lstm.predict(sentence_emb).second;
     return embedding_table.compute_readout_loss(output_emb, oracle);
   }
-  EASY_SERIALZABLE(embedding_table, lstm)
+  EASY_SERIALIZABLE(embedding_table, lstm)
 private:
   dy::mono_lookup_readout embedding_table;
   dy::vanilla_lstm lstm;

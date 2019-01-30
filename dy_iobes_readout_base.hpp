@@ -111,7 +111,7 @@ namespace tg {
         return ret;
       }
 
-      EASY_SERIALZABLE(ro_prefix, ro_label)
+      EASY_SERIALIZABLE(ro_prefix, ro_label)
     protected:
       virtual std::pair<std::string, std::string> get_prefixed_label_at_token_index(unsigned index, const std::vector<web_srl_graph::item_type> &labeled_spans) const = 0;
       dy::readout_model ro_prefix;

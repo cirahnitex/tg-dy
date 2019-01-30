@@ -34,7 +34,7 @@ public:
     return dy::max(bilstm.predict_output_sequence(features));
   }
 
-  EASY_SERIALZABLE(bilstm)
+  EASY_SERIALIZABLE(bilstm)
 private:
   dy::bidirectional_vanilla_lstm bilstm;
 };
@@ -57,7 +57,7 @@ public:
     return ro.compute_loss(forward(image), oracle);
   }
 
-  EASY_SERIALZABLE(width, height, split_by_row_pass, split_by_column_pass, ro)
+  EASY_SERIALIZABLE(width, height, split_by_row_pass, split_by_column_pass, ro)
 private:
   unsigned width;
   unsigned height;

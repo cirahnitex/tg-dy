@@ -52,7 +52,7 @@ public:
     return x;
   }
 
-  EASY_SERIALZABLE(emb, conv0, conv1, conv2, fc, ro)
+  EASY_SERIALIZABLE(emb, conv0, conv1, conv2, fc, ro)
 private:
   dy::embedding_lookup emb;
   dy::conv1d_layer conv0;

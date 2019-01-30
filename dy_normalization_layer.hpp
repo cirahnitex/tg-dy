@@ -18,7 +18,7 @@ namespace tg {
         b = dy::add_parameters({dim});
       }
     public:
-      EASY_SERIALZABLE(g, b)
+      EASY_SERIALIZABLE(g, b)
       normalization_layer() = default;
       normalization_layer(const normalization_layer&) = default;
       normalization_layer(normalization_layer&&) = default;

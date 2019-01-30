@@ -14,7 +14,7 @@ namespace tg {
     class binary_readout_model {
       linear_layer fc;
     public:
-      EASY_SERIALZABLE(fc)
+      EASY_SERIALIZABLE(fc)
       binary_readout_model():fc(1){};
       binary_readout_model(const binary_readout_model&) = default;
       binary_readout_model(binary_readout_model&&) = default;

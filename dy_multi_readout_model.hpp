@@ -39,7 +39,7 @@ namespace tg {
         }
         return dynet::binary_log_loss(dynet::logistic(fc.predict(x)), dy::tensor(oracle_float));
       }
-      EASY_SERIALZABLE(labels, fc)
+      EASY_SERIALIZABLE(labels, fc)
     private:
       std::vector<std::string> labels;
       linear_layer fc;

@@ -35,7 +35,7 @@ namespace tg {
         return selected_W * x + selected_b;
       }
 
-      EASY_SERIALZABLE(dim_in, dim_out, W, b)
+      EASY_SERIALIZABLE(dim_in, dim_out, W, b)
 
     private:
       unsigned dim_in;

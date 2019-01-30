@@ -10,7 +10,7 @@ class XorModel {
   dy::linear_layer fc1;
   dy::linear_layer fc2;
 public:
-  EASY_SERIALZABLE(fc1, fc2)
+  EASY_SERIALIZABLE(fc1, fc2)
   XorModel(const XorModel&) = default;
   XorModel(XorModel&&) = default;
   XorModel &operator=(const XorModel&) = default;

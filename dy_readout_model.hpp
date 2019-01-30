@@ -111,7 +111,7 @@ namespace tg {
         return dict.list_entries();
       }
 
-      EASY_SERIALZABLE(dict, fc)
+      EASY_SERIALIZABLE(dict, fc)
     private:
       /**
        * if #labels greater than this number, loss will be computed by sampled_readout_loss
