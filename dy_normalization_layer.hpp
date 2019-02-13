@@ -28,6 +28,7 @@ namespace tg {
         ensure_init(x);
         return dynet::layer_norm(x, tensor(g), tensor(b));
       }
+      tensor operator()(const tensor& x) {return predict(x);}
     };
   }
 }
