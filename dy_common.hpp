@@ -33,7 +33,7 @@ namespace tg {
       return _pc;
     }
 
-    inline dynet::Trainer* &_trainer() {
+    inline dynet::Trainer* _trainer() {
       static dynet::Trainer* _trainer = new dynet::AdamTrainer(_pc());
       return _trainer;
     }
