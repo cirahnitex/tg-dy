@@ -28,13 +28,13 @@ namespace tg {
 
     inline bool &_is_initialized() { static bool _ = false;return _; }
 
-    inline dynet::ParameterCollection &_pc() {
-      static dynet::ParameterCollection _pc;
+    inline dynet::ParameterCollection* &_pc() {
+      static dynet::ParameterCollection* _pc = new dynet::ParameterCollection();
       return _pc;
     }
 
-    inline dynet::Trainer* _trainer() {
-      static dynet::Trainer* _trainer = new dynet::AdamTrainer(_pc());
+    inline dynet::Trainer* &_trainer() {
+      static dynet::Trainer* _trainer = new dynet::AdamTrainer(*_pc());
       return _trainer;
     }
 
@@ -68,34 +68,34 @@ namespace tg {
       if(_trainer()) delete _trainer();
       switch (trainer) {
         case SIMPLE_SGD:
-          _trainer() = new dynet::SimpleSGDTrainer(_pc(), learning_rate);
+          _trainer() = new dynet::SimpleSGDTrainer(*_pc(), learning_rate);
           break;
         case CYCLICAL_SGD:
-          _trainer() = new dynet::CyclicalSGDTrainer(_pc(), learning_rate, learning_rate*10);
+          _trainer() = new dynet::CyclicalSGDTrainer(*_pc(), learning_rate, learning_rate*10);
           break;
         case MOMENTUM_SGD:
-          _trainer() = new dynet::MomentumSGDTrainer(_pc(), learning_rate);
+          _trainer() = new dynet::MomentumSGDTrainer(*_pc(), learning_rate);
           break;
         case ADAGRAD:
-          _trainer() = new dynet::AdagradTrainer(_pc(), learning_rate);
+          _trainer() = new dynet::AdagradTrainer(*_pc(), learning_rate);
           break;
         case ADADELTA:
-          _trainer() = new dynet::AdadeltaTrainer(_pc());
+          _trainer() = new dynet::AdadeltaTrainer(*_pc());
           break;
         case RMS_PROP:
-          _trainer() = new dynet::RMSPropTrainer(_pc(), learning_rate);
+          _trainer() = new dynet::RMSPropTrainer(*_pc(), learning_rate);
           break;
         case ADAM:
-          _trainer() = new dynet::AdagradTrainer(_pc(), learning_rate);
+          _trainer() = new dynet::AdagradTrainer(*_pc(), learning_rate);
           break;
         case AMSGRAD:
-          _trainer() = new dynet::AmsgradTrainer(_pc(), learning_rate);
+          _trainer() = new dynet::AmsgradTrainer(*_pc(), learning_rate);
           break;
         case EXPONENTIATED_GRADIENT:
-          _trainer() = new dynet::EGTrainer(_pc(), learning_rate);
+          _trainer() = new dynet::EGTrainer(*_pc(), learning_rate);
           break;
         default:
-          _trainer() = new dynet::AdamTrainer(_pc());
+          _trainer() = new dynet::AdamTrainer(*_pc());
       }
     }
 
@@ -332,11 +332,11 @@ namespace tg {
     };
 
     inline Parameter add_parameters(const Dim &dim) {
-      return _pc().add_parameters(dim);
+      return _pc()->add_parameters(dim);
     }
 
     inline LookupParameter add_lookup_parameters(unsigned capacity, const Dim &dim) {
-      return _pc().add_lookup_parameters(capacity, dim);
+      return _pc()->add_lookup_parameters(capacity, dim);
     }
 
 

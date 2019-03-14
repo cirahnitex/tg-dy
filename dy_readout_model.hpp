@@ -139,7 +139,7 @@ namespace tg {
         auto oracle_id = get_internal_label_id(oracle);
         sampled_ids[0] = oracle_id;
         for(unsigned i=1; i<SAMPLED_READOUT_NUM_SAMPLES; i++) {
-          unsigned false_option = dynet::rand0n(size() - 1);
+          unsigned false_option = dynet::rand0n(size() - 1); // -1 because false options exclude oracle
           if(false_option>=oracle_id) false_option++;
           sampled_ids[i] = false_option;
         }

@@ -40,7 +40,7 @@ public:
 
     auto x = dy::max(xs);
     x = dy::tanh(fc.predict(x));
-    return x;`
+    return x;
   }
 
   unordered_set<string> predict(const vector<string>& sentence) {
