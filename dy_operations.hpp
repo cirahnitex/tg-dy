@@ -1505,6 +1505,27 @@ namespace tg {
     inline tensor
     layer_norm(const tensor &x, const tensor &g, const tensor &b) { return dynet::layer_norm(x, g, b); }
 
+
+    /**
+     * find the index of the largest value
+     * \param logits must be of dim{n}
+     * \return
+     */
+    inline unsigned argmax_index(const tensor &logits) {
+      auto logits_value = as_vector(dy::_cg().incremental_forward(logits));
+
+      float max_value = logits_value[0];
+      unsigned max_index = 0;
+      for (unsigned i = 1; i < logits_value.size(); ++i) {
+        float val = logits_value[i];
+        if (val > max_value) {
+          max_value = val;
+          max_index = i;
+        }
+      }
+      return max_index;
+    }
+
 /**
  * \ingroup normoperations
  * \brief Weight normalization

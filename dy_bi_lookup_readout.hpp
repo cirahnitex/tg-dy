@@ -16,10 +16,10 @@ namespace tg {
     class bi_lookup_readout {
       dy::embedding_lookup l0_lookup;
       dy::embedding_lookup l1_lookup;
-      dy::Parameter l0_readout;
-      dy::Parameter l1_readout;
+      dy::parameter l0_readout;
+      dy::parameter l1_readout;
       static const unsigned SAMPLE_THRESHOLD = 128;
-      static std::pair<std::function<dy::tensor()>, std::unordered_map<std::string, unsigned>> create_readout_window(const dy::embedding_lookup& lookup, const dy::Parameter& readout, const std::unordered_set<std::string>& tokens_involved) {
+      static std::pair<std::function<dy::tensor()>, std::unordered_map<std::string, unsigned>> create_readout_window(const dy::embedding_lookup& lookup, const dy::parameter& readout, const std::unordered_set<std::string>& tokens_involved) {
         if(lookup.real_dict_size()<=SAMPLE_THRESHOLD) {
           std::unordered_map<std::string, unsigned> window_readout_dict;
           const auto& tokens = lookup.list_real_tokens();
@@ -56,13 +56,13 @@ namespace tg {
       bi_lookup_readout(bi_lookup_readout&&) = default;
       bi_lookup_readout &operator=(const bi_lookup_readout&) = default;
       bi_lookup_readout &operator=(bi_lookup_readout&&) = default;
-      bi_lookup_readout(unsigned embedding_size, const std::unordered_set<std::string>& l0_tokens, const std::unordered_set<std::string>& l1_tokens):l0_lookup(embedding_size, l0_tokens), l1_lookup(embedding_size, l1_tokens), l0_readout(add_parameters({embedding_size+1, l0_lookup.real_dict_size()})), l1_readout(add_parameters({embedding_size+1, l1_lookup.real_dict_size()})) {
+      bi_lookup_readout(unsigned embedding_size, const std::unordered_set<std::string>& l0_tokens, const std::unordered_set<std::string>& l1_tokens):l0_lookup(embedding_size, l0_tokens), l1_lookup(embedding_size, l1_tokens), l0_readout({embedding_size+1, l0_lookup.real_dict_size()}), l1_readout({embedding_size+1, l1_lookup.real_dict_size()}) {
 
       }
-      bi_lookup_readout(unsigned embedding_size, const std::unordered_set<std::string>& l0_tokens, const std::unordered_set<std::string>& l1_tokens, std::function<std::vector<float>(const std::string&)> get_l0_init_embedding, std::function<std::vector<float>(const std::string&)> get_l1_init_embedding): l0_lookup(embedding_size, l0_tokens, get_l0_init_embedding), l1_lookup(embedding_size, l1_tokens, get_l1_init_embedding), l0_readout(add_parameters({embedding_size+1, l0_lookup.real_dict_size()})), l1_readout(add_parameters({embedding_size+1, l1_lookup.real_dict_size()})) {
+      bi_lookup_readout(unsigned embedding_size, const std::unordered_set<std::string>& l0_tokens, const std::unordered_set<std::string>& l1_tokens, std::function<std::vector<float>(const std::string&)> get_l0_init_embedding, std::function<std::vector<float>(const std::string&)> get_l1_init_embedding): l0_lookup(embedding_size, l0_tokens, get_l0_init_embedding), l1_lookup(embedding_size, l1_tokens, get_l1_init_embedding), l0_readout({embedding_size+1, l0_lookup.real_dict_size()}), l1_readout({embedding_size+1, l1_lookup.real_dict_size()}) {
 
       }
-      bi_lookup_readout(unsigned embedding_size, const std::unordered_map<std::string, std::vector<float>>& l0_token_and_embeddings, const std::unordered_map<std::string, std::vector<float>>& l1_token_and_embeddings): l0_lookup(embedding_size, l0_token_and_embeddings), l1_lookup(embedding_size, l1_token_and_embeddings), l0_readout(add_parameters({embedding_size+1, l0_lookup.real_dict_size()})), l1_readout(add_parameters({embedding_size+1, l1_lookup.real_dict_size()})) {}
+      bi_lookup_readout(unsigned embedding_size, const std::unordered_map<std::string, std::vector<float>>& l0_token_and_embeddings, const std::unordered_map<std::string, std::vector<float>>& l1_token_and_embeddings): l0_lookup(embedding_size, l0_token_and_embeddings), l1_lookup(embedding_size, l1_token_and_embeddings), l0_readout(a{embedding_size+1, l0_lookup.real_dict_size()}), l1_readout({embedding_size+1, l1_lookup.real_dict_size()}) {}
       dy::tensor lookup(const std::string& l0_token, const std::string& l1_token) {
         return dy::max(l0_lookup.lookup(l0_token), l1_lookup.lookup(l1_token));
       }

@@ -22,15 +22,15 @@ namespace tg {
       static const unsigned SAMPLE_THRESHOLD = 128;
       mono_lookup_readout(unsigned embedding_size, const std::unordered_set<std::string>& tokens):
         embedding_lookup(embedding_size, tokens),
-        readout_table(add_parameters({embedding_size+1,capacity})) // embedding +1 for bias
+        readout_table({embedding_size+1,capacity}) // embedding +1 for bias
       {}
       mono_lookup_readout(unsigned embedding_size, const std::unordered_set<std::string>& tokens, std::function<std::vector<float>(const std::string&)> lookup_init_embedding):
         embedding_lookup(embedding_size, tokens, lookup_init_embedding),
-        readout_table(add_parameters({embedding_size+1,capacity})) // embedding +1 for bias
+        readout_table({embedding_size+1,capacity}) // embedding +1 for bias
       {}
       mono_lookup_readout(unsigned embedding_size, const std::unordered_map<std::string, std::vector<float>>& token_embeddings):
           embedding_lookup(embedding_size, token_embeddings),
-          readout_table(add_parameters({embedding_size+1,capacity})) // embedding +1 for bias
+          readout_table({embedding_size+1,capacity}) // embedding +1 for bias
       {}
 
       std::pair<dy::tensor, dy::tensor> lookup_with_loss(const std::string& token) const {
@@ -214,7 +214,7 @@ namespace tg {
         ar(readout_table);
       }
     protected:
-      dy::Parameter readout_table;
+      dy::parameter readout_table;
 
       dy::tensor forward(const dy::tensor &embedding) const {
         return (dy::concatenate({embedding, dy::tensor(1)}).transpose() * dy::tensor(readout_table)).transpose();

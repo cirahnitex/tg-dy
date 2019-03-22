@@ -40,7 +40,7 @@ namespace tg {
         dict->freeze();
         dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);
         capacity = dict->size();
-        lookup_table = dynet::LookupParameter(add_lookup_parameters(capacity, {embedding_size}));
+        lookup_table = lookup_parameter(capacity, {embedding_size});
       }
 
       /**
@@ -82,7 +82,7 @@ namespace tg {
         dict->freeze();
         dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);
         capacity = dict->size();
-        lookup_table = dynet::LookupParameter(add_lookup_parameters(capacity, {embedding_size}));
+        lookup_table = lookup_parameter(capacity, {embedding_size});
         for(const auto& token_embedding:token_embeddings) {
           auto id = token_to_id(token_embedding.first);
           lookup_table.initialize(id, resize_fill_random(token_embedding.second, embedding_size));
@@ -147,10 +147,10 @@ namespace tg {
       std::shared_ptr<dynet::Dict> dict;
       unsigned capacity;
       unsigned embedding_size;
-      dynet::LookupParameter lookup_table;
+      dy::lookup_parameter lookup_table;
 
       dy::tensor lookup(unsigned token_id, bool as_constant = false) const {
-        return as_constant?dynet::const_lookup(dy::_cg(), lookup_table, token_id):dynet::lookup(dy::_cg(), lookup_table, token_id);
+        return as_constant?lookup_table.const_lookup(token_id): lookup_table.lookup(token_id);
       }
 
       static std::vector<float> resize_fill_random(const std::vector<float>& arr, unsigned size) {

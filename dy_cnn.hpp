@@ -28,7 +28,7 @@ namespace tg {
         with_bias(with_bias), disable_padding(disable_padding),
         filter(),
         bias() {
-        if (with_bias) bias = add_parameters({output_channels});
+        if (with_bias) bias = parameter({output_channels});
       }
 
       dy::Dim calculate_output_dimension(unsigned input_height, unsigned input_width) {
@@ -67,13 +67,13 @@ namespace tg {
       unsigned stride_between_columns;
       bool with_bias;
       bool disable_padding;
-      dy::Parameter filter;
-      dy::Parameter bias;
+      dy::parameter filter;
+      dy::parameter bias;
 
       void ensure_init(const dy::tensor& x) {
         if(input_channels > 0) return;
         input_channels = x.dim()[2];
-        filter = add_parameters({filter_height, filter_width, input_channels, output_channels});
+        filter = parameter({filter_height, filter_width, input_channels, output_channels});
       }
     };
 
@@ -127,7 +127,7 @@ namespace tg {
         stride(stride), with_bias(with_bias), disable_padding(disable_padding),
         filters(filter_length),
         bias() {
-        if (with_bias) bias = add_parameters({output_channels});
+        if (with_bias) bias = parameter({output_channels});
       }
       std::vector<dy::tensor> predict(const std::vector<dy::tensor> &xs) {
         if(xs.empty()) return std::vector<dy::tensor>();
@@ -159,13 +159,13 @@ namespace tg {
       unsigned stride;
       bool with_bias;
       bool disable_padding;
-      std::vector<dynet::Parameter> filters;
-      dynet::Parameter bias;
+      std::vector<parameter> filters;
+      parameter bias;
       void ensure_init(const dy::tensor& x) {
         if(input_channels > 0) return;
         input_channels = x.dim()[0];
         for(auto& filter:filters) {
-          filter = add_parameters({output_channels, input_channels});
+          filter = parameter({output_channels, input_channels});
         }
       }
       std::vector<dy::tensor> forward_no_padding(const std::vector<dy::tensor>& xs) {

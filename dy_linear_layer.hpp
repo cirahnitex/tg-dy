@@ -20,7 +20,7 @@ namespace tg {
       linear_layer &operator=(const linear_layer&) = default;
       linear_layer &operator=(linear_layer&&) = default;
       explicit linear_layer(unsigned dim_out)
-          : dim_in(0), dim_out(dim_out), W(), b(add_parameters({dim_out})) {
+          : dim_in(0), dim_out(dim_out), W(), b({dim_out}) {
       }
 
       dy::tensor predict(const dy::tensor &x) {
@@ -40,13 +40,13 @@ namespace tg {
     private:
       unsigned dim_in;
       unsigned dim_out;
-      dy::Parameter W;
-      dy::Parameter b;
+      dy::parameter W;
+      dy::parameter b;
 
       void ensure_init(const dy::tensor& input) {
         if(dim_in != 0) return;
         dim_in = input.dim()[0];
-        W = add_parameters({dim_out, dim_in});
+        W = parameter({dim_out, dim_in});
       }
     };
   }

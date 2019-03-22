@@ -9,13 +9,13 @@
 namespace tg {
   namespace dy {
     class normalization_layer {
-      Parameter g;
-      Parameter b;
+      parameter g;
+      parameter b;
       void ensure_init(const tensor& x) {
-        if(g.p) return; // ensure that this lazy initialization is only executed once
+        if(g.is_nil()) return; // ensure that this lazy initialization is only executed once
         auto dim = x.dim()[0];
-        g = dy::add_parameters({dim});
-        b = dy::add_parameters({dim});
+        g = parameter({dim});
+        b = parameter({dim});
       }
     public:
       EASY_SERIALIZABLE(g, b)
