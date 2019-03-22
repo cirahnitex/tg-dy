@@ -53,15 +53,34 @@ int main() {
                             make_pair<vector<float>, string>({17,17,18,19,11,19,12,18,19,18},"big")
   });
 
+  cout << "training first model" <<endl;
   model m;
-  dy::fit<datum_t>(100, dataset, [&](const datum_t& datum){
+  dy::fit<datum_t>(20, dataset, [&](const datum_t& datum){
     return m.compute_loss(datum.first, datum.second);
   });
-
   for(const datum_t& datum:dataset) {
     cout << "oracle: "<< datum.second <<"\t";
     cout << "predicted: "<< m.predict(datum.first) <<endl;
   }
+  {
+    cout << "training victim model" <<endl;
+    model m;
+    dy::fit<datum_t>(20, dataset, [&](const datum_t& datum){
+      return m.compute_loss(datum.first, datum.second);
+    });
+  }
+  {
+    cout << "training second victimmodel" <<endl;
+    model m;
+    dy::fit<datum_t>(10, dataset, [&](const datum_t& datum){
+      return m.compute_loss(datum.first, datum.second);
+    });
+  }
+  for(const datum_t& datum:dataset) {
+    cout << "oracle: "<< datum.second <<"\t";
+    cout << "predicted: "<< m.predict(datum.first) <<endl;
+  }
+
 
   return 0;
 }

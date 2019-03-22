@@ -62,7 +62,7 @@ namespace tg {
       bi_lookup_readout(unsigned embedding_size, const std::unordered_set<std::string>& l0_tokens, const std::unordered_set<std::string>& l1_tokens, std::function<std::vector<float>(const std::string&)> get_l0_init_embedding, std::function<std::vector<float>(const std::string&)> get_l1_init_embedding): l0_lookup(embedding_size, l0_tokens, get_l0_init_embedding), l1_lookup(embedding_size, l1_tokens, get_l1_init_embedding), l0_readout({embedding_size+1, l0_lookup.real_dict_size()}), l1_readout({embedding_size+1, l1_lookup.real_dict_size()}) {
 
       }
-      bi_lookup_readout(unsigned embedding_size, const std::unordered_map<std::string, std::vector<float>>& l0_token_and_embeddings, const std::unordered_map<std::string, std::vector<float>>& l1_token_and_embeddings): l0_lookup(embedding_size, l0_token_and_embeddings), l1_lookup(embedding_size, l1_token_and_embeddings), l0_readout(a{embedding_size+1, l0_lookup.real_dict_size()}), l1_readout({embedding_size+1, l1_lookup.real_dict_size()}) {}
+      bi_lookup_readout(unsigned embedding_size, const std::unordered_map<std::string, std::vector<float>>& l0_token_and_embeddings, const std::unordered_map<std::string, std::vector<float>>& l1_token_and_embeddings): l0_lookup(embedding_size, l0_token_and_embeddings), l1_lookup(embedding_size, l1_token_and_embeddings), l0_readout({embedding_size+1, l0_lookup.real_dict_size()}), l1_readout({embedding_size+1, l1_lookup.real_dict_size()}) {}
       dy::tensor lookup(const std::string& l0_token, const std::string& l1_token) {
         return dy::max(l0_lookup.lookup(l0_token), l1_lookup.lookup(l1_token));
       }

@@ -41,7 +41,7 @@ namespace tg {
        * \return the loss
        */
       tensor compute_loss(const tensor &x, bool oracle) {
-        return dy::binary_log_loss(dy::logistic(fc.predict(x)), oracle);
+        return dy::binary_log_loss(dy::logistic(fc.predict(x)), oracle?tensor(1):tensor(0));
       }
     };
   }

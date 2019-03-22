@@ -324,7 +324,7 @@ namespace tg {
         auto output_gate_coef = dy::logistic(output_gate.predict(input_for_gates));
         auto gated_concat = dy::concatenate({dy::cmult(hidden, pre_input_gate_coef), x});
         auto output_candidate = dy::tanh(input_fc.predict(gated_concat));
-        auto after_forget = dy::cmult(hidden, 1 - output_gate_coef);
+        auto after_forget = dy::cmult(hidden, 1.0 - output_gate_coef);
         auto output_hidden = after_forget + dy::cmult(output_gate_coef, output_candidate);
         return std::make_pair(rnn_cell_state_t({output_hidden}), output_hidden);
       }

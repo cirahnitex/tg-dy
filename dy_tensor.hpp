@@ -7,13 +7,17 @@
 #include <dynet/dynet.h>
 #include <dynet/expr.h>
 #include "dy_dirty_core.hpp"
+#include <iostream>
 namespace tg {
   namespace dy {
 
     class parameter {
     public:
       std::shared_ptr<dynet::Parameter> _dynet_parameter_m;
-      static std::unordered_set<std::shared_ptr<dynet::Parameter>> alives;
+      static std::unordered_set<std::shared_ptr<dynet::Parameter>>& alives() {
+        static std::unordered_set<std::shared_ptr<dynet::Parameter>> _;
+        return _;
+      };
 
       /**
        * get the number of parameters that should be garbage collected
@@ -31,7 +35,7 @@ namespace tg {
       static void _force_garbage_collection() {
         if(num_dead()<=0) return;
         auto new_pc = new dynet::ParameterCollection();
-        for(const auto& dp:alives) {
+        for(const auto& dp:alives()) {
           auto new_storage = new_pc->add_parameters(dp->dim()).p;
           new_storage->copy(dp->get_storage());
           dp->p = new_storage;
@@ -46,12 +50,12 @@ namespace tg {
       parameter &operator=(const parameter&) = delete;
       parameter &operator=(parameter&&) noexcept = default;
       parameter(const Dim& dim): _dynet_parameter_m(std::make_shared<dynet::Parameter>(_pc()->add_parameters(dim).p)) {
-        alives.insert(_dynet_parameter_m);
+        alives().insert(_dynet_parameter_m);
       }
       ~parameter() {
         // if this object is the last one holding its parameter storage pointer, mark it as "dead".
-        if(_dynet_parameter_m.use_count()<=2) {
-          alives.erase(_dynet_parameter_m);
+        if(_dynet_parameter_m.use_count()==2) {
+          alives().erase(_dynet_parameter_m);
           num_dead()++;
         }
       }
@@ -68,12 +72,12 @@ namespace tg {
 
       template<class Archive> void load(Archive& archive) {
         if(_dynet_parameter_m && _dynet_parameter_m.use_count()<=2) {
-          alives.erase(_dynet_parameter_m);
+          alives().erase(_dynet_parameter_m);
           num_dead()++;
         }
 
         archive(_dynet_parameter_m);
-        alives.insert(_dynet_parameter_m);
+        alives().insert(_dynet_parameter_m);
       }
     };
 
@@ -91,7 +95,7 @@ namespace tg {
 
       tensor(const dy::parameter &x) : dynet::Expression(dynet::parameter(_cg(), *x._dynet_parameter_m)) { increment_cnt(); }
 
-      tensor(float x) : dynet::Expression(dynet::input(dy::_cg(), x)) { increment_cnt(); }
+      explicit tensor(float x) : dynet::Expression(dynet::input(dy::_cg(), x)) { increment_cnt(); }
 
       tensor(const std::vector<float> x) : dynet::Expression(
         dynet::input(dy::_cg(), {(unsigned) x.size()}, x)) { increment_cnt(); }
@@ -266,7 +270,10 @@ namespace tg {
     class lookup_parameter {
     public:
       std::shared_ptr<dynet::LookupParameter> _dynet_parameter_m;
-      static std::unordered_set<std::shared_ptr<dynet::LookupParameter>> alives;
+      static std::unordered_set<std::shared_ptr<dynet::LookupParameter>>& alives() {
+        static std::unordered_set<std::shared_ptr<dynet::LookupParameter>> _;
+        return _;
+      };
 
       /**
        * get the number of parameters that should be garbage collected
@@ -284,7 +291,7 @@ namespace tg {
       static void _force_garbage_collection() {
         if(num_dead()<=0) return;
         auto new_pc = new dynet::ParameterCollection();
-        for(const auto& dp:alives) {
+        for(const auto& dp:alives()) {
           auto n = dp->get_storage().values.size();
           auto new_storage = new_pc->add_lookup_parameters(n, dp->dim()).p;
           new_storage->copy(dp->get_storage());
@@ -300,12 +307,12 @@ namespace tg {
       lookup_parameter &operator=(const lookup_parameter&) = default;
       lookup_parameter &operator=(lookup_parameter&&) noexcept = default;
       lookup_parameter(unsigned size, const Dim& dim): _dynet_parameter_m(std::make_shared<dynet::LookupParameter>(_pc()->add_lookup_parameters(size, dim).p)) {
-        alives.insert(_dynet_parameter_m);
+        alives().insert(_dynet_parameter_m);
       }
       ~lookup_parameter() {
         // if this object is the last one holding its parameter storage pointer, mark it as "dead".
-        if(_dynet_parameter_m.use_count()<=2) {
-          alives.erase(_dynet_parameter_m);
+        if(_dynet_parameter_m.use_count()==2) {
+          alives().erase(_dynet_parameter_m);
           num_dead()++;
         }
       }
@@ -344,12 +351,12 @@ namespace tg {
 
       template<class Archive> void load(Archive& archive) {
         if(_dynet_parameter_m && _dynet_parameter_m.use_count()<=2) {
-          alives.erase(_dynet_parameter_m);
+          alives().erase(_dynet_parameter_m);
           num_dead()++;
         }
 
         archive(_dynet_parameter_m);
-        alives.insert(_dynet_parameter_m);
+        alives().insert(_dynet_parameter_m);
       }
     };
     /**
