@@ -2,13 +2,13 @@
 // Created by YAN Yuchen on 11/8/2018.
 //
 
-#include "../../dy.hpp"
+#include "../../dyana.hpp"
 #include <vector>
 using namespace tg;
 using namespace std;
 class XorModel {
-  dy::linear_layer fc1;
-  dy::linear_layer fc2;
+  dyana::linear_layer fc1;
+  dyana::linear_layer fc2;
 public:
   EASY_SERIALIZABLE(fc1, fc2)
   XorModel(const XorModel&) = default;
@@ -18,23 +18,23 @@ public:
   XorModel():fc1(2),fc2(1) {
   }
 
-  dy::tensor forward(bool x, bool y) {
-    auto input = dy::tensor({x?(float)1:(float)0, y?(float)1:(float)0});
-    return fc2.predict(dy::tanh(fc1.predict(input)));
+  dyana::tensor forward(bool x, bool y) {
+    auto input = dyana::tensor({x?(float)1:(float)0, y?(float)1:(float)0});
+    return fc2.predict(dyana::tanh(fc1.predict(input)));
   }
 
   bool predict(bool x, bool y) {
     return forward(x, y).as_scalar() > 0.0;
   }
 
-  dy::tensor compute_loss(bool x, bool y, bool oracle) {
-    auto oracle_expr = dy::tensor(oracle?(float)1:(float)0);
-    return dy::binary_log_loss(dy::logistic(forward(x, y)), oracle_expr);
+  dyana::tensor compute_loss(bool x, bool y, bool oracle) {
+    auto oracle_expr = dyana::tensor(oracle?(float)1:(float)0);
+    return dyana::binary_log_loss(dyana::logistic(forward(x, y)), oracle_expr);
   }
 };
 
 int main() {
-  dy::initialize(1, dy::trainer_type::SIMPLE_SGD, 0.1);
+  dyana::initialize(1, dyana::trainer_type::SIMPLE_SGD, 0.1);
 
   typedef vector<bool> datum_type;
 
@@ -45,7 +45,7 @@ int main() {
 
   cout << "training" <<endl;
   XorModel model;
-  dy::fit<datum_type>(500, data, [&](const datum_type& datum){
+  dyana::fit<datum_type>(500, data, [&](const datum_type& datum){
     return model.compute_loss(datum[0], datum[1], datum[2]);
   });
 

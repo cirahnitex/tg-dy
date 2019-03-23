@@ -2,16 +2,16 @@
 // Created by YAN Yuchen on 6/29/2018.
 //
 
-#ifndef DYNET_WRAPPER_DY_IMMUTABLE_DICT_HPP
-#define DYNET_WRAPPER_DY_IMMUTABLE_DICT_HPP
+#ifndef DYANA_IMMUTABLE_DICT_HPP
+#define DYANA_IMMUTABLE_DICT_HPP
 
 #include <dynet/dict.h>
 #include <dynet/expr.h>
-#include "dy_common.hpp"
+#include "dyana_common.hpp"
 #include <memory>
 
 namespace tg {
-  namespace dy {
+  namespace dyana {
     class immutable_dict {
     public:
       immutable_dict() = default;
@@ -68,11 +68,11 @@ namespace tg {
        * \param entry the label to represent
        * \return a dim(#-of-labels) tensor, all values are 0 except 1 at the position of internal label ID
        */
-      dy::tensor one_hot(const std::string &entry) const {
+      dyana::tensor one_hot(const std::string &entry) const {
         std::vector<float> ret(dict->size());
         fill(ret.begin(), ret.end(), 0);
         ret[dict->convert(entry)] = 1;
-        return dynet::input(dy::_cg(), {dict->size()}, ret);
+        return dynet::input(dyana::_cg(), {dict->size()}, ret);
       }
 
       const std::vector<std::string> &list_entries() const {
@@ -102,4 +102,4 @@ namespace tg {
   }
 }
 
-#endif //DYNET_WRAPPER_DY_IMMUTABLE_DICT_HPP
+#endif //DYANA_IMMUTABLE_DICT_HPP

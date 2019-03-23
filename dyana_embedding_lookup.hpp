@@ -2,17 +2,17 @@
 // Created by YAN Yuchen on 5/1/2018.
 //
 
-#ifndef DYNET_WRAPPER_DY_LOOKUP_TABLE_HPP
-#define DYNET_WRAPPER_DY_LOOKUP_TABLE_HPP
-#include "dy_common.hpp"
+#ifndef DYANA_LOOKUP_TABLE_HPP
+#define DYANA_LOOKUP_TABLE_HPP
+#include "dyana_common.hpp"
 #include <dynet/dynet.h>
 #include <dict.hpp>
 #include <dynet/dict.h>
 #include <regex>
-#include "dy_serialization_helper.hpp"
+#include "dyana_serialization_helper.hpp"
 
 namespace tg {
-  namespace dy {
+  namespace dyana {
     class embedding_lookup {
     public:
       embedding_lookup() = default;
@@ -89,12 +89,12 @@ namespace tg {
         }
       }
 
-      dy::tensor lookup(const std::string& token, bool as_constant = false) const {
+      dyana::tensor lookup(const std::string& token, bool as_constant = false) const {
         return lookup(token_to_id(token), as_constant);
       }
 
-      std::vector<dy::tensor> lookup(const std::vector<std::string>& tokens, bool as_constant = false) const {
-        std::vector<dy::tensor> ret;
+      std::vector<dyana::tensor> lookup(const std::vector<std::string>& tokens, bool as_constant = false) const {
+        std::vector<dyana::tensor> ret;
         for(auto itr = tokens.begin(); itr!=tokens.end(); ++itr) {
           ret.push_back(lookup(*itr, as_constant));
         }
@@ -147,9 +147,9 @@ namespace tg {
       std::shared_ptr<dynet::Dict> dict;
       unsigned capacity;
       unsigned embedding_size;
-      dy::lookup_parameter lookup_table;
+      dyana::lookup_parameter lookup_table;
 
-      dy::tensor lookup(unsigned token_id, bool as_constant = false) const {
+      dyana::tensor lookup(unsigned token_id, bool as_constant = false) const {
         return as_constant?lookup_table.const_lookup(token_id): lookup_table.lookup(token_id);
       }
 
@@ -169,4 +169,4 @@ namespace tg {
     };
   }
 }
-#endif //DYNET_WRAPPER_DY_LOOKUP_TABLE_HPP
+#endif //DYANA_LOOKUP_TABLE_HPP

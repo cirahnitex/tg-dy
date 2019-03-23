@@ -2,8 +2,8 @@
 // Created by Dekai WU and YAN Yuchen on 20190322.
 //
 
-#ifndef DYNET_WRAPPER_DY_DIRTY_CORE_HPP
-#define DYNET_WRAPPER_DY_DIRTY_CORE_HPP
+#ifndef DYANA_DIRTY_CORE_HPP
+#define DYANA_DIRTY_CORE_HPP
 #define _DYNET_WRAPPER_DEFAULT_UNK "&unk;"
 
 #include <dynet/dynet.h>
@@ -11,15 +11,15 @@
 #include <dynet/training.h>
 
 #define AUTO_START_GRAPH(ptr, action) \
-  if(tg::dy::_those_who_have_their_graph_started().count(ptr)<=0) {\
+  if(tg::dyana::_those_who_have_their_graph_started().count(ptr)<=0) {\
     action;\
-    tg::dy::_those_who_have_their_graph_started().insert(ptr);\
+    tg::dyana::_those_who_have_their_graph_started().insert(ptr);\
   }\
 
 #define AUTO_START_THIS_GRAPH(action) AUTO_START_GRAPH(this, action)
 
 namespace tg {
-  namespace dy {
+  namespace dyana {
 
     typedef dynet::Dim Dim;
 
@@ -101,7 +101,7 @@ namespace tg {
     }
 
     inline void _ensure_initialized() {
-      if (!_is_initialized()) { throw std::runtime_error("dy::initialize must be called beforehand"); }
+      if (!_is_initialized()) { throw std::runtime_error("dyana::initialize must be called beforehand"); }
     }
 
     /**
@@ -127,7 +127,7 @@ namespace tg {
     /**
      * if called, the program will trace NaN values during runtime.
      * useful for debugging
-     * can be called either before or after dy::initialize. doesn't matter
+     * can be called either before or after dyana::initialize. doesn't matter
      */
     inline void check_nan() {
       _should_check_nan() = true;
@@ -148,4 +148,4 @@ namespace tg {
 
   }
 }
-#endif //DYNET_WRAPPER_DY_DIRTY_CORE_HPP
+#endif //DYANA_DIRTY_CORE_HPP

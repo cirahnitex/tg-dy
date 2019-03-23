@@ -5,8 +5,8 @@
 #ifndef DYNET_DYNET_WRAPPER_HPP
 #define DYNET_DYNET_WRAPPER_HPP
 
-#include "dy_dirty_core.hpp"
-#include "dy_tensor.hpp"
+#include "dyana_dirty_core.hpp"
+#include "dyana_tensor.hpp"
 
 
 

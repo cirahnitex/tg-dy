@@ -7,11 +7,11 @@
 
 #include <dynet/dynet.h>
 #include <dynet/expr.h>
-#include "dy_common.hpp"
-#include "dy_operations.hpp"
-#include "dy_serialization_helper.hpp"
+#include "dyana_common.hpp"
+#include "dyana_operations.hpp"
+#include "dyana_serialization_helper.hpp"
 namespace tg {
-  namespace dy {
+  namespace dyana {
     class linear_layer {
     public:
       linear_layer() = default;
@@ -23,15 +23,15 @@ namespace tg {
           : dim_in(0), dim_out(dim_out), W(), b({dim_out}) {
       }
 
-      dy::tensor predict(const dy::tensor &x) {
+      dyana::tensor predict(const dyana::tensor &x) {
         ensure_init(x);
         return W*x+b;
       }
 
-      dy::tensor predict_given_output_positions(const dy::tensor &x, const std::vector<unsigned> output_positions) {
+      dyana::tensor predict_given_output_positions(const dyana::tensor &x, const std::vector<unsigned> output_positions) {
         ensure_init(x);
-        auto selected_W = dy::tensor(W).select_rows(output_positions);
-        auto selected_b = dy::tensor(b).select_rows(output_positions);
+        auto selected_W = dyana::tensor(W).select_rows(output_positions);
+        auto selected_b = dyana::tensor(b).select_rows(output_positions);
         return selected_W * x + selected_b;
       }
 
@@ -40,10 +40,10 @@ namespace tg {
     private:
       unsigned dim_in;
       unsigned dim_out;
-      dy::parameter W;
-      dy::parameter b;
+      dyana::parameter W;
+      dyana::parameter b;
 
-      void ensure_init(const dy::tensor& input) {
+      void ensure_init(const dyana::tensor& input) {
         if(dim_in != 0) return;
         dim_in = input.dim()[0];
         W = parameter({dim_out, dim_in});

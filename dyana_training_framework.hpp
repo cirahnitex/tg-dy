@@ -2,15 +2,15 @@
 // Created by YAN Yuchen on 6/30/2018.
 //
 
-#ifndef DYNET_WRAPPER_DY_TRAINING_FRAMEWORK_HPP
-#define DYNET_WRAPPER_DY_TRAINING_FRAMEWORK_HPP
+#ifndef DYANA_TRAINING_FRAMEWORK_HPP
+#define DYANA_TRAINING_FRAMEWORK_HPP
 
 #include <cmdlp.hpp>
 #include <functional>
 #include <dynet/dynet.h>
 #include <dynet/io.h>
 #include <json/json.h>
-#include "dy.hpp"
+#include "dyana.hpp"
 #include <ctime>
 #include <exception_util.hpp>
 #include <word2vec.hpp>
@@ -18,7 +18,7 @@
 #include <cereal/types/vector.hpp>
 
 namespace tg {
-  namespace dy {
+  namespace dyana {
 
     std::unordered_map<std::string, std::vector<float>> import_word2vec(const std::string &path) {
       std::unordered_map<std::string, std::vector<float> > embeddings;
@@ -118,4 +118,4 @@ namespace tg {
   }
 }
 
-#endif //DYNET_WRAPPER_DY_TRAINING_FRAMEWORK_HPP
+#endif //DYANA_TRAINING_FRAMEWORK_HPP

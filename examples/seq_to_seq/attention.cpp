@@ -3,8 +3,8 @@
 //
 
 
-#include "../../dy.hpp"
-#include "../../dy_training_framework.hpp"
+#include "../../dyana.hpp"
+#include "../../dyana_training_framework.hpp"
 #include <vector>
 #include <string>
 #include <json/json.h>
@@ -46,8 +46,8 @@ dataset_t read_dataset(const string &path) {
 }
 
 pair<unordered_set<string>, unordered_set<string>> collect_frequent_token(const dataset_t &dataset, unsigned top_x) {
-  dy::frequent_token_collector collector0;
-  dy::frequent_token_collector collector1;
+  dyana::frequent_token_collector collector0;
+  dyana::frequent_token_collector collector1;
   for (const auto &sentence:dataset) {
     for (const auto &token:sentence.zh) {
       collector0.add_occurence(token);
@@ -75,7 +75,7 @@ public:
     embedding_size(embedding_size), f_embedding_table(embedding_size, f_vocab), e_embedding_table(), encoder(2, embedding_size), decoder(2, embedding_size), attention_fc1(ATTENTION_HIDDEN_DIM), attention_fc2(8)
   {
     e_vocab.insert(END_OF_SENTENCE);
-    e_embedding_table = dy::mono_lookup_readout(embedding_size, e_vocab, [&](const string& t){
+    e_embedding_table = dyana::mono_lookup_readout(embedding_size, e_vocab, [&](const string& t){
       return e_w2v.at(t);
     });
   }
@@ -83,11 +83,11 @@ public:
     auto f_embeddings = f_embedding_table.lookup(f_sentence);
     auto f_hiddens = encoder.predict_output_sequence(f_embeddings);
     auto cell_state = decoder.default_cell_state();
-    auto y = dy::zeros({embedding_size});
+    auto y = dyana::zeros({embedding_size});
     vector<string> ret;
     for(unsigned i=0; i<MAX_OUTPUT_LENGTH; i++) {
       auto context = compute_context(f_hiddens, cell_state);
-      tie(cell_state, y) = decoder.predict(cell_state, dy::concatenate({context, y}));
+      tie(cell_state, y) = decoder.predict(cell_state, dyana::concatenate({context, y}));
       auto out_token = e_embedding_table.readout(y);
       if(out_token == END_OF_SENTENCE) {break;}
       ret.push_back(out_token);
@@ -95,18 +95,18 @@ public:
     }
     return ret;
   }
-  dy::tensor compute_loss(const vector<string>& f_sentence, vector<string> e_sentence) {
+  dyana::tensor compute_loss(const vector<string>& f_sentence, vector<string> e_sentence) {
     auto [f_embeddings, f_lookup_loss] = f_embedding_table.lookup_with_loss(f_sentence);
     auto f_hiddens = encoder.predict_output_sequence(f_embeddings);
     e_sentence.push_back(END_OF_SENTENCE);
     auto [e_embeddings, e_lookup_loss] = e_embedding_table.lookup_with_loss(e_sentence);
     auto cell_state = decoder.default_cell_state();
-    auto y = dy::zeros({embedding_size});
-    vector<dy::tensor> output_embeddings;
+    auto y = dyana::zeros({embedding_size});
+    vector<dyana::tensor> output_embeddings;
     for(unsigned i=0; i<e_sentence.size(); i++) {
-      auto input_embedding = i==0?dy::zeros({embedding_size}):e_embeddings[i-1];
+      auto input_embedding = i==0?dyana::zeros({embedding_size}):e_embeddings[i-1];
       auto context = compute_context(f_hiddens, cell_state);
-      tie(cell_state, y) = decoder.predict(cell_state, dy::concatenate({context, input_embedding}));
+      tie(cell_state, y) = decoder.predict(cell_state, dyana::concatenate({context, input_embedding}));
       output_embeddings.push_back(y);
     }
     return e_embedding_table.compute_readout_loss(output_embeddings, e_sentence) + f_lookup_loss + e_lookup_loss;
@@ -114,21 +114,21 @@ public:
   EASY_SERIALIZABLE(embedding_size, f_embedding_table, e_embedding_table, encoder, decoder, attention_fc)
 private:
   unsigned embedding_size;
-  dy::mono_lookup_readout f_embedding_table;
-  dy::mono_lookup_readout e_embedding_table;
-  dy::bidirectional_vanilla_lstm encoder;
-  dy::vanilla_lstm decoder;
-  dy::linear_layer attention_fc1;
-  dy::linear_layer attention_fc2;
+  dyana::mono_lookup_readout f_embedding_table;
+  dyana::mono_lookup_readout e_embedding_table;
+  dyana::bidirectional_vanilla_lstm encoder;
+  dyana::vanilla_lstm decoder;
+  dyana::linear_layer attention_fc1;
+  dyana::linear_layer attention_fc2;
 
-  dy::tensor compute_context(const vector<dy::tensor>& f_hiddens, const dy::vanilla_lstm::stacked_cell_state& prev_cell_state) {
-    auto flattened = dy::vanilla_lstm::flatten_stacked_cell_state(prev_cell_state);
-    vector<dy::tensor> xs;
+  dyana::tensor compute_context(const vector<dyana::tensor>& f_hiddens, const dyana::vanilla_lstm::stacked_cell_state& prev_cell_state) {
+    auto flattened = dyana::vanilla_lstm::flatten_stacked_cell_state(prev_cell_state);
+    vector<dyana::tensor> xs;
     for(const auto& f_hidden:f_hiddens) {
-      auto x = dy::tanh(attention_fc1.predict(dy::concatenate({f_hidden, flattened})));
+      auto x = dyana::tanh(attention_fc1.predict(dyana::concatenate({f_hidden, flattened})));
       xs.push_back(attention_fc2.predict(x));
     }
-    return dy::concatenate(f_hiddens,1) * dy::softmax(dy::concatenate(xs));
+    return dyana::concatenate(f_hiddens,1) * dyana::softmax(dyana::concatenate(xs));
   }
 };
 
@@ -140,14 +140,14 @@ int main() {
   cout << "read dataset" <<endl;
   const auto dataset = read_dataset(DATASET_PATH);
   cout << "pre-processing" <<endl;
-  const auto [training_set, dev_set] = dy::shuffle_and_split_dataset(dataset);
+  const auto [training_set, dev_set] = dyana::shuffle_and_split_dataset(dataset);
   const auto [f_vocab, e_vocab] = collect_frequent_token(dataset, 20000);
   cout << "import word2vec" <<endl;
-  const auto w2v = dy::import_word2vec(PATH_TO_WORD2VEC_FILE);
+  const auto w2v = dyana::import_word2vec(PATH_TO_WORD2VEC_FILE);
   cout << "initialize model" <<endl;
-  dy::initialize(16);
+  dyana::initialize(16);
   attention_model model(EMBEDDING_SIZE, f_vocab, e_vocab, w2v);
-  dy::fit<zh_en_t>(EPOCHES, training_set, dev_set, [&](const zh_en_t &datum) {
+  dyana::fit<zh_en_t>(EPOCHES, training_set, dev_set, [&](const zh_en_t &datum) {
     return model.compute_loss(datum.zh, datum.en);
   });
 

@@ -2,7 +2,7 @@
 // Created by YAN Yuchen on 11/6/2018.
 //
 
-#include "../../dy.hpp"
+#include "../../dyana.hpp"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -24,7 +24,7 @@ unordered_map<string, vector<float>> import_word2vec(const string &path) {
 }
 
 int main() {
-  dy::initialize();
+  dyana::initialize();
   const string PATH_TO_WORD2VEC_FILE = "/hltc/0/cl/tools/word_embeddings/w2vgw.d300.en.bin";
   const unsigned EMBEDDING_SIZE = 8;
 
@@ -35,7 +35,7 @@ int main() {
   const auto all_w2v_embeddings = import_word2vec(PATH_TO_WORD2VEC_FILE);
 
   // construct embedding lookup table from embedding size, vocab and initial embedding getter
-  dy::embedding_lookup embedding_lookup(EMBEDDING_SIZE, MY_VOCAB, [&](const string& token){
+  dyana::embedding_lookup embedding_lookup(EMBEDDING_SIZE, MY_VOCAB, [&](const string& token){
     return all_w2v_embeddings.at(token);
   });
 

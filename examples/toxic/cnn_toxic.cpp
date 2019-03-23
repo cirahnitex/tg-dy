@@ -3,15 +3,15 @@
 //
 
 #include "data_t.hpp"
-#include "../../dy.hpp"
-#include "../../dy_training_framework.hpp"
+#include "../../dyana.hpp"
+#include "../../dyana_training_framework.hpp"
 #include <fstream>
 
 using namespace std;
 using namespace tg;
 
 vector<string> collect_frequent_tokens(const dataset_t& data, unsigned top_x=20000) {
-  dy::frequent_token_collector collector;
+  dyana::frequent_token_collector collector;
   for(const auto& datum:data.data) {
     for(const auto& token:datum.input) {
       collector.add_occurence(token);
@@ -26,20 +26,20 @@ public:
   :emb(embedding_size, vocab, [&](const string& token){return init_embeddings.at(token);}), conv0(embedding_size,3,1), conv1(embedding_size,3,1), conv2(embedding_size,3,1), fc(128), ro(labels){
   }
 
-  dy::tensor forward(const vector<string>& sentence) {
-    vector<dy::tensor> xs;
+  dyana::tensor forward(const vector<string>& sentence) {
+    vector<dyana::tensor> xs;
     xs = emb.lookup(sentence, true);
 
     xs = conv0.predict(xs);
-    for(auto& x:xs) {x=dy::rectify(x);}
-    xs = dy::maxpooling1d(conv1.predict(xs), 3, 1);
+    for(auto& x:xs) {x=dyana::rectify(x);}
+    xs = dyana::maxpooling1d(conv1.predict(xs), 3, 1);
 
-    for(auto& x:xs) {x=dy::rectify(x);}
-    xs = dy::maxpooling1d(conv2.predict(xs), 3, 1);
-    for(auto& x:xs) {x=dy::rectify(x);}
+    for(auto& x:xs) {x=dyana::rectify(x);}
+    xs = dyana::maxpooling1d(conv2.predict(xs), 3, 1);
+    for(auto& x:xs) {x=dyana::rectify(x);}
 
-    auto x = dy::max(xs);
-    x = dy::tanh(fc.predict(x));
+    auto x = dyana::max(xs);
+    x = dyana::tanh(fc.predict(x));
     return x;
   }
 
@@ -47,19 +47,19 @@ public:
     return ro.readout(forward(sentence));
   }
 
-  dy::tensor compute_loss(const vector<string>& sentence, const unordered_set<string>& labels) {
+  dyana::tensor compute_loss(const vector<string>& sentence, const unordered_set<string>& labels) {
     auto x = ro.compute_loss(forward(sentence), labels);
     return x;
   }
 
   EASY_SERIALIZABLE(emb, conv0, conv1, conv2, fc, ro)
 private:
-  dy::embedding_lookup emb;
-  dy::conv1d_layer conv0;
-  dy::conv1d_layer conv1;
-  dy::conv1d_layer conv2;
-  dy::linear_layer fc;
-  dy::multi_readout_model ro;
+  dyana::embedding_lookup emb;
+  dyana::conv1d_layer conv0;
+  dyana::conv1d_layer conv1;
+  dyana::conv1d_layer conv2;
+  dyana::linear_layer fc;
+  dyana::multi_readout_model ro;
 };
 
 template<class T>
@@ -76,17 +76,17 @@ int main() {
   const string PATH_TO_WORD2VEC_FILE = "/hltc/0/cl/tools/word_embeddings/w2vgw.d300.en.bin";
   cout << "read dataset" <<endl;
   const auto dataset = read_dataset(DATASET_PATH);
-  const auto [training_set, dev_set] = dy::shuffle_and_split_dataset(dataset.data);
+  const auto [training_set, dev_set] = dyana::shuffle_and_split_dataset(dataset.data);
   cout << "collect frequent tokens" <<endl;
   const auto vocab = collect_frequent_tokens(dataset);
   cout << "import word2vec" <<endl;
-  const auto w2v = dy::import_word2vec(PATH_TO_WORD2VEC_FILE);
+  const auto w2v = dyana::import_word2vec(PATH_TO_WORD2VEC_FILE);
   cout << "initialze model" <<endl;
-  dy::initialize(4);
+  dyana::initialize(4);
   my_model model(dataset.labels, unordered_set<string>(vocab.begin(), vocab.end()), w2v, 128);
 
   cout << "training" <<endl;
-  dy::fit<datum_t>(10, training_set, dev_set, [&](const datum_t &datum) {
+  dyana::fit<datum_t>(10, training_set, dev_set, [&](const datum_t &datum) {
     return model.compute_loss(datum.input, datum.oracle);
   });
 

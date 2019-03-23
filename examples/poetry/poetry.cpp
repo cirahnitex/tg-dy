@@ -3,8 +3,8 @@
 //
 
 #include "dataset_t.hpp"
-#include "../../dy.hpp"
-#include "../../dy_training_framework.hpp"
+#include "../../dyana.hpp"
+#include "../../dyana_training_framework.hpp"
 #include <unordered_set>
 #include <unordered_map>
 using namespace tg;
@@ -23,7 +23,7 @@ public:
   poetry_model(unsigned embedding_size, unordered_set<string> vocab, const unordered_map<string, vector<float>>& w2v):embedding_table(),lstm(1, embedding_size) {
     vocab.insert(START_OF_SENTENCE);
     vocab.insert(END_OF_SENTENCE);
-    embedding_table = dy::mono_lookup_readout(embedding_size, vocab, [&](const string& token){
+    embedding_table = dyana::mono_lookup_readout(embedding_size, vocab, [&](const string& token){
       return w2v.at(token);
     });
   }
@@ -42,7 +42,7 @@ public:
     }
     return ret;
   }
-  dy::tensor compute_loss(const vector<string>& sentence) {
+  dyana::tensor compute_loss(const vector<string>& sentence) {
     vector<string> input({START_OF_SENTENCE});
     copy(sentence.begin(), sentence.end(), back_inserter(input));
     vector<string> oracle(sentence);
@@ -53,8 +53,8 @@ public:
   }
   EASY_SERIALIZABLE(embedding_table, lstm)
 private:
-  dy::mono_lookup_readout embedding_table;
-  dy::vanilla_lstm lstm;
+  dyana::mono_lookup_readout embedding_table;
+  dyana::vanilla_lstm lstm;
 };
 
 dataset_t read_dataset(const string& path) {
@@ -65,7 +65,7 @@ dataset_t read_dataset(const string& path) {
 }
 
 unordered_set<string> collect_frequent_token(const dataset_t& dataset, unsigned top_x) {
-  dy::frequent_token_collector collector;
+  dyana::frequent_token_collector collector;
   for(const auto& sentence:dataset) {
     for(const auto& token:sentence) {
       collector.add_occurence(token);
@@ -93,11 +93,11 @@ int main() {
   cout << "collect vocab" <<endl;
   const auto vocab = collect_frequent_token(training_set, VOCAB_SIZE);
   cout << "import word2vec" <<endl;
-  const auto w2v = dy::import_word2vec(PATH_TO_WORD2VEC_FILE);
+  const auto w2v = dyana::import_word2vec(PATH_TO_WORD2VEC_FILE);
   cout << "initialze model" <<endl;
-  dy::initialize(4);
+  dyana::initialize(4);
   poetry_model model(EMBEDDING_SIZE, vocab, w2v);
-  dy::fit<datum_t>(NUM_EPOCHS, training_set, [&](const datum_t &datum) {
+  dyana::fit<datum_t>(NUM_EPOCHS, training_set, [&](const datum_t &datum) {
     return model.compute_loss(datum);
   });
   cout << "testing" <<endl;

@@ -2,7 +2,7 @@
 // Created by YAN Yuchen on 11/13/2018.
 //
 
-#include "../../dy.hpp"
+#include "../../dyana.hpp"
 #include <vector>
 using namespace tg;
 using namespace std;
@@ -14,13 +14,13 @@ public:
   simple_seq_to_seq_translation_model(unsigned embedding_size, const unordered_set<string>& foreign_tokens, const unordered_set<string>& emit_tokens):embedding_size(embedding_size), foreign_lookup_table(embedding_size, foreign_tokens), emit_lookup_table(), encoder(3, embedding_size),decoder(3, embedding_size) {
     unordered_set<string> enhanced_l1_tokens = emit_tokens;
     enhanced_l1_tokens.insert(END_OF_SENTENCE);
-    emit_lookup_table = dy::mono_lookup_readout(embedding_size, enhanced_l1_tokens);
+    emit_lookup_table = dyana::mono_lookup_readout(embedding_size, enhanced_l1_tokens);
   };
 
   vector<string> predict(const vector<string>& foreign_sentence) {
     auto sentence_embs = foreign_lookup_table.lookup(foreign_sentence);
     auto cell_state = encoder.predict(sentence_embs).first;
-    dy::tensor curr_output_emb = dy::zeros({embedding_size});
+    dyana::tensor curr_output_emb = dyana::zeros({embedding_size});
     vector<string> ret;
     for(unsigned i=0; i<MAX_OUTPUT_SIZE; i++) {
       tie(cell_state, curr_output_emb) = decoder.predict(cell_state, curr_output_emb);
@@ -33,7 +33,7 @@ public:
     return ret;
   }
 
-  dy::tensor compute_loss(const vector<string>& foreign_sentence, const vector<string>& emit_sentence) {
+  dyana::tensor compute_loss(const vector<string>& foreign_sentence, const vector<string>& emit_sentence) {
 
     // encode foreign sentence into a cell state
     auto [sentence_embs, foreign_lookup_loss] = foreign_lookup_table.lookup_with_loss(foreign_sentence);
@@ -41,7 +41,7 @@ public:
 
     // input for the decoder is the emit embeddings with leading zero
     auto [emit_embs, emit_lookup_loss] = emit_lookup_table.lookup_with_loss(emit_sentence);
-    vector<dy::tensor> inputs_to_decoder({dy::zeros({embedding_size})});
+    vector<dyana::tensor> inputs_to_decoder({dyana::zeros({embedding_size})});
     std::copy(emit_embs.begin(), emit_embs.end(), back_inserter(inputs_to_decoder));
 
     // oracle for the decoder is the emit sentence embedding with ending EOS
@@ -56,10 +56,10 @@ public:
   EASY_SERIALIZABLE(embedding_size, foreign_lookup_table, emit_lookup_table, encoder, decoder)
 private:
   unsigned embedding_size;
-  dy::mono_lookup_readout foreign_lookup_table;
-  dy::mono_lookup_readout emit_lookup_table;
-  dy::vanilla_lstm encoder;
-  dy::vanilla_lstm decoder;
+  dyana::mono_lookup_readout foreign_lookup_table;
+  dyana::mono_lookup_readout emit_lookup_table;
+  dyana::vanilla_lstm encoder;
+  dyana::vanilla_lstm decoder;
 };
 
 struct datum_t {
@@ -106,9 +106,9 @@ int main() {
   });
   const unsigned EMBEDDING_SIZE = 16;
   auto [foreign_vocab, emit_vocab] = collect_vocab(training_set);
-  dy::initialize(4);
+  dyana::initialize(4);
   simple_seq_to_seq_translation_model model(EMBEDDING_SIZE, foreign_vocab, emit_vocab);
-  dy::fit<datum_t>(1000, training_set, [&](const datum_t& datum){
+  dyana::fit<datum_t>(1000, training_set, [&](const datum_t& datum){
     return model.compute_loss(ECMAScript_string_utils::split(datum.foreign), ECMAScript_string_utils::split(datum.emit));
   });
   cout << "predicting" << endl;

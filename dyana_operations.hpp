@@ -2,15 +2,15 @@
 // Created by YAN Yuchen on 11/13/2018.
 //
 
-#ifndef DYNET_WRAPPER_DY_OPERATIONS_HPP
-#define DYNET_WRAPPER_DY_OPERATIONS_HPP
+#ifndef DYANA_OPERATIONS_HPP
+#define DYANA_OPERATIONS_HPP
 
 #include <dynet/dynet.h>
 #include <dynet/expr.h>
-#include "dy_common.hpp"
+#include "dyana_common.hpp"
 
 namespace tg {
-  namespace dy {
+  namespace dyana {
 
     inline tensor zeros(const Dim& d) {return dynet::zeros(_cg(), d);}
     inline tensor ones(const Dim& d) {return dynet::ones(_cg(), d);}
@@ -1512,7 +1512,7 @@ namespace tg {
      * \return
      */
     inline unsigned argmax_index(const tensor &logits) {
-      auto logits_value = as_vector(dy::_cg().incremental_forward(logits));
+      auto logits_value = as_vector(dyana::_cg().incremental_forward(logits));
 
       float max_value = logits_value[0];
       unsigned max_index = 0;
@@ -1548,26 +1548,26 @@ namespace tg {
     inline tensor operator+(const tensor& x, const tensor& y) {return dynet::operator+(x, y);}
     inline tensor operator+(const tensor& x, float y) {return dynet::operator+(x, y);}
     inline tensor operator+(const float x, const tensor& y) {return dynet::operator+(x, y);}
-    inline tensor operator+(const tensor& x, const parameter& y) {return x + dy::tensor(y);}
-    inline tensor operator+(const parameter& x, const tensor& y) {return dy::tensor(x) + y;}
+    inline tensor operator+(const tensor& x, const parameter& y) {return x + dyana::tensor(y);}
+    inline tensor operator+(const parameter& x, const tensor& y) {return dyana::tensor(x) + y;}
 
     inline tensor operator-(const tensor& x, const tensor& y) {return dynet::operator-(x, y);}
     inline tensor operator-(const tensor& x, float y) {return dynet::operator-(x, y);}
     inline tensor operator-(float x, const tensor& y) {return dynet::operator-(x, y);}
     inline tensor operator-(const tensor& x) {return dynet::operator-(x);}
-    inline tensor operator-(const tensor& x, const parameter& y) {return x - dy::tensor(y);}
-    inline tensor operator-(const parameter& x, const tensor& y) {return dy::tensor(x) - y;}
+    inline tensor operator-(const tensor& x, const parameter& y) {return x - dyana::tensor(y);}
+    inline tensor operator-(const parameter& x, const tensor& y) {return dyana::tensor(x) - y;}
 
     inline tensor operator*(const tensor& x, const tensor& y) {return dynet::operator*(x, y);}
     inline tensor operator*(const tensor& x, float y) {return dynet::operator*(x, y);}
     inline tensor operator*(float x, const tensor& y) {return dynet::operator*(x, y);}
-    inline tensor operator*(const tensor& x, const parameter& y) {return x * dy::tensor(y);}
-    inline tensor operator*(const parameter& x, const tensor& y) {return dy::tensor(x) * y;}
+    inline tensor operator*(const tensor& x, const parameter& y) {return x * dyana::tensor(y);}
+    inline tensor operator*(const parameter& x, const tensor& y) {return dyana::tensor(x) * y;}
 
     inline tensor operator/(const tensor& x, float y) {return dynet::operator/(x, y);}
-    inline tensor operator/(const parameter& x, float y) {return dy::tensor(x) / y;}
+    inline tensor operator/(const parameter& x, float y) {return dyana::tensor(x) / y;}
 
   }
 }
 
-#endif //DYNET_WRAPPER_DY_OPERATIONS_HPP
+#endif //DYANA_OPERATIONS_HPP

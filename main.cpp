@@ -1,5 +1,5 @@
 #include <iostream>
-#include "dy.hpp"
+#include "dyana.hpp"
 #include <chrono>
 using namespace tg;
 using namespace std;
@@ -7,9 +7,9 @@ using namespace std;
 using datum_t = pair<vector<float>, string>;
 
 class model {
-  dy::normalization_layer norm;
-  dy::readout_model ro;
-  dy::tensor shared_op(const vector<float> &x) {
+  dyana::normalization_layer norm;
+  dyana::readout_model ro;
+  dyana::tensor shared_op(const vector<float> &x) {
     return norm.predict(x);
   }
 public:
@@ -21,13 +21,13 @@ public:
   string predict(const vector<float>& x) {
     return ro.predict(shared_op(x));
   }
-  dy::tensor compute_loss(const vector<float>& x, const string& oracle) {
+  dyana::tensor compute_loss(const vector<float>& x, const string& oracle) {
     return ro.compute_loss(shared_op(x), oracle);
   }
 };
 
 int main() {
-  dy::initialize(1, dy::trainer_type::SIMPLE_SGD);
+  dyana::initialize(1, dyana::trainer_type::SIMPLE_SGD);
 
 
   vector<datum_t> dataset({
@@ -55,7 +55,7 @@ int main() {
 
   cout << "training first model" <<endl;
   model m;
-  dy::fit<datum_t>(20, dataset, [&](const datum_t& datum){
+  dyana::fit<datum_t>(20, dataset, [&](const datum_t& datum){
     return m.compute_loss(datum.first, datum.second);
   });
   for(const datum_t& datum:dataset) {
@@ -65,14 +65,14 @@ int main() {
   {
     cout << "training victim model" <<endl;
     model m;
-    dy::fit<datum_t>(20, dataset, [&](const datum_t& datum){
+    dyana::fit<datum_t>(20, dataset, [&](const datum_t& datum){
       return m.compute_loss(datum.first, datum.second);
     });
   }
   {
     cout << "training second victimmodel" <<endl;
     model m;
-    dy::fit<datum_t>(10, dataset, [&](const datum_t& datum){
+    dyana::fit<datum_t>(10, dataset, [&](const datum_t& datum){
       return m.compute_loss(datum.first, datum.second);
     });
   }

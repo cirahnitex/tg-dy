@@ -2,10 +2,10 @@
 // Created by YAN Yuchen on 11/7/2018.
 //
 
-#ifndef DYNET_WRAPPER_DY_SERIALIZATION_HELPER_HPP
-#define DYNET_WRAPPER_DY_SERIALIZATION_HELPER_HPP
+#ifndef DYANA_SERIALIZATION_HELPER_HPP
+#define DYANA_SERIALIZATION_HELPER_HPP
 #include <dynet/dynet.h>
-#include "dy_common.hpp"
+#include "dyana_common.hpp"
 #include <dynet/dict.h>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/vector.hpp>
@@ -64,8 +64,8 @@ namespace dynet {
     archive(dim);
     std::vector<dynet::real> values;
     archive(values);
-    if(!p.p) p = tg::dy::_pc()->add_parameters(dim);
-    if(p.dim() != dim) p = tg::dy::_pc()->add_parameters(dim);
+    if(!p.p) p = tg::dyana::_pc()->add_parameters(dim);
+    if(p.dim() != dim) p = tg::dyana::_pc()->add_parameters(dim);
     p.set_value(values);
   }
 
@@ -93,7 +93,7 @@ namespace dynet {
     archive(size);
     Dim dim;
     archive(dim);
-    p = tg::dy::_pc()->add_lookup_parameters(size, dim);
+    p = tg::dyana::_pc()->add_lookup_parameters(size, dim);
     for(unsigned i=0; i<size; i++) {
       std::vector<dynet::real> value;
       archive(value);
@@ -104,4 +104,4 @@ namespace dynet {
 }
 
 
-#endif //DYNET_WRAPPER_DY_SERIALIZATION_HELPER_HPP
+#endif //DYANA_SERIALIZATION_HELPER_HPP

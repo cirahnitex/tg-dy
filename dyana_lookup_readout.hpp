@@ -2,16 +2,16 @@
 // Created by YAN Yuchen on 5/1/2018.
 //
 
-#ifndef DYNET_WRAPPER_DY_LOOKUP_READOUT_HPP
-#define DYNET_WRAPPER_DY_LOOKUP_READOUT_HPP
-#include "dy_common.hpp"
-#include "dy_operations.hpp"
+#ifndef DYANA_LOOKUP_READOUT_HPP
+#define DYANA_LOOKUP_READOUT_HPP
+#include "dyana_common.hpp"
+#include "dyana_operations.hpp"
 #include <dynet/dynet.h>
 #include <dynet/dict.h>
 #include <cereal/types/base_class.hpp>
-#include "dy_embedding_lookup.hpp"
+#include "dyana_embedding_lookup.hpp"
 namespace tg {
-  namespace dy {
+  namespace dyana {
     class mono_lookup_readout: public embedding_lookup {
     public:
       mono_lookup_readout() = default;
@@ -33,7 +33,7 @@ namespace tg {
           readout_table({embedding_size+1,capacity}) // embedding +1 for bias
       {}
 
-      std::pair<dy::tensor, dy::tensor> lookup_with_loss(const std::string& token) const {
+      std::pair<dyana::tensor, dyana::tensor> lookup_with_loss(const std::string& token) const {
         auto id = token_to_id(token);
         auto ret_embedding = lookup(id);
         return std::make_pair(ret_embedding, compute_windowed_readout_loss(ret_embedding, std::vector<unsigned>({id})));
@@ -46,16 +46,16 @@ namespace tg {
        * \return 0) the embeddings
        *         1) the lookup-loss
        */
-      std::pair<std::vector<dy::tensor>, dy::tensor> lookup_with_loss(
+      std::pair<std::vector<dyana::tensor>, dyana::tensor> lookup_with_loss(
         const std::vector<std::string> &tokens) const {
         std::vector<unsigned> ids;
-        std::vector<dy::tensor> ret_embeddings;
+        std::vector<dyana::tensor> ret_embeddings;
         for(auto itr = tokens.begin(); itr!=tokens.end(); ++itr) {
           auto id = token_to_id(*itr);
           ids.push_back(id);
           ret_embeddings.push_back(lookup(id));
         }
-        return std::make_pair(std::move(ret_embeddings), compute_windowed_readout_loss(dy::concatenate_to_batch(ret_embeddings), ids));
+        return std::make_pair(std::move(ret_embeddings), compute_windowed_readout_loss(dyana::concatenate_to_batch(ret_embeddings), ids));
       }
 
       /**
@@ -63,15 +63,15 @@ namespace tg {
        * \param embedding the embedding, dim(1) expression
        * \return the token
        */
-      std::string readout(const dy::tensor& embedding) const { return dict->convert(dy::argmax_index(forward(embedding))); }
+      std::string readout(const dyana::tensor& embedding) const { return dict->convert(dyana::argmax_index(forward(embedding))); }
 
       /**
        * given an embedding, generate a token according to all token's weight distribution
        * \param embedding dim(1) expression
        * \return the generated token
        */
-      std::string random_readout(const dy::tensor& embedding) const {
-        auto weights = dy::softmax(forward(embedding)).as_vector();
+      std::string random_readout(const dyana::tensor& embedding) const {
+        auto weights = dyana::softmax(forward(embedding)).as_vector();
         std::discrete_distribution<unsigned> d(weights.begin(), weights.end());
         return dict->convert(d(*dynet::rndeng));
       }
@@ -81,7 +81,7 @@ namespace tg {
        * \param embeddings a list of embeddings
        * \return the sentence
        */
-      std::vector<std::string> readout(const std::vector<dy::tensor>& embeddings) const {
+      std::vector<std::string> readout(const std::vector<dyana::tensor>& embeddings) const {
         std::vector<std::string> ret;
         for(auto itr = embeddings.begin(); itr!=embeddings.end(); ++itr) {
           ret.push_back(readout(*itr));
@@ -94,7 +94,7 @@ namespace tg {
        * \param embeddings a list of embeddings
        * \return the sentence
        */
-      std::vector<std::string> random_readout(const std::vector<dy::tensor>& embeddings) const {
+      std::vector<std::string> random_readout(const std::vector<dyana::tensor>& embeddings) const {
         std::vector<std::string> ret;
         for(auto itr = embeddings.begin(); itr!=embeddings.end(); ++itr) {
           ret.push_back(random_readout(*itr));
@@ -108,8 +108,8 @@ namespace tg {
        * \param topX
        * \return a list of tokens, together with a loss for each token. tokens are sorted from best to worst
        */
-      std::vector<std::pair<std::string, float>> top_readouts(const dy::tensor& embedding, unsigned topX) {
-        auto losses = (-dy::log_softmax(forward(embedding))).as_vector();
+      std::vector<std::pair<std::string, float>> top_readouts(const dyana::tensor& embedding, unsigned topX) {
+        auto losses = (-dyana::log_softmax(forward(embedding))).as_vector();
         std::vector<unsigned> ids(real_dict_size());
         std::iota(ids.begin(), ids.end(), 0);
         std::sort(ids.begin(), ids.end(), [&](unsigned a, unsigned b){return losses[a]<losses[b];});
@@ -127,7 +127,7 @@ namespace tg {
        * \param oracle the desired token
        * \return the loss to train on
        */
-      dy::tensor compute_readout_loss(const dy::tensor &embedding, const std::string &oracle) const {
+      dyana::tensor compute_readout_loss(const dyana::tensor &embedding, const std::string &oracle) const {
         return compute_windowed_readout_loss(embedding, std::vector<unsigned>({token_to_id(oracle)}));
       }
 
@@ -137,15 +137,15 @@ namespace tg {
        * \param possible_oracles the desired token set. reading out any of them is considered correct.
        * \return
        */
-      dy::tensor compute_readout_loss_multi_oracle(const dy::tensor& embedding, const std::vector<std::string>& possible_oracles) const {
+      dyana::tensor compute_readout_loss_multi_oracle(const dyana::tensor& embedding, const std::vector<std::string>& possible_oracles) const {
         std::vector<unsigned> oracle_ids;
         for(const auto& token:possible_oracles) {
           oracle_ids.push_back(token_to_id(token));
         }
-        auto one = dy::ones({1});
+        auto one = dyana::ones({1});
         if(capacity<=SAMPLE_THRESHOLD) {
-          auto logits = (dy::concatenate({embedding, one}).transpose() * dy::tensor(readout_table)).transpose();
-          return -dy::max_dim(dy::log_softmax(logits).select_rows(oracle_ids));
+          auto logits = (dyana::concatenate({embedding, one}).transpose() * dyana::tensor(readout_table)).transpose();
+          return -dyana::max_dim(dyana::log_softmax(logits).select_rows(oracle_ids));
         }
         else {
           std::vector<unsigned> sampled_token_ids;
@@ -177,10 +177,10 @@ namespace tg {
           }
 
           // fetch the readouts involved in sample
-          auto remapped_readout_table = dy::tensor(readout_table).select_cols(sampled_token_ids);
+          auto remapped_readout_table = dyana::tensor(readout_table).select_cols(sampled_token_ids);
 
-          auto logits = (dy::concatenate({embedding, one}).transpose() * remapped_readout_table).transpose();
-          return -dy::max_dim(dy::log_softmax(logits).select_rows(remapped_oracles));
+          auto logits = (dyana::concatenate({embedding, one}).transpose() * remapped_readout_table).transpose();
+          return -dyana::max_dim(dyana::log_softmax(logits).select_rows(remapped_oracles));
         }
       }
 
@@ -191,13 +191,13 @@ namespace tg {
        * \param oracle
        * \return the loss to train on
        */
-      dy::tensor compute_readout_loss(const std::vector<dy::tensor> &embeddings,
+      dyana::tensor compute_readout_loss(const std::vector<dyana::tensor> &embeddings,
                                           const std::vector<std::string> &oracle) const {
         std::vector<unsigned> oracle_ids;
         for(const auto& token:oracle) {
           oracle_ids.push_back(token_to_id(token));
         }
-        return compute_windowed_readout_loss(dy::concatenate_to_batch(embeddings), oracle_ids);
+        return compute_windowed_readout_loss(dyana::concatenate_to_batch(embeddings), oracle_ids);
       }
 
       template <class Archive>
@@ -214,17 +214,17 @@ namespace tg {
         ar(readout_table);
       }
     protected:
-      dy::parameter readout_table;
+      dyana::parameter readout_table;
 
-      dy::tensor forward(const dy::tensor &embedding) const {
-        return (dy::concatenate({embedding, dy::tensor(1)}).transpose() * dy::tensor(readout_table)).transpose();
+      dyana::tensor forward(const dyana::tensor &embedding) const {
+        return (dyana::concatenate({embedding, dyana::tensor(1)}).transpose() * dyana::tensor(readout_table)).transpose();
       }
 
-      dy::tensor compute_windowed_readout_loss(const dy::tensor& embeddings_batch, const std::vector<unsigned>& oracles) const {
-        auto one = dy::ones({1});
+      dyana::tensor compute_windowed_readout_loss(const dyana::tensor& embeddings_batch, const std::vector<unsigned>& oracles) const {
+        auto one = dyana::ones({1});
         if(capacity<=SAMPLE_THRESHOLD) {
-          auto logits = (dy::concatenate({embeddings_batch, one}).transpose() * dy::tensor(readout_table)).transpose();
-          return dy::sum_batches(dy::pickneglogsoftmax(logits, oracles));
+          auto logits = (dyana::concatenate({embeddings_batch, one}).transpose() * dyana::tensor(readout_table)).transpose();
+          return dyana::sum_batches(dyana::pickneglogsoftmax(logits, oracles));
         }
         else {
           std::vector<unsigned> sampled_token_ids;
@@ -256,14 +256,14 @@ namespace tg {
           }
 
           // fetch the readouts involved in sample
-          auto remapped_readout_table = dy::tensor(readout_table).select_cols(sampled_token_ids);
+          auto remapped_readout_table = dyana::tensor(readout_table).select_cols(sampled_token_ids);
 
-          auto logits = (dy::concatenate({embeddings_batch, one}).transpose() * remapped_readout_table).transpose();
-          return dy::sum_batches(dy::pickneglogsoftmax(logits, remapped_oracles));
+          auto logits = (dyana::concatenate({embeddings_batch, one}).transpose() * remapped_readout_table).transpose();
+          return dyana::sum_batches(dyana::pickneglogsoftmax(logits, remapped_oracles));
         }
       }
     };
   }
 }
 
-#endif //DYNET_WRAPPER_DY_LOOKUP_READOUT_HPP
+#endif //DYANA_LOOKUP_READOUT_HPP

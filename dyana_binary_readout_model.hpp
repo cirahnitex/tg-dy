@@ -2,15 +2,15 @@
 // Created by YAN Yuchen on 1/22/2019.
 //
 
-#ifndef DYNET_WRAPPER_DY_BINARY_READOUT_MODEL_HPP
-#define DYNET_WRAPPER_DY_BINARY_READOUT_MODEL_HPP
+#ifndef DYANA_BINARY_READOUT_MODEL_HPP
+#define DYANA_BINARY_READOUT_MODEL_HPP
 
-#include "dy_common.hpp"
-#include "dy_serialization_helper.hpp"
-#include "dy_linear_layer.hpp"
+#include "dyana_common.hpp"
+#include "dyana_serialization_helper.hpp"
+#include "dyana_linear_layer.hpp"
 
 namespace tg {
-  namespace dy {
+  namespace dyana {
     /*
      * a binary readout model does the following when predicting
      * * takes an embedding (tensor<X>)
@@ -41,10 +41,10 @@ namespace tg {
        * \return the loss
        */
       tensor compute_loss(const tensor &x, bool oracle) {
-        return dy::binary_log_loss(dy::logistic(fc.predict(x)), oracle?tensor(1):tensor(0));
+        return dyana::binary_log_loss(dyana::logistic(fc.predict(x)), oracle?tensor(1):tensor(0));
       }
     };
   }
 }
 
-#endif //DYNET_WRAPPER_DY_BINARY_READOUT_MODEL_HPP
+#endif //DYANA_BINARY_READOUT_MODEL_HPP

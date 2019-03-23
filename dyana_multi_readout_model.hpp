@@ -2,15 +2,15 @@
 // Created by YAN Yuchen on 11/12/2018.
 //
 
-#ifndef DYNET_WRAPPER_DY_MULTI_READOUT_LAYER_HPP
-#define DYNET_WRAPPER_DY_MULTI_READOUT_LAYER_HPP
+#ifndef DYANA_MULTI_READOUT_LAYER_HPP
+#define DYANA_MULTI_READOUT_LAYER_HPP
 #include <vector>
 #include <unordered_set>
 #include <string>
-#include "dy_common.hpp"
-#include "dy_linear_layer.hpp"
+#include "dyana_common.hpp"
+#include "dyana_linear_layer.hpp"
 namespace tg {
-  namespace dy {
+  namespace dyana {
     /**
      * a multi-readout model does the following when predicting:
      * * takes an embedding
@@ -35,7 +35,7 @@ namespace tg {
        * \param x the embedding
        * \return predicted labels
        */
-      std::unordered_set<std::string> readout(const dy::tensor &x) {
+      std::unordered_set<std::string> readout(const dyana::tensor &x) {
         const auto evidences = fc.predict(x).as_vector();
         std::unordered_set<std::string> ret;
         for (unsigned i = 0; i < labels.size(); i++) {
@@ -52,13 +52,13 @@ namespace tg {
        * \param oracle the golden answer
        * \return the loss
        */
-      dy::tensor compute_loss(const dy::tensor& x, const std::unordered_set<std::string>& oracle) {
+      dyana::tensor compute_loss(const dyana::tensor& x, const std::unordered_set<std::string>& oracle) {
         using namespace std;
         vector<float> oracle_float;
         for(const auto& label:labels) {
           oracle_float.push_back(oracle.count(label)>0?(float)1:(float)0);
         }
-        return dynet::binary_log_loss(dynet::logistic(fc.predict(x)), dy::tensor(oracle_float));
+        return dynet::binary_log_loss(dynet::logistic(fc.predict(x)), dyana::tensor(oracle_float));
       }
       EASY_SERIALIZABLE(labels, fc)
     private:
@@ -67,4 +67,4 @@ namespace tg {
     };
   }
 }
-#endif //DYNET_WRAPPER_DY_MULTI_READOUT_LAYER_HPP
+#endif //DYANA_MULTI_READOUT_LAYER_HPP

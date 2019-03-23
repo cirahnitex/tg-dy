@@ -2,13 +2,13 @@
 // Created by YAN Yuchen on 5/5/2018.
 //
 
-#ifndef DYNET_WRAPPER_DY_MP_TRAIN_HPP
-#define DYNET_WRAPPER_DY_MP_TRAIN_HPP
+#ifndef DYANA_MP_TRAIN_HPP
+#define DYANA_MP_TRAIN_HPP
 
 #include <dynet/dynet.h>
 #include <functional>
 #include <dynet/mp.h>
-#include "dy_common.hpp"
+#include "dyana_common.hpp"
 
 namespace dynet {
   namespace mp {
@@ -99,7 +99,7 @@ namespace dynet {
 }
 
 namespace tg {
-  namespace dy {
+  namespace dyana {
 
     /**
      * internal helper class for function mp_train
@@ -109,7 +109,7 @@ namespace tg {
     class _mp_train_learner : private dynet::mp::ILearner<DATUM, float> {
     public:
       _mp_train_learner(unsigned num_workers, unsigned num_epochs, const std::vector<DATUM> &training_set,
-                        const std::vector<DATUM> &dev_set, std::function<dy::tensor(const DATUM &)> compute_loss,
+                        const std::vector<DATUM> &dev_set, std::function<dyana::tensor(const DATUM &)> compute_loss,
                         std::function<void()> save)
         :
         compute_loss(compute_loss), save(save) {
@@ -119,10 +119,10 @@ namespace tg {
         compute_loss(
           training_set[0]); // for its side-effect only. to ensure that all lazy-initialized layers has been initialized before going parallel
         if (num_workers <= 1) {
-          dynet::mp::run_single_process_patched(this, dy::_trainer(), training_set, dev_set, num_epochs, dev_set.size(),
+          dynet::mp::run_single_process_patched(this, dyana::_trainer(), training_set, dev_set, num_epochs, dev_set.size(),
                                         dev_set.empty()?training_set.size():dev_set.size(), 1);
         } else {
-          dynet::mp::run_multi_process(num_workers, this, dy::_trainer(), training_set, dev_set, num_epochs,
+          dynet::mp::run_multi_process(num_workers, this, dyana::_trainer(), training_set, dev_set, num_epochs,
                                        dev_set.size(), dev_set.size());
         }
 
@@ -132,20 +132,20 @@ namespace tg {
 
     private:
       virtual float LearnFromDatum(const DATUM &datum, bool learn) {
-        if (dy::tensor::get_exprs_counter() != 0) {
+        if (dyana::tensor::get_exprs_counter() != 0) {
           throw std::runtime_error(
-            "NO GLOBAL TENSOR. All dy::Tensor instances must be cleaned up before training on a new Datum. Otherwise severe memory leak will occur while training.");
+            "NO GLOBAL TENSOR. All dyana::Tensor instances must be cleaned up before training on a new Datum. Otherwise severe memory leak will occur while training.");
         }
-        dy::tensor loss = compute_loss(datum);
+        dyana::tensor loss = compute_loss(datum);
         float ret = loss.as_scalar();
-        if (learn) dy::_cg().backward(loss);
+        if (learn) dyana::_cg().backward(loss);
         return ret;
         return 0;
       }
 
       virtual void SaveModel() { save(); }
 
-      std::function<dy::tensor(const DATUM &)> compute_loss;
+      std::function<dyana::tensor(const DATUM &)> compute_loss;
       std::function<void()> save;
     };
 
@@ -161,7 +161,7 @@ namespace tg {
      */
     template<typename DATUM>
     void fit(unsigned num_epochs, const std::vector<DATUM> &training_set,
-             const std::vector<DATUM> &dev_set, std::function<dy::tensor(const DATUM &)> compute_loss,
+             const std::vector<DATUM> &dev_set, std::function<dyana::tensor(const DATUM &)> compute_loss,
              std::function<void()> save) {
       _mp_train_learner<DATUM>(_num_workers(), num_epochs, training_set, dev_set, compute_loss, save);
     }
@@ -177,7 +177,7 @@ namespace tg {
      */
     template<typename DATUM>
     void fit(unsigned num_epochs, const std::vector<DATUM> &training_set,
-             const std::vector<DATUM> &dev_set, std::function<dy::tensor(const DATUM &)> compute_loss) {
+             const std::vector<DATUM> &dev_set, std::function<dyana::tensor(const DATUM &)> compute_loss) {
       _mp_train_learner<DATUM>(_num_workers(), num_epochs, training_set, dev_set, compute_loss, []() {});
     }
 
@@ -192,7 +192,7 @@ namespace tg {
      */
     template<typename DATUM>
     void fit(unsigned num_epochs, const std::vector<DATUM> &training_set,
-             std::function<dy::tensor(const DATUM &)> compute_loss,
+             std::function<dyana::tensor(const DATUM &)> compute_loss,
              std::function<void()> save) {
       _mp_train_learner<DATUM>(_num_workers(), num_epochs, training_set, std::vector<DATUM>(), compute_loss,
                                save);
@@ -208,11 +208,11 @@ namespace tg {
      */
     template<typename DATUM>
     void fit(unsigned num_epochs, const std::vector<DATUM> &training_set,
-             std::function<dy::tensor(const DATUM &)> compute_loss) {
+             std::function<dyana::tensor(const DATUM &)> compute_loss) {
       _mp_train_learner<DATUM>(_num_workers(), num_epochs, training_set, std::vector<DATUM>(), compute_loss,
                                []() {});
     }
   }
 }
 
-#endif //DYNET_WRAPPER_DY_MP_TRAIN_HPP
+#endif //DYANA_MP_TRAIN_HPP

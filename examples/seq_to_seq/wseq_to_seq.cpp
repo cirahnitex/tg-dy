@@ -2,8 +2,8 @@
 // Created by YAN Yuchen on 11/21/2018.
 //
 
-#include "../../dy.hpp"
-#include "../../dy_training_framework.hpp"
+#include "../../dyana.hpp"
+#include "../../dyana_training_framework.hpp"
 #include <vector>
 #include <string>
 #include <json/json.h>
@@ -45,8 +45,8 @@ dataset_t read_dataset(const string &path) {
 }
 
 pair<unordered_set<string>, unordered_set<string>> collect_frequent_token(const dataset_t &dataset, unsigned top_x) {
-  dy::frequent_token_collector collector0;
-  dy::frequent_token_collector collector1;
+  dyana::frequent_token_collector collector0;
+  dyana::frequent_token_collector collector1;
   for (const auto &sentence:dataset) {
     for (const auto &token:sentence.zh) {
       collector0.add_occurence(token);
@@ -81,43 +81,43 @@ public:
     embedding_size(embedding_size), f_embedding_table(embedding_size, f_vocab), e_embedding_table(), encoder(2, embedding_size), decoder(2, embedding_size), output_fc(embedding_size)
   {
     e_vocab.insert(END_OF_SENTENCE);
-    e_embedding_table = dy::mono_lookup_readout(embedding_size, e_vocab, [&](const string& t){
+    e_embedding_table = dyana::mono_lookup_readout(embedding_size, e_vocab, [&](const string& t){
       return e_w2v.at(t);
     });
   }
   vector<string> predict(const vector<string>& f_sentence) {
     const auto sentence_emb = f_embedding_table.lookup(f_sentence);
     auto cell_state = encoder.predict(sentence_emb).first;
-    auto x = dy::zeros({embedding_size});
+    auto x = dyana::zeros({embedding_size});
     vector<string> ret;
     for(unsigned i=0; i<MAX_OUTPUT_LENGTH; i++) {
       tie(cell_state, x) = decoder.predict(cell_state, x);
-      auto output_token = e_embedding_table.readout(dy::tanh(output_fc.predict(x)));
+      auto output_token = e_embedding_table.readout(dyana::tanh(output_fc.predict(x)));
       if(output_token == END_OF_SENTENCE) {break;}
       ret.push_back(output_token);
       x = e_embedding_table.lookup(output_token);
     }
     return ret;
   }
-  dy::tensor compute_loss(const vector<string>& f_sentence, vector<string> e_sentence) {
+  dyana::tensor compute_loss(const vector<string>& f_sentence, vector<string> e_sentence) {
     const auto [f_sentence_emb, f_lookup_loss] = f_embedding_table.lookup_with_loss(f_sentence);
     auto cell_state = encoder.predict(f_sentence_emb).first;
     e_sentence.push_back(END_OF_SENTENCE);
     const auto [e_sentence_emb, e_lookup_loss] = e_embedding_table.lookup_with_loss(e_sentence);
-    vector<dy::tensor> decoder_inputs({dy::zeros({embedding_size})});
+    vector<dyana::tensor> decoder_inputs({dyana::zeros({embedding_size})});
     copy(e_sentence_emb.begin(), e_sentence_emb.end()-1,back_inserter(decoder_inputs));
     auto decoder_outputs = decoder.predict(cell_state, decoder_inputs).second;
-    for(auto& x:decoder_outputs) {x = dy::tanh(output_fc.predict(x));}
+    for(auto& x:decoder_outputs) {x = dyana::tanh(output_fc.predict(x));}
     return e_embedding_table.compute_readout_loss(decoder_outputs, e_sentence) + f_lookup_loss + e_lookup_loss;
   }
   EASY_SERIALIZABLE(embedding_size, f_embedding_table, e_embedding_table, encoder, decoder, output_fc)
 private:
   unsigned embedding_size;
-  dy::mono_lookup_readout f_embedding_table;
-  dy::mono_lookup_readout e_embedding_table;
-  dy::vanilla_lstm encoder;
-  dy::vanilla_lstm decoder;
-  dy::linear_layer output_fc;
+  dyana::mono_lookup_readout f_embedding_table;
+  dyana::mono_lookup_readout e_embedding_table;
+  dyana::vanilla_lstm encoder;
+  dyana::vanilla_lstm decoder;
+  dyana::linear_layer output_fc;
 };
 
 int main() {
@@ -128,14 +128,14 @@ int main() {
   cout << "read dataset" <<endl;
   const auto dataset = read_dataset(DATASET_PATH);
   cout << "pre-processing" <<endl;
-  const auto [training_set, dev_set] = dy::shuffle_and_split_dataset(dataset);
+  const auto [training_set, dev_set] = dyana::shuffle_and_split_dataset(dataset);
   const auto [f_vocab, e_vocab] = collect_frequent_token(dataset, 20000);
   cout << "import word2vec" <<endl;
-  const auto w2v = dy::import_word2vec(PATH_TO_WORD2VEC_FILE);
+  const auto w2v = dyana::import_word2vec(PATH_TO_WORD2VEC_FILE);
   cout << "initialize model" <<endl;
-  dy::initialize(16);
+  dyana::initialize(16);
   wseq2seq_model model(EMBEDDING_SIZE, f_vocab, e_vocab, w2v);
-  dy::fit<zh_en_t>(EPOCHES, training_set, dev_set, [&](const zh_en_t &datum) {
+  dyana::fit<zh_en_t>(EPOCHES, training_set, dev_set, [&](const zh_en_t &datum) {
     return model.compute_loss(datum.zh, datum.en);
   });
 

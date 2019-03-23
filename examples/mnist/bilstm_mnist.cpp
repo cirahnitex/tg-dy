@@ -6,7 +6,7 @@
 #include "dataset_t.hpp"
 #include <fstream>
 #include <iostream>
-#include "../../dy.hpp"
+#include "../../dyana.hpp"
 
 using namespace tg;
 using namespace std;
@@ -30,13 +30,13 @@ public:
 
   bilstm_maxpool_layer(unsigned hidden_dim):bilstm(1, hidden_dim) {}
 
-  dy::tensor forward(const vector<dy::tensor> &features) {
-    return dy::max(bilstm.predict_output_sequence(features));
+  dyana::tensor forward(const vector<dyana::tensor> &features) {
+    return dyana::max(bilstm.predict_output_sequence(features));
   }
 
   EASY_SERIALIZABLE(bilstm)
 private:
-  dy::bidirectional_vanilla_lstm bilstm;
+  dyana::bidirectional_vanilla_lstm bilstm;
 };
 
 class bilstm_mnist_model {
@@ -53,7 +53,7 @@ public:
     return ro.predict(forward(image));
   }
 
-  dy::tensor compute_loss(const vector<float>& image, const string& oracle) {
+  dyana::tensor compute_loss(const vector<float>& image, const string& oracle) {
     return ro.compute_loss(forward(image), oracle);
   }
 
@@ -63,10 +63,10 @@ private:
   unsigned height;
   bilstm_maxpool_layer split_by_row_pass;
   bilstm_maxpool_layer split_by_column_pass;
-  dy::readout_model ro;
+  dyana::readout_model ro;
 
-  vector<dy::tensor> split_by_row(const vector<float> &image) {
-    vector<dy::tensor> ret;
+  vector<dyana::tensor> split_by_row(const vector<float> &image) {
+    vector<dyana::tensor> ret;
     for (unsigned row = 0; row < height; row++) {
       vector<float> row_vals;
       for (unsigned column = 0; column < width; column++) {
@@ -77,8 +77,8 @@ private:
     return ret;
   }
 
-  vector<dy::tensor> split_by_column(const vector<float> &image) {
-    vector<dy::tensor> ret;
+  vector<dyana::tensor> split_by_column(const vector<float> &image) {
+    vector<dyana::tensor> ret;
     for (unsigned column = 0; column < width; column++) {
       vector<float> column_vals;
       for (unsigned row = 0; row < height; row++) {
@@ -89,8 +89,8 @@ private:
     return ret;
   }
 
-  dy::tensor forward(const vector<float>& image) {
-    return dy::concatenate({
+  dyana::tensor forward(const vector<float>& image) {
+    return dyana::concatenate({
                              split_by_row_pass.forward(split_by_row(image)),
                              split_by_column_pass.forward(split_by_column(image))
                            });
@@ -99,7 +99,7 @@ private:
 
 
 int main() {
-  dy::initialize(4);
+  dyana::initialize(4);
   const string DATASET_PATH = "/hltc/0/cl/corpora/mnist/train.json";
   const unsigned HIDDEN_DIM = 15;
 
@@ -107,11 +107,11 @@ int main() {
   auto dataset = read_dataset(DATASET_PATH);
 
   cout << "splitting" <<endl;
-  auto [training_set, dev_set] = dy::shuffle_and_split_dataset(dataset.data);
+  auto [training_set, dev_set] = dyana::shuffle_and_split_dataset(dataset.data);
   bilstm_mnist_model model(dataset.width, dataset.height, dataset.labels, HIDDEN_DIM);
 
   cout << "training" <<endl;
-  dy::fit<datum_t>(10, training_set, dev_set, [&](const datum_t &datum) {
+  dyana::fit<datum_t>(10, training_set, dev_set, [&](const datum_t &datum) {
     return model.compute_loss(datum.input, datum.oracle);
   });
 

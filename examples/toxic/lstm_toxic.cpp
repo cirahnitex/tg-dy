@@ -4,15 +4,15 @@
 
 
 #include "data_t.hpp"
-#include "../../dy.hpp"
-#include "../../dy_training_framework.hpp"
+#include "../../dyana.hpp"
+#include "../../dyana_training_framework.hpp"
 #include <fstream>
 
 using namespace std;
 using namespace tg;
 
 unordered_set<string> collect_frequent_tokens(const dataset_t& data, unsigned top_x=20000) {
-  dy::frequent_token_collector collector;
+  dyana::frequent_token_collector collector;
   for(const auto& datum:data.data) {
     for(const auto& token:datum.input) {
       collector.add_occurence(token);
@@ -28,10 +28,10 @@ public:
     :emb(embedding_size, vocab, [&](const string& token){return init_embeddings.at(token);}), lstm(1, 15), ro(labels){
   }
 
-  dy::tensor forward(const vector<string>& sentence) {
+  dyana::tensor forward(const vector<string>& sentence) {
     auto output_embs = lstm.predict(emb.lookup(sentence, true)).second; // for LSTM model
 //    auto output_embs = lstm.predict_output_sequence(emb.lookup(sentence, true)); // for bi-LSTM model
-    return dy::max(output_embs);
+    return dyana::max(output_embs);
   }
 
   unordered_set<string> predict(const vector<string>& sentence) {
@@ -44,10 +44,10 @@ public:
 
   EASY_SERIALIZABLE(emb, lstm, ro)
 private:
-  dy::embedding_lookup emb;
-  dy::vanilla_lstm lstm; // for LSTM model
-//  dy::bidirectional_vanilla_lstm lstm; // for bi-LSTM model
-  dy::multi_readout_model ro;
+  dyana::embedding_lookup emb;
+  dyana::vanilla_lstm lstm; // for LSTM model
+//  dyana::bidirectional_vanilla_lstm lstm; // for bi-LSTM model
+  dyana::multi_readout_model ro;
 };
 
 template<class T>
@@ -69,13 +69,13 @@ int main() {
   cout << "collect frequent tokens" <<endl;
   const auto vocab = collect_frequent_tokens(trainint_set);
   cout << "import word2vec" <<endl;
-  const auto w2v = dy::import_word2vec(PATH_TO_WORD2VEC_FILE);
+  const auto w2v = dyana::import_word2vec(PATH_TO_WORD2VEC_FILE);
   cout << "initialze model" <<endl;
-  dy::initialize(8);
+  dyana::initialize(8);
   lstm_toxic_model model(trainint_set.labels, vocab, w2v, 128);
 
   cout << "training" <<endl;
-  dy::fit<datum_t>(10, trainint_set.data, test_set.data, [&](const datum_t &datum) {
+  dyana::fit<datum_t>(10, trainint_set.data, test_set.data, [&](const datum_t &datum) {
     return model.compute_loss(datum.input, datum.oracle);
   });
 

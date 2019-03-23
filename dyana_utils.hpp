@@ -2,8 +2,8 @@
 // Created by YAN Yuchen on 11/9/2018.
 //
 
-#ifndef DYNET_WRAPPER_DY_UTILS_HPP
-#define DYNET_WRAPPER_DY_UTILS_HPP
+#ifndef DYANA_UTILS_HPP
+#define DYANA_UTILS_HPP
 
 #include <string>
 #include <vector>
@@ -16,7 +16,7 @@
 #include <queue>
 
 namespace tg {
-  namespace dy {
+  namespace dyana {
     /**
      * a token container that give the X most frequent token it has seen
      */
@@ -118,4 +118,4 @@ namespace tg {
 }
 
 
-#endif //DYNET_WRAPPER_DY_UTILS_HPP
+#endif //DYANA_UTILS_HPP

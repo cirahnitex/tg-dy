@@ -2,25 +2,25 @@
 // Created by YAN Yuchen on 5/1/2018.
 //
 
-#ifndef DYNET_WRAPPER_DY_LSTM_HPP
-#define DYNET_WRAPPER_DY_LSTM_HPP
+#ifndef DYANA_LSTM_HPP
+#define DYANA_LSTM_HPP
 
 #include <dynet/lstm.h>
-#include "dy_common.hpp"
-#include "dy_operations.hpp"
-#include "dy_linear_layer.hpp"
+#include "dyana_common.hpp"
+#include "dyana_operations.hpp"
+#include "dyana_linear_layer.hpp"
 #include <memory>
 
 namespace tg {
-  namespace dy {
+  namespace dyana {
 
-    typedef std::vector<dy::tensor> rnn_cell_state_t;
+    typedef std::vector<dyana::tensor> rnn_cell_state_t;
 
 
     class rnn_cell_t {
     public:
-      virtual std::pair<rnn_cell_state_t, dy::tensor>
-      forward(const rnn_cell_state_t &prev_state, const dy::tensor &x) = 0;
+      virtual std::pair<rnn_cell_state_t, dyana::tensor>
+      forward(const rnn_cell_state_t &prev_state, const dyana::tensor &x) = 0;
     };
 
 
@@ -60,8 +60,8 @@ namespace tg {
        * \return 0) the cell state after this time step
        *         1) the output
        */
-      std::pair<stacked_cell_state, dy::tensor>
-      predict(const stacked_cell_state &prev_state, const dy::tensor &x) {
+      std::pair<stacked_cell_state, dyana::tensor>
+      predict(const stacked_cell_state &prev_state, const dyana::tensor &x) {
         tensor y = x;
         std::vector<rnn_cell_state_t> output_stacked_cell_state;
         for (unsigned i = 0; i < cells.size(); i++) {
@@ -80,11 +80,11 @@ namespace tg {
        * \return 0) the cell state after the last time step
        *         1) the list of output in chronological order
        */
-      std::pair<stacked_cell_state, std::vector<dy::tensor>>
-      predict(const stacked_cell_state &prev_state, const std::vector<dy::tensor> &x_sequence) {
-        if (x_sequence.empty()) return std::make_pair(default_cell_state(), std::vector<dy::tensor>());
+      std::pair<stacked_cell_state, std::vector<dyana::tensor>>
+      predict(const stacked_cell_state &prev_state, const std::vector<dyana::tensor> &x_sequence) {
+        if (x_sequence.empty()) return std::make_pair(default_cell_state(), std::vector<dyana::tensor>());
         auto[_state, y] = predict(prev_state, x_sequence[0]);
-        std::vector<dy::tensor> ys;
+        std::vector<dyana::tensor> ys;
         ys.push_back(std::move(y));
         for (unsigned i = 1; i < x_sequence.size(); i++) {
           std::tie(_state, y) = predict(_state, x_sequence[i]);
@@ -99,8 +99,8 @@ namespace tg {
        * \return 0) the cell state after the last time step
        *         1) the list of output in chronological order
        */
-      std::pair<stacked_cell_state, std::vector<dy::tensor>>
-      predict(const std::vector<dy::tensor> &x_sequence) {
+      std::pair<stacked_cell_state, std::vector<dyana::tensor>>
+      predict(const std::vector<dyana::tensor> &x_sequence) {
         return predict(default_cell_state(), x_sequence);
       }
 
@@ -110,17 +110,17 @@ namespace tg {
        * \param scs the stacked-cell-state
        * \return
        */
-      static dy::tensor flatten_stacked_cell_state(const stacked_cell_state& scs) {
-        std::vector<dy::tensor> flatterned_exprs;
+      static dyana::tensor flatten_stacked_cell_state(const stacked_cell_state& scs) {
+        std::vector<dyana::tensor> flatterned_exprs;
         for(const auto& cs:scs) {
           for(const auto& expr:cs) {
             flatterned_exprs.push_back(expr);
           }
         }
-        return dy::concatenate(flatterned_exprs);
+        return dyana::concatenate(flatterned_exprs);
       }
 
-      stacked_cell_state unflatten_stacked_cell_state(const dy::tensor& x) {
+      stacked_cell_state unflatten_stacked_cell_state(const dyana::tensor& x) {
         stacked_cell_state ret;
         unsigned pivot = 0;
         unsigned length = x.dim()[0] / cells.size() / RNN_CELL_T::num_cell_state_parts;
@@ -157,16 +157,16 @@ namespace tg {
        * \param x_sequence a list of inputs to apply
        * \return the outputs for each time step, concatenating outputs from both direction
        */
-      std::vector<dy::tensor>
-      predict_output_sequence(const std::vector<dy::tensor> &x_sequence) {
+      std::vector<dyana::tensor>
+      predict_output_sequence(const std::vector<dyana::tensor> &x_sequence) {
         auto forward_ys= forward_rnn.predict(forward_rnn.default_cell_state(), x_sequence).second;
         auto reversed_xs = x_sequence;
         std::reverse(reversed_xs.begin(), reversed_xs.end());
         auto backward_ys = backward_rnn.predict(backward_rnn.default_cell_state(), reversed_xs).second;
         std::reverse(backward_ys.begin(), backward_ys.end());
-        std::vector<dy::tensor> ret;
+        std::vector<dyana::tensor> ret;
         for(unsigned i=0; i<forward_ys.size(); i++) {
-          ret.push_back(dy::concatenate({forward_ys[i], backward_ys[i]}));
+          ret.push_back(dyana::concatenate({forward_ys[i], backward_ys[i]}));
         }
         return ret;
       }
@@ -176,12 +176,12 @@ namespace tg {
        * \param x_sequence a list of inputs to apply
        * \return concatenating the final output from both direction. i.e. forward output for t[-1] and reversed output for t[0]
        */
-      dy::tensor predict_output_final(const std::vector<dy::tensor> &x_sequence) {
+      dyana::tensor predict_output_final(const std::vector<dyana::tensor> &x_sequence) {
         auto forward_ys= forward_rnn.predict(forward_rnn.default_cell_state(), x_sequence).second;
         auto reversed_xs = x_sequence;
         std::reverse(reversed_xs.begin(), reversed_xs.end());
         auto backward_ys = backward_rnn.predict(backward_rnn.default_cell_state(), reversed_xs).second;
-        return dy::concatenate({forward_ys.back(), backward_ys.back()});
+        return dyana::concatenate({forward_ys.back(), backward_ys.back()});
       }
 
     private:
@@ -208,23 +208,23 @@ namespace tg {
                                                  output_gate(hidden_dim) {};
 
       rnn_cell_state_t default_cell_state() const {
-        auto zeros = dy::zeros({hidden_dim});
+        auto zeros = dyana::zeros({hidden_dim});
         return rnn_cell_state_t({zeros, zeros});
       }
 
-      virtual std::pair<rnn_cell_state_t, dy::tensor>
-      forward(const rnn_cell_state_t &prev_state, const dy::tensor &x) {
+      virtual std::pair<rnn_cell_state_t, dyana::tensor>
+      forward(const rnn_cell_state_t &prev_state, const dyana::tensor &x) {
         if(prev_state.empty()) {
           throw std::runtime_error("RNN: previous cell state empty. call default_cell_state to get a default one");
         }
         auto cell_state = prev_state[0];
         auto hidden_state = prev_state[1];
         auto concat = concatenate({hidden_state, x});
-        auto after_forget = dy::cmult(cell_state, dy::logistic(forget_gate.predict(concat)));
-        auto input_candidate = dy::tanh(input_fc.predict(concat));
-        auto input = dy::cmult(dy::logistic(input_gate.predict(concat)), input_candidate);
+        auto after_forget = dyana::cmult(cell_state, dyana::logistic(forget_gate.predict(concat)));
+        auto input_candidate = dyana::tanh(input_fc.predict(concat));
+        auto input = dyana::cmult(dyana::logistic(input_gate.predict(concat)), input_candidate);
         auto output_cell_state = after_forget + input;
-        auto output_hidden_state = dy::cmult(dy::logistic(output_gate.predict(concat)), dy::tanh(output_cell_state));
+        auto output_hidden_state = dyana::cmult(dyana::logistic(output_gate.predict(concat)), dyana::tanh(output_cell_state));
         return std::make_pair(rnn_cell_state_t({std::move(output_cell_state),output_hidden_state}),output_hidden_state);
       }
 
@@ -258,12 +258,12 @@ namespace tg {
                                                  output_gate(hidden_dim) {};
 
       rnn_cell_state_t default_cell_state() const {
-        auto zeros = dy::zeros({hidden_dim});
+        auto zeros = dyana::zeros({hidden_dim});
         return rnn_cell_state_t({zeros, zeros});
       }
 
-      virtual std::pair<rnn_cell_state_t, dy::tensor>
-      forward(const rnn_cell_state_t &prev_state, const dy::tensor &x) {
+      virtual std::pair<rnn_cell_state_t, dyana::tensor>
+      forward(const rnn_cell_state_t &prev_state, const dyana::tensor &x) {
         if(prev_state.empty()) {
           throw std::runtime_error("RNN: previous cell state empty. call default_cell_state to get a default one");
         }
@@ -271,12 +271,12 @@ namespace tg {
         auto hidden_state = prev_state[1];
 
         auto concat = concatenate({hidden_state, x});
-        auto forget_coef = dy::logistic(forget_gate.predict(concat));
-        auto after_forget = dy::cmult(cell_state, forget_coef);
-        auto input_candidate = dy::tanh(input_fc.predict(concat));
-        auto input = dy::cmult(1.0 - forget_coef, input_candidate);
+        auto forget_coef = dyana::logistic(forget_gate.predict(concat));
+        auto after_forget = dyana::cmult(cell_state, forget_coef);
+        auto input_candidate = dyana::tanh(input_fc.predict(concat));
+        auto input = dyana::cmult(1.0 - forget_coef, input_candidate);
         auto output_cell_state = after_forget + input;
-        auto output_hidden_state = dy::cmult(dy::logistic(output_gate.predict(concat)), dy::tanh(output_cell_state));
+        auto output_hidden_state = dyana::cmult(dyana::logistic(output_gate.predict(concat)), dyana::tanh(output_cell_state));
 
         return std::make_pair(rnn_cell_state_t({std::move(output_cell_state),output_hidden_state}),output_hidden_state);
       }
@@ -310,22 +310,22 @@ namespace tg {
                                         output_gate(hidden_dim) {};
 
       rnn_cell_state_t default_cell_state() const {
-        return rnn_cell_state_t({dy::zeros({hidden_dim})});
+        return rnn_cell_state_t({dyana::zeros({hidden_dim})});
       }
 
-      virtual std::pair<rnn_cell_state_t, dy::tensor>
-      forward(const rnn_cell_state_t &prev_state, const dy::tensor &x) {
+      virtual std::pair<rnn_cell_state_t, dyana::tensor>
+      forward(const rnn_cell_state_t &prev_state, const dyana::tensor &x) {
         if(prev_state.empty()) {
           throw std::runtime_error("RNN: previous cell state empty. call default_cell_state to get a default one");
         }
         auto hidden = prev_state[0];
-        auto input_for_gates = dy::concatenate({hidden, x});
-        auto pre_input_gate_coef = dy::logistic(pre_input_gate.predict(input_for_gates));
-        auto output_gate_coef = dy::logistic(output_gate.predict(input_for_gates));
-        auto gated_concat = dy::concatenate({dy::cmult(hidden, pre_input_gate_coef), x});
-        auto output_candidate = dy::tanh(input_fc.predict(gated_concat));
-        auto after_forget = dy::cmult(hidden, 1.0 - output_gate_coef);
-        auto output_hidden = after_forget + dy::cmult(output_gate_coef, output_candidate);
+        auto input_for_gates = dyana::concatenate({hidden, x});
+        auto pre_input_gate_coef = dyana::logistic(pre_input_gate.predict(input_for_gates));
+        auto output_gate_coef = dyana::logistic(output_gate.predict(input_for_gates));
+        auto gated_concat = dyana::concatenate({dyana::cmult(hidden, pre_input_gate_coef), x});
+        auto output_candidate = dyana::tanh(input_fc.predict(gated_concat));
+        auto after_forget = dyana::cmult(hidden, 1.0 - output_gate_coef);
+        auto output_hidden = after_forget + dyana::cmult(output_gate_coef, output_candidate);
         return std::make_pair(rnn_cell_state_t({output_hidden}), output_hidden);
       }
 
@@ -342,4 +342,4 @@ namespace tg {
     typedef bidirectional_rnn<gru_cell_t> bidirectional_gru;
   }
 }
-#endif //DYNET_WRAPPER_DY_LSTM_HPP
+#endif //DYANA_LSTM_HPP

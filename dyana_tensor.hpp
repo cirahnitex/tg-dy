@@ -2,14 +2,14 @@
 // Created by Dekai WU and YAN Yuchen on 20190322.
 //
 
-#ifndef DYNET_WRAPPER_DY_TENSOR_HPP
-#define DYNET_WRAPPER_DY_TENSOR_HPP
+#ifndef DYANA_TENSOR_HPP
+#define DYANA_TENSOR_HPP
 #include <dynet/dynet.h>
 #include <dynet/expr.h>
-#include "dy_dirty_core.hpp"
+#include "dyana_dirty_core.hpp"
 #include <iostream>
 namespace tg {
-  namespace dy {
+  namespace dyana {
 
     class parameter {
     public:
@@ -40,8 +40,8 @@ namespace tg {
           new_storage->copy(dp->get_storage());
           dp->p = new_storage;
         }
-        delete dy::_pc();
-        dy::_pc() = new_pc;
+        delete dyana::_pc();
+        dyana::_pc() = new_pc;
         num_dead() = 0;
       }
       parameter() = default;
@@ -87,34 +87,34 @@ namespace tg {
 
       tensor(const dynet::Expression &x) : dynet::Expression(x) { increment_cnt(); };
 
-      tensor(const dy::tensor &x) : dynet::Expression(x) { increment_cnt(); };
+      tensor(const dyana::tensor &x) : dynet::Expression(x) { increment_cnt(); };
 
       tensor(dynet::Expression &&x) : dynet::Expression(x) { increment_cnt(); };
 
-      tensor(dy::tensor &&x) : dynet::Expression(x) { increment_cnt(); };
+      tensor(dyana::tensor &&x) : dynet::Expression(x) { increment_cnt(); };
 
-      tensor(const dy::parameter &x) : dynet::Expression(dynet::parameter(_cg(), *x._dynet_parameter_m)) { increment_cnt(); }
+      tensor(const dyana::parameter &x) : dynet::Expression(dynet::parameter(_cg(), *x._dynet_parameter_m)) { increment_cnt(); }
 
-      explicit tensor(float x) : dynet::Expression(dynet::input(dy::_cg(), x)) { increment_cnt(); }
+      explicit tensor(float x) : dynet::Expression(dynet::input(dyana::_cg(), x)) { increment_cnt(); }
 
       tensor(const std::vector<float> x) : dynet::Expression(
-        dynet::input(dy::_cg(), {(unsigned) x.size()}, x)) { increment_cnt(); }
+        dynet::input(dyana::_cg(), {(unsigned) x.size()}, x)) { increment_cnt(); }
 
       tensor(const std::initializer_list<float> x) : dynet::Expression(
-        dynet::input(dy::_cg(), {(unsigned) x.size()}, x)) { increment_cnt(); }
+        dynet::input(dyana::_cg(), {(unsigned) x.size()}, x)) { increment_cnt(); }
 
       tensor(const std::vector<float> &values, const dynet::Dim &dim) : dynet::Expression(
-        dynet::input(dy::_cg(), dim, values)) { increment_cnt(); }
+        dynet::input(dyana::_cg(), dim, values)) { increment_cnt(); }
 
       tensor(const std::initializer_list<float> &values, const dynet::Dim &dim) : dynet::Expression(
-        dynet::input(dy::_cg(), dim, values)) { increment_cnt(); }
+        dynet::input(dyana::_cg(), dim, values)) { increment_cnt(); }
 
       tensor &operator=(const dynet::Expression &x) {
         dynet::Expression::operator=(x);
         return *this;
       };
 
-      tensor &operator=(const dy::tensor &x) {
+      tensor &operator=(const dyana::tensor &x) {
         dynet::Expression::operator=(x);
         return *this;
       };
@@ -124,7 +124,7 @@ namespace tg {
         return *this;
       };
 
-      tensor &operator=(dy::tensor &&x) {
+      tensor &operator=(dyana::tensor &&x) {
         dynet::Expression::operator=(x);
         return *this;
       };
@@ -239,13 +239,13 @@ namespace tg {
         return dynet::transpose(*this, dims);
       }
 
-      float as_scalar() const { return dynet::as_scalar(dy::_cg().incremental_forward(*this)); }
+      float as_scalar() const { return dynet::as_scalar(dyana::_cg().incremental_forward(*this)); }
 
-      std::vector<float> as_vector() const { return dynet::as_vector(dy::_cg().incremental_forward(*this)); }
+      std::vector<float> as_vector() const { return dynet::as_vector(dyana::_cg().incremental_forward(*this)); }
 
       ~tensor() {
         num_exprs()--;
-        if (num_exprs() == 0) dy::_renew_cg();
+        if (num_exprs() == 0) dyana::_renew_cg();
       }
 
       static std::vector<dynet::Expression> vector_cast_to_base(const std::vector<tensor> &x) {
@@ -297,8 +297,8 @@ namespace tg {
           new_storage->copy(dp->get_storage());
           dp->p = new_storage;
         }
-        delete dy::_pc();
-        dy::_pc() = new_pc;
+        delete dyana::_pc();
+        dyana::_pc() = new_pc;
         num_dead() = 0;
       }
       lookup_parameter() = default;
@@ -371,4 +371,4 @@ namespace tg {
     }
   }
 }
-#endif //DYNET_WRAPPER_DY_TENSOR_HPP
+#endif //DYANA_TENSOR_HPP

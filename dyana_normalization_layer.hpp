@@ -2,12 +2,12 @@
 // Created by YAN Yuchen on 1/22/2019.
 //
 
-#ifndef DYNET_WRAPPER_DY_NORMALIZATION_LAYER_HPP
-#define DYNET_WRAPPER_DY_NORMALIZATION_LAYER_HPP
-#include "dy_common.hpp"
-#include "dy_serialization_helper.hpp"
+#ifndef DYANA_NORMALIZATION_LAYER_HPP
+#define DYANA_NORMALIZATION_LAYER_HPP
+#include "dyana_common.hpp"
+#include "dyana_serialization_helper.hpp"
 namespace tg {
-  namespace dy {
+  namespace dyana {
     class normalization_layer {
       parameter g;
       parameter b;
@@ -32,4 +32,4 @@ namespace tg {
     };
   }
 }
-#endif //DYNET_WRAPPER_DY_NORMALIZATION_LAYER_HPP
+#endif //DYANA_NORMALIZATION_LAYER_HPP

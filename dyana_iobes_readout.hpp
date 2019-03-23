@@ -4,10 +4,10 @@
 
 #ifndef FRAME_ANALYSIS_DYNET_IOBES_READOUT_HPP
 #define FRAME_ANALYSIS_DYNET_IOBES_READOUT_HPP
-#include "dy_iobes_readout_base.hpp"
+#include "dyana_iobes_readout_base.hpp"
 
 namespace tg {
-  namespace dy {
+  namespace dyana {
     class iobes_readout :public iobes_readout_base{
     public:
       iobes_readout() = default;
