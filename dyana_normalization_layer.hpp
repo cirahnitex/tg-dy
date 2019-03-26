@@ -24,11 +24,11 @@ namespace tg {
       normalization_layer(normalization_layer&&) = default;
       normalization_layer &operator=(const normalization_layer&) = default;
       normalization_layer &operator=(normalization_layer&&) = default;
-      tensor predict(const tensor& x) {
+      tensor transduce(const tensor &x) {
         ensure_init(x);
         return dynet::layer_norm(x, tensor(g), tensor(b));
       }
-      tensor operator()(const tensor& x) {return predict(x);}
+      tensor operator()(const tensor& x) {return transduce(x);}
     };
   }
 }

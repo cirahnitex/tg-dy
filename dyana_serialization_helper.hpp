@@ -8,6 +8,7 @@
 #include "dyana_common.hpp"
 #include <dynet/dict.h>
 #include <cereal/archives/binary.hpp>
+#include <cereal/archives/xml.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/unordered_set.hpp>
 #include <cereal/types/string.hpp>

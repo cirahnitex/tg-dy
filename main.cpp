@@ -10,7 +10,7 @@ class model {
   dyana::normalization_layer norm;
   dyana::readout_model ro;
   dyana::tensor shared_op(const vector<float> &x) {
-    return norm.predict(x);
+    return norm.transduce(x);
   }
 public:
   model():norm(),ro({"small","medium","big"}){};
@@ -18,8 +18,8 @@ public:
   model(model&&) = default;
   model &operator=(const model&) = default;
   model &operator=(model&&) = default;
-  string predict(const vector<float>& x) {
-    return ro.predict(shared_op(x));
+  string transduce(const vector<float> &x) {
+    return ro.transduce(shared_op(x));
   }
   dyana::tensor compute_loss(const vector<float>& x, const string& oracle) {
     return ro.compute_loss(shared_op(x), oracle);
@@ -60,7 +60,7 @@ int main() {
   });
   for(const datum_t& datum:dataset) {
     cout << "oracle: "<< datum.second <<"\t";
-    cout << "predicted: "<< m.predict(datum.first) <<endl;
+    cout << "predicted: "<< m.transduce(datum.first) <<endl;
   }
   {
     cout << "training victim model" <<endl;
@@ -78,7 +78,7 @@ int main() {
   }
   for(const datum_t& datum:dataset) {
     cout << "oracle: "<< datum.second <<"\t";
-    cout << "predicted: "<< m.predict(datum.first) <<endl;
+    cout << "predicted: "<< m.transduce(datum.first) <<endl;
   }
 
 

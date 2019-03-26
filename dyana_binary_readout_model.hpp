@@ -12,7 +12,7 @@
 namespace tg {
   namespace dyana {
     /*
-     * a binary readout model does the following when predicting
+     * a binary transduce model does the following when predicting
      * * takes an embedding (tensor<X>)
      * * predicts a true/false answer
      */
@@ -30,8 +30,8 @@ namespace tg {
        * \param x tensor<X> the embedding
        * \return the answer
        */
-      bool predict(const tensor &x) {
-        return fc.predict(x).as_scalar() > 0;
+      bool transduce(const tensor &x) {
+        return fc.transduce(x).as_scalar() > 0;
       }
 
       /**
@@ -41,7 +41,7 @@ namespace tg {
        * \return the loss
        */
       tensor compute_loss(const tensor &x, bool oracle) {
-        return dyana::binary_log_loss(dyana::logistic(fc.predict(x)), oracle?tensor(1):tensor(0));
+        return dyana::binary_log_loss(dyana::logistic(fc.transduce(x)), oracle?tensor(1):tensor(0));
       }
     };
   }

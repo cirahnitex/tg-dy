@@ -36,7 +36,7 @@ namespace tg {
        * \return predicted labels
        */
       std::unordered_set<std::string> readout(const dyana::tensor &x) {
-        const auto evidences = fc.predict(x).as_vector();
+        const auto evidences = fc.transduce(x).as_vector();
         std::unordered_set<std::string> ret;
         for (unsigned i = 0; i < labels.size(); i++) {
           const auto &label = labels[i];
@@ -58,7 +58,7 @@ namespace tg {
         for(const auto& label:labels) {
           oracle_float.push_back(oracle.count(label)>0?(float)1:(float)0);
         }
-        return dynet::binary_log_loss(dynet::logistic(fc.predict(x)), dyana::tensor(oracle_float));
+        return dynet::binary_log_loss(dynet::logistic(fc.transduce(x)), dyana::tensor(oracle_float));
       }
       EASY_SERIALIZABLE(labels, fc)
     private:

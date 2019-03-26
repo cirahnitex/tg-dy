@@ -86,28 +86,28 @@ public:
     });
   }
   vector<string> predict(const vector<string>& f_sentence) {
-    const auto sentence_emb = f_embedding_table.lookup(f_sentence);
+    const auto sentence_emb = f_embedding_table.transduce(f_sentence);
     auto cell_state = encoder.predict(sentence_emb).first;
     auto x = dyana::zeros({embedding_size});
     vector<string> ret;
     for(unsigned i=0; i<MAX_OUTPUT_LENGTH; i++) {
       tie(cell_state, x) = decoder.predict(cell_state, x);
-      auto output_token = e_embedding_table.readout(dyana::tanh(output_fc.predict(x)));
+      auto output_token = e_embedding_table.transduce(dyana::tanh(output_fc.transduce(x)));
       if(output_token == END_OF_SENTENCE) {break;}
       ret.push_back(output_token);
-      x = e_embedding_table.lookup(output_token);
+      x = e_embedding_table.transduce(output_token);
     }
     return ret;
   }
   dyana::tensor compute_loss(const vector<string>& f_sentence, vector<string> e_sentence) {
-    const auto [f_sentence_emb, f_lookup_loss] = f_embedding_table.lookup_with_loss(f_sentence);
+    const auto [f_sentence_emb, f_lookup_loss] = f_embedding_table.transduce_with_loss(f_sentence);
     auto cell_state = encoder.predict(f_sentence_emb).first;
     e_sentence.push_back(END_OF_SENTENCE);
-    const auto [e_sentence_emb, e_lookup_loss] = e_embedding_table.lookup_with_loss(e_sentence);
+    const auto [e_sentence_emb, e_lookup_loss] = e_embedding_table.transduce_with_loss(e_sentence);
     vector<dyana::tensor> decoder_inputs({dyana::zeros({embedding_size})});
     copy(e_sentence_emb.begin(), e_sentence_emb.end()-1,back_inserter(decoder_inputs));
     auto decoder_outputs = decoder.predict(cell_state, decoder_inputs).second;
-    for(auto& x:decoder_outputs) {x = dyana::tanh(output_fc.predict(x));}
+    for(auto& x:decoder_outputs) {x = dyana::tanh(output_fc.transduce(x));}
     return e_embedding_table.compute_readout_loss(decoder_outputs, e_sentence) + f_lookup_loss + e_lookup_loss;
   }
   EASY_SERIALIZABLE(embedding_size, f_embedding_table, e_embedding_table, encoder, decoder, output_fc)
@@ -146,7 +146,7 @@ int main() {
     const auto en_predict = model.predict(datum.zh);
     cout << "zh: ";
     print_helper(datum.zh);
-    cout << "en predict: ";
+    cout << "en transduce: ";
     print_helper(en_predict);
   }
   return 0;

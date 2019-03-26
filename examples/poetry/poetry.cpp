@@ -30,15 +30,15 @@ public:
   vector<string> predict() {
     vector<string> ret;
     auto cell_state = lstm.default_cell_state();
-    auto x = embedding_table.lookup(START_OF_SENTENCE);
+    auto x = embedding_table.transduce(START_OF_SENTENCE);
     for(unsigned i=0; i<MAX_GENERATED_SENTENCE_LENGTH; i++) {
       tie(cell_state, x) = lstm.predict(cell_state, x);
-      auto token = embedding_table.random_readout(x);
+      auto token = embedding_table.generate(x);
       if(token == END_OF_SENTENCE) {
         break;
       }
       ret.push_back(token);
-      x = embedding_table.lookup(token);
+      x = embedding_table.transduce(token);
     }
     return ret;
   }
@@ -47,7 +47,7 @@ public:
     copy(sentence.begin(), sentence.end(), back_inserter(input));
     vector<string> oracle(sentence);
     oracle.push_back(END_OF_SENTENCE);
-    auto sentence_emb = embedding_table.lookup(input);
+    auto sentence_emb = embedding_table.transduce(input);
     auto output_emb = lstm.predict(sentence_emb).second;
     return embedding_table.compute_readout_loss(output_emb, oracle);
   }

@@ -220,11 +220,11 @@ namespace tg {
         auto cell_state = prev_state[0];
         auto hidden_state = prev_state[1];
         auto concat = concatenate({hidden_state, x});
-        auto after_forget = dyana::cmult(cell_state, dyana::logistic(forget_gate.predict(concat)));
-        auto input_candidate = dyana::tanh(input_fc.predict(concat));
-        auto input = dyana::cmult(dyana::logistic(input_gate.predict(concat)), input_candidate);
+        auto after_forget = dyana::cmult(cell_state, dyana::logistic(forget_gate.transduce(concat)));
+        auto input_candidate = dyana::tanh(input_fc.transduce(concat));
+        auto input = dyana::cmult(dyana::logistic(input_gate.transduce(concat)), input_candidate);
         auto output_cell_state = after_forget + input;
-        auto output_hidden_state = dyana::cmult(dyana::logistic(output_gate.predict(concat)), dyana::tanh(output_cell_state));
+        auto output_hidden_state = dyana::cmult(dyana::logistic(output_gate.transduce(concat)), dyana::tanh(output_cell_state));
         return std::make_pair(rnn_cell_state_t({std::move(output_cell_state),output_hidden_state}),output_hidden_state);
       }
 
@@ -271,12 +271,12 @@ namespace tg {
         auto hidden_state = prev_state[1];
 
         auto concat = concatenate({hidden_state, x});
-        auto forget_coef = dyana::logistic(forget_gate.predict(concat));
+        auto forget_coef = dyana::logistic(forget_gate.transduce(concat));
         auto after_forget = dyana::cmult(cell_state, forget_coef);
-        auto input_candidate = dyana::tanh(input_fc.predict(concat));
+        auto input_candidate = dyana::tanh(input_fc.transduce(concat));
         auto input = dyana::cmult(1.0 - forget_coef, input_candidate);
         auto output_cell_state = after_forget + input;
-        auto output_hidden_state = dyana::cmult(dyana::logistic(output_gate.predict(concat)), dyana::tanh(output_cell_state));
+        auto output_hidden_state = dyana::cmult(dyana::logistic(output_gate.transduce(concat)), dyana::tanh(output_cell_state));
 
         return std::make_pair(rnn_cell_state_t({std::move(output_cell_state),output_hidden_state}),output_hidden_state);
       }
@@ -320,10 +320,10 @@ namespace tg {
         }
         auto hidden = prev_state[0];
         auto input_for_gates = dyana::concatenate({hidden, x});
-        auto pre_input_gate_coef = dyana::logistic(pre_input_gate.predict(input_for_gates));
-        auto output_gate_coef = dyana::logistic(output_gate.predict(input_for_gates));
+        auto pre_input_gate_coef = dyana::logistic(pre_input_gate.transduce(input_for_gates));
+        auto output_gate_coef = dyana::logistic(output_gate.transduce(input_for_gates));
         auto gated_concat = dyana::concatenate({dyana::cmult(hidden, pre_input_gate_coef), x});
-        auto output_candidate = dyana::tanh(input_fc.predict(gated_concat));
+        auto output_candidate = dyana::tanh(input_fc.transduce(gated_concat));
         auto after_forget = dyana::cmult(hidden, 1.0 - output_gate_coef);
         auto output_hidden = after_forget + dyana::cmult(output_gate_coef, output_candidate);
         return std::make_pair(rnn_cell_state_t({output_hidden}), output_hidden);

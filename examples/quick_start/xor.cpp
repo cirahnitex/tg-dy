@@ -20,7 +20,7 @@ public:
 
   dyana::tensor forward(bool x, bool y) {
     auto input = dyana::tensor({x?(float)1:(float)0, y?(float)1:(float)0});
-    return fc2.predict(dyana::tanh(fc1.predict(input)));
+    return fc2.transduce(dyana::tanh(fc1.transduce(input)));
   }
 
   bool predict(bool x, bool y) {

@@ -89,14 +89,14 @@ namespace tg {
         }
       }
 
-      dyana::tensor lookup(const std::string& token, bool as_constant = false) const {
+      dyana::tensor transduce(const std::string &token, bool as_constant = false) const {
         return lookup(token_to_id(token), as_constant);
       }
 
-      std::vector<dyana::tensor> lookup(const std::vector<std::string>& tokens, bool as_constant = false) const {
+      std::vector<dyana::tensor> transduce(const std::vector<std::string> &tokens, bool as_constant = false) const {
         std::vector<dyana::tensor> ret;
         for(auto itr = tokens.begin(); itr!=tokens.end(); ++itr) {
-          ret.push_back(lookup(*itr, as_constant));
+          ret.push_back(transduce(*itr, as_constant));
         }
         return ret;
       }

@@ -80,7 +80,7 @@ public:
     });
   }
   vector<string> predict(const vector<string>& f_sentence) {
-    auto f_embeddings = f_embedding_table.lookup(f_sentence);
+    auto f_embeddings = f_embedding_table.transduce(f_sentence);
     auto f_hiddens = encoder.predict_output_sequence(f_embeddings);
     auto cell_state = decoder.default_cell_state();
     auto y = dyana::zeros({embedding_size});
@@ -88,18 +88,18 @@ public:
     for(unsigned i=0; i<MAX_OUTPUT_LENGTH; i++) {
       auto context = compute_context(f_hiddens, cell_state);
       tie(cell_state, y) = decoder.predict(cell_state, dyana::concatenate({context, y}));
-      auto out_token = e_embedding_table.readout(y);
+      auto out_token = e_embedding_table.transduce(y);
       if(out_token == END_OF_SENTENCE) {break;}
       ret.push_back(out_token);
-      y = e_embedding_table.lookup(out_token);
+      y = e_embedding_table.transduce(out_token);
     }
     return ret;
   }
   dyana::tensor compute_loss(const vector<string>& f_sentence, vector<string> e_sentence) {
-    auto [f_embeddings, f_lookup_loss] = f_embedding_table.lookup_with_loss(f_sentence);
+    auto [f_embeddings, f_lookup_loss] = f_embedding_table.transduce_with_loss(f_sentence);
     auto f_hiddens = encoder.predict_output_sequence(f_embeddings);
     e_sentence.push_back(END_OF_SENTENCE);
-    auto [e_embeddings, e_lookup_loss] = e_embedding_table.lookup_with_loss(e_sentence);
+    auto [e_embeddings, e_lookup_loss] = e_embedding_table.transduce_with_loss(e_sentence);
     auto cell_state = decoder.default_cell_state();
     auto y = dyana::zeros({embedding_size});
     vector<dyana::tensor> output_embeddings;
@@ -125,8 +125,8 @@ private:
     auto flattened = dyana::vanilla_lstm::flatten_stacked_cell_state(prev_cell_state);
     vector<dyana::tensor> xs;
     for(const auto& f_hidden:f_hiddens) {
-      auto x = dyana::tanh(attention_fc1.predict(dyana::concatenate({f_hidden, flattened})));
-      xs.push_back(attention_fc2.predict(x));
+      auto x = dyana::tanh(attention_fc1.transduce(dyana::concatenate({f_hidden, flattened})));
+      xs.push_back(attention_fc2.transduce(x));
     }
     return dyana::concatenate(f_hiddens,1) * dyana::softmax(dyana::concatenate(xs));
   }
@@ -157,7 +157,7 @@ int main() {
     const auto& datum = dev_set[i];
     const auto en_predict = model.predict(datum.zh);
     cout << "zh: " << ECMAScript_string_utils::join(datum.zh) << endl;
-    cout << "en predict: " << ECMAScript_string_utils::join(en_predict) << endl;
+    cout << "en transduce: " << ECMAScript_string_utils::join(en_predict) << endl;
   }
   return 0;
 }

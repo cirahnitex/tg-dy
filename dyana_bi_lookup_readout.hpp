@@ -64,7 +64,7 @@ namespace tg {
       }
       bi_lookup_readout(unsigned embedding_size, const std::unordered_map<std::string, std::vector<float>>& l0_token_and_embeddings, const std::unordered_map<std::string, std::vector<float>>& l1_token_and_embeddings): l0_lookup(embedding_size, l0_token_and_embeddings), l1_lookup(embedding_size, l1_token_and_embeddings), l0_readout({embedding_size+1, l0_lookup.real_dict_size()}), l1_readout({embedding_size+1, l1_lookup.real_dict_size()}) {}
       dyana::tensor lookup(const std::string& l0_token, const std::string& l1_token) {
-        return dyana::max(l0_lookup.lookup(l0_token), l1_lookup.lookup(l1_token));
+        return dyana::max(l0_lookup.transduce(l0_token), l1_lookup.transduce(l1_token));
       }
       std::pair<std::string, std::string> readout(const dyana::tensor& embedding) {
         auto padded_embedding = dyana::concatenate({embedding, dyana::tensor(1)});

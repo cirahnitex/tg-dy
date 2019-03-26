@@ -52,15 +52,15 @@ namespace tg {
        * \param embeddings_in embedding of each token in sentence
        * \return
        */
-      std::vector<web_srl_graph::item_type> predict(const std::vector<dyana::tensor> &embeddings_in) {
+      std::vector<web_srl_graph::item_type> transduce(const std::vector<dyana::tensor> &embeddings_in) {
         enum {OUTSIDE, INSIDE} state = OUTSIDE;
         unsigned s_anchor = 0;
         std::string label_anchor;
         std::vector<web_srl_graph::item_type> ret;
         for(unsigned i=0; i<embeddings_in.size(); ++i) {
           auto embedding = embeddings_in[i];
-          auto prefix = ro_prefix.predict(embedding);
-          auto label = ro_label.predict(embedding);
+          auto prefix = ro_prefix.transduce(embedding);
+          auto label = ro_label.transduce(embedding);
 
           if(state == OUTSIDE) {
             if(label.empty()) {

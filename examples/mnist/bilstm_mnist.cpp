@@ -50,7 +50,7 @@ public:
   bilstm_mnist_model(unsigned width, unsigned height, const unordered_set<string>& labels, unsigned hidden_dim):width(width),height(height),split_by_row_pass(hidden_dim), split_by_column_pass(hidden_dim), ro(labels) {}
 
   string predict(const vector<float> &image) {
-    return ro.predict(forward(image));
+    return ro.transduce(forward(image));
   }
 
   dyana::tensor compute_loss(const vector<float>& image, const string& oracle) {

@@ -34,13 +34,13 @@ int main() {
   // load all word embeddings from w2v
   const auto all_w2v_embeddings = import_word2vec(PATH_TO_WORD2VEC_FILE);
 
-  // construct embedding lookup table from embedding size, vocab and initial embedding getter
+  // construct embedding transduce table from embedding size, vocab and initial embedding getter
   dyana::embedding_lookup embedding_lookup(EMBEDDING_SIZE, MY_VOCAB, [&](const string& token){
     return all_w2v_embeddings.at(token);
   });
 
   // compute embedding
-  auto embedding = embedding_lookup.lookup("king");
+  auto embedding = embedding_lookup.transduce("king");
 
   // output
   for (const auto &value:embedding.as_vector()) {

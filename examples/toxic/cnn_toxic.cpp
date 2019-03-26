@@ -28,18 +28,18 @@ public:
 
   dyana::tensor forward(const vector<string>& sentence) {
     vector<dyana::tensor> xs;
-    xs = emb.lookup(sentence, true);
+    xs = emb.transduce(sentence, true);
 
-    xs = conv0.predict(xs);
+    xs = conv0.transduce(xs);
     for(auto& x:xs) {x=dyana::rectify(x);}
-    xs = dyana::maxpooling1d(conv1.predict(xs), 3, 1);
+    xs = dyana::maxpooling1d(conv1.transduce(xs), 3, 1);
 
     for(auto& x:xs) {x=dyana::rectify(x);}
-    xs = dyana::maxpooling1d(conv2.predict(xs), 3, 1);
+    xs = dyana::maxpooling1d(conv2.transduce(xs), 3, 1);
     for(auto& x:xs) {x=dyana::rectify(x);}
 
     auto x = dyana::max(xs);
-    x = dyana::tanh(fc.predict(x));
+    x = dyana::tanh(fc.transduce(x));
     return x;
   }
 
@@ -98,7 +98,7 @@ int main() {
     cout << "oracle:";
     print_helper(datum.oracle);
     const auto result = model.predict(datum.input);
-    cout << "predict:";
+    cout << "transduce:";
     print_helper(result);
     cout << endl;
   }

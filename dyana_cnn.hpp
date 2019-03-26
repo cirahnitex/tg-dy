@@ -47,7 +47,7 @@ namespace tg {
         }
       }
 
-      dyana::tensor predict(const dyana::tensor &x) {
+      dyana::tensor transduce(const dyana::tensor &x) {
         ensure_init(x);
         if(with_bias) {
           return dynet::conv2d(x, dyana::tensor(filter), dyana::tensor(bias), {stride_between_rows, stride_between_columns}, disable_padding);
@@ -129,7 +129,7 @@ namespace tg {
         bias() {
         if (with_bias) bias = parameter({output_channels});
       }
-      std::vector<dyana::tensor> predict(const std::vector<dyana::tensor> &xs) {
+      std::vector<dyana::tensor> transduce(const std::vector<dyana::tensor> &xs) {
         if(xs.empty()) return std::vector<dyana::tensor>();
         this->ensure_init(xs[0]);
         if(disable_padding) {return forward_no_padding(xs);}

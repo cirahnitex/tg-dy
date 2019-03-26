@@ -29,8 +29,8 @@ public:
   }
 
   dyana::tensor forward(const vector<string>& sentence) {
-    auto output_embs = lstm.predict(emb.lookup(sentence, true)).second; // for LSTM model
-//    auto output_embs = lstm.predict_output_sequence(emb.lookup(sentence, true)); // for bi-LSTM model
+    auto output_embs = lstm.predict(emb.transduce(sentence, true)).second; // for LSTM model
+//    auto output_embs = lstm.predict_output_sequence(emb.transduce(sentence, true)); // for bi-LSTM model
     return dyana::max(output_embs);
   }
 
@@ -88,7 +88,7 @@ int main() {
     cout << "oracle:";
     print_helper(datum.oracle);
     const auto result = model.predict(datum.input);
-    cout << "predict:";
+    cout << "transduce:";
     print_helper(result);
     cout << endl;
   }

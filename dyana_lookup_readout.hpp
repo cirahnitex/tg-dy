@@ -33,7 +33,7 @@ namespace tg {
           readout_table({embedding_size+1,capacity}) // embedding +1 for bias
       {}
 
-      std::pair<dyana::tensor, dyana::tensor> lookup_with_loss(const std::string& token) const {
+      std::pair<dyana::tensor, dyana::tensor> transduce_with_loss(const std::string &token) const {
         auto id = token_to_id(token);
         auto ret_embedding = lookup(id);
         return std::make_pair(ret_embedding, compute_windowed_readout_loss(ret_embedding, std::vector<unsigned>({id})));
@@ -46,7 +46,7 @@ namespace tg {
        * \return 0) the embeddings
        *         1) the lookup-loss
        */
-      std::pair<std::vector<dyana::tensor>, dyana::tensor> lookup_with_loss(
+      std::pair<std::vector<dyana::tensor>, dyana::tensor> transduce_with_loss(
         const std::vector<std::string> &tokens) const {
         std::vector<unsigned> ids;
         std::vector<dyana::tensor> ret_embeddings;
@@ -63,14 +63,14 @@ namespace tg {
        * \param embedding the embedding, dim(1) expression
        * \return the token
        */
-      std::string readout(const dyana::tensor& embedding) const { return dict->convert(dyana::argmax_index(forward(embedding))); }
+      std::string transduce(const dyana::tensor &embedding) const { return dict->convert(dyana::argmax_index(forward(embedding))); }
 
       /**
        * given an embedding, generate a token according to all token's weight distribution
        * \param embedding dim(1) expression
        * \return the generated token
        */
-      std::string random_readout(const dyana::tensor& embedding) const {
+      std::string generate(const dyana::tensor &embedding) const {
         auto weights = dyana::softmax(forward(embedding)).as_vector();
         std::discrete_distribution<unsigned> d(weights.begin(), weights.end());
         return dict->convert(d(*dynet::rndeng));
@@ -81,10 +81,10 @@ namespace tg {
        * \param embeddings a list of embeddings
        * \return the sentence
        */
-      std::vector<std::string> readout(const std::vector<dyana::tensor>& embeddings) const {
+      std::vector<std::string> transduce(const std::vector<dyana::tensor> &embeddings) const {
         std::vector<std::string> ret;
         for(auto itr = embeddings.begin(); itr!=embeddings.end(); ++itr) {
-          ret.push_back(readout(*itr));
+          ret.push_back(transduce(*itr));
         }
         return ret;
       }
@@ -94,10 +94,10 @@ namespace tg {
        * \param embeddings a list of embeddings
        * \return the sentence
        */
-      std::vector<std::string> random_readout(const std::vector<dyana::tensor>& embeddings) const {
+      std::vector<std::string> generate(const std::vector<dyana::tensor> &embeddings) const {
         std::vector<std::string> ret;
         for(auto itr = embeddings.begin(); itr!=embeddings.end(); ++itr) {
-          ret.push_back(random_readout(*itr));
+          ret.push_back(generate(*itr));
         }
         return ret;
       }
