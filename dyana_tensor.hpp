@@ -28,22 +28,6 @@ namespace tg {
         return _;
       }
 
-      /**
-       * perform garbage collection, so that there are no more dead parameters
-       * this is done by re-creating the dynet parameter collection
-       */
-      static void _force_garbage_collection() {
-        if(num_dead()<=0) return;
-        auto new_pc = new dynet::ParameterCollection();
-        for(const auto& dp:alives()) {
-          auto new_storage = new_pc->add_parameters(dp->dim()).p;
-          new_storage->copy(dp->get_storage());
-          dp->p = new_storage;
-        }
-        delete dyana::_pc();
-        dyana::_pc() = new_pc;
-        num_dead() = 0;
-      }
       parameter() = default;
       parameter(const parameter&) = delete;
       parameter(parameter&&) noexcept = default;
@@ -284,23 +268,6 @@ namespace tg {
         return _;
       }
 
-      /**
-       * perform garbage collection, so that there are no more dead parameters
-       * this is done by re-creating the dynet parameter collection
-       */
-      static void _force_garbage_collection() {
-        if(num_dead()<=0) return;
-        auto new_pc = new dynet::ParameterCollection();
-        for(const auto& dp:alives()) {
-          auto n = dp->get_storage().values.size();
-          auto new_storage = new_pc->add_lookup_parameters(n, dp->dim()).p;
-          new_storage->copy(dp->get_storage());
-          dp->p = new_storage;
-        }
-        delete dyana::_pc();
-        dyana::_pc() = new_pc;
-        num_dead() = 0;
-      }
       lookup_parameter() = default;
       lookup_parameter(const lookup_parameter&) = default;
       lookup_parameter(lookup_parameter&&) noexcept = default;
@@ -368,6 +335,26 @@ namespace tg {
     */
     inline tensor const_expr(const parameter &p) {
       return dynet::const_parameter(_cg(), *p._dynet_parameter_m);
+    }
+
+    inline void _force_garbage_collection() {
+      if(parameter::num_dead()<=0 && lookup_parameter::num_dead()<=0) return;
+      auto new_pc = new dynet::ParameterCollection();
+      for(const auto& dp:parameter::alives()) {
+        auto new_storage = new_pc->add_parameters(dp->dim()).p;
+        new_storage->copy(dp->get_storage());
+        dp->p = new_storage;
+      }
+      for(const auto& dp:lookup_parameter::alives()) {
+        auto n = dp->get_storage().values.size();
+        auto new_storage = new_pc->add_lookup_parameters(n, dp->dim()).p;
+        new_storage->copy(dp->get_storage());
+        dp->p = new_storage;
+      }
+      delete dyana::_pc();
+      dyana::_pc() = new_pc;
+      parameter::num_dead() = 0;
+      lookup_parameter::num_dead() = 0;
     }
   }
 }

@@ -24,14 +24,17 @@ namespace tg {
 
       immutable_dict &operator=(immutable_dict &&) = default;
 
-      explicit immutable_dict(const std::unordered_set<std::string> &entries) :
+      template<typename InputIterator>
+      immutable_dict(InputIterator _begin, InputIterator _end) :
         dict(std::make_shared<dynet::Dict>()) {
-        for (const auto &entry:entries) {
-          dict->convert(entry);
+        for (auto itr = _begin; itr != _end; ++itr) {
+          dict->convert(*itr);
         }
         dict->freeze();
         dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);
       }
+
+      explicit immutable_dict(const std::unordered_set<std::string> &entries) : immutable_dict(entries.begin(), entries.end()) {}
 
       explicit immutable_dict(const std::unordered_set<std::string> &entries, const std::unordered_set<std::string> &more_entries) :
         dict(std::make_shared<dynet::Dict>()) {

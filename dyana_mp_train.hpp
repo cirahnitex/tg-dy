@@ -115,8 +115,7 @@ namespace tg {
         :
         compute_loss(compute_loss), save(save) {
         if (training_set.empty()) return;
-        parameter::_force_garbage_collection();
-        lookup_parameter::_force_garbage_collection();
+        _force_garbage_collection();
         compute_loss(
           training_set[0]); // for its side-effect only. to ensure that all lazy-initialized layers has been initialized before going parallel
         if (num_workers <= 1) {
