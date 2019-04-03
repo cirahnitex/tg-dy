@@ -341,15 +341,17 @@ namespace tg {
       if(parameter::num_dead()<=0 && lookup_parameter::num_dead()<=0) return;
       auto new_pc = new dynet::ParameterCollection();
       for(const auto& dp:parameter::alives()) {
-        auto new_storage = new_pc->add_parameters(dp->dim()).p;
-        new_storage->copy(dp->get_storage());
-        dp->p = new_storage;
+        auto new_p = new_pc->add_parameters(dp->dim());
+        new_p.set_value(dynet::as_vector(*(dp->values())));
+        *dp = new_p;
       }
       for(const auto& dp:lookup_parameter::alives()) {
         auto n = dp->get_storage().values.size();
-        auto new_storage = new_pc->add_lookup_parameters(n, dp->dim()).p;
-        new_storage->copy(dp->get_storage());
-        dp->p = new_storage;
+        auto new_p = new_pc->add_lookup_parameters(n, dp->dim());
+        for(unsigned i=0; i<dp->values()->size(); ++i) {
+          new_p.initialize(i, dynet::as_vector(dp->values()->at(i)));
+        }
+        *dp = new_p;
       }
       delete dyana::_pc();
       dyana::_pc() = new_pc;
