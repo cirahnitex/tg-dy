@@ -30,16 +30,56 @@ namespace tg {
       return _pc;
     }
 
+    enum trainer_type {SIMPLE_SGD, CYCLICAL_SGD, MOMENTUM_SGD, ADAGRAD, ADADELTA, RMS_PROP, ADAM, AMSGRAD, EXPONENTIATED_GRADIENT};
+    inline trainer_type &_trainer_type() {
+      static trainer_type _ = SIMPLE_SGD;
+      return _;
+    }
+
+    inline float &_learning_rate() {
+      static float _ = 0;
+      return _;
+    }
+
     inline dynet::Trainer* &_trainer() {
-      static dynet::Trainer* _trainer = new dynet::AdamTrainer(*_pc());
-      if(_trainer->model != _pc()) {
-        _trainer->model = _pc();
-        _trainer->restart();
+      static dynet::Trainer* _trainer = nullptr;
+      if(!_trainer || _trainer->model != _pc()) {
+        switch (_trainer_type()) {
+          case SIMPLE_SGD:
+            _trainer = new dynet::SimpleSGDTrainer(*_pc(), _learning_rate());
+            break;
+          case CYCLICAL_SGD:
+            _trainer = new dynet::CyclicalSGDTrainer(*_pc(), _learning_rate(), _learning_rate()*10);
+            break;
+          case MOMENTUM_SGD:
+            _trainer = new dynet::MomentumSGDTrainer(*_pc(), _learning_rate());
+            break;
+          case ADAGRAD:
+            _trainer = new dynet::AdagradTrainer(*_pc(),_learning_rate());
+            break;
+          case ADADELTA:
+            _trainer = new dynet::AdadeltaTrainer(*_pc());
+            break;
+          case RMS_PROP:
+            _trainer = new dynet::RMSPropTrainer(*_pc(), _learning_rate());
+            break;
+          case ADAM:
+            _trainer = new dynet::AdamTrainer(*_pc(), _learning_rate());
+            break;
+          case AMSGRAD:
+            _trainer = new dynet::AmsgradTrainer(*_pc(), _learning_rate());
+            break;
+          case EXPONENTIATED_GRADIENT:
+            _trainer = new dynet::EGTrainer(*_pc(), _learning_rate());
+            break;
+          default:
+            _trainer = new dynet::AdamTrainer(*_pc());
+        }
       }
       return _trainer;
     }
 
-    enum trainer_type {SIMPLE_SGD, CYCLICAL_SGD, MOMENTUM_SGD, ADAGRAD, ADADELTA, RMS_PROP, ADAM, AMSGRAD, EXPONENTIATED_GRADIENT};
+
     inline unsigned &_num_workers() {static unsigned _=1; return _;}
 
     /**
@@ -66,38 +106,8 @@ namespace tg {
       srand(dynet_params.random_seed);
       _is_initialized() = true;
       _num_workers()=num_workers;
-      if(_trainer()) delete _trainer();
-      switch (trainer) {
-        case SIMPLE_SGD:
-          _trainer() = new dynet::SimpleSGDTrainer(*_pc(), learning_rate);
-          break;
-        case CYCLICAL_SGD:
-          _trainer() = new dynet::CyclicalSGDTrainer(*_pc(), learning_rate, learning_rate*10);
-          break;
-        case MOMENTUM_SGD:
-          _trainer() = new dynet::MomentumSGDTrainer(*_pc(), learning_rate);
-          break;
-        case ADAGRAD:
-          _trainer() = new dynet::AdagradTrainer(*_pc(), learning_rate);
-          break;
-        case ADADELTA:
-          _trainer() = new dynet::AdadeltaTrainer(*_pc());
-          break;
-        case RMS_PROP:
-          _trainer() = new dynet::RMSPropTrainer(*_pc(), learning_rate);
-          break;
-        case ADAM:
-          _trainer() = new dynet::AdagradTrainer(*_pc(), learning_rate);
-          break;
-        case AMSGRAD:
-          _trainer() = new dynet::AmsgradTrainer(*_pc(), learning_rate);
-          break;
-        case EXPONENTIATED_GRADIENT:
-          _trainer() = new dynet::EGTrainer(*_pc(), learning_rate);
-          break;
-        default:
-          _trainer() = new dynet::AdamTrainer(*_pc());
-      }
+      _trainer_type() = trainer;
+      _learning_rate() = learning_rate;
     }
 
     inline void _ensure_initialized() {
