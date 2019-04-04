@@ -126,6 +126,8 @@ namespace tg {
        * \return The value of x[v] along dimension d
        */
       tensor at(unsigned v, unsigned d=0) const {
+        if(dim().batch_size()<=d) throw std::runtime_error("tenso::at: required dimension out of range");
+        if(dim()[d]<=v) throw std::runtime_error("tenso::at: required index out of range");
         return dynet::pick(*this, v, d);
       }
 

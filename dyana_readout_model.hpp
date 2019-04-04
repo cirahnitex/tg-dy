@@ -61,6 +61,16 @@ namespace tg {
       }
 
       /**
+       * compute the probability of generating some label from some embedding
+       * \param embedding embedding tensor<x>
+       * \param label the label to generate
+       * \return
+       */
+      dyana::tensor recognize(const dyana::tensor& embedding, const std::string& label) {
+        return dyana::softmax(fc.transduce(embedding)).at(get_internal_label_id(label));
+      }
+
+      /**
        * given an embedding and a desired label, compute the loss
        * if there are too many labels, it will compute sampled_readout_loss instead
        * two private constants control the behavior of sampled_readout_loss, see later documentations
