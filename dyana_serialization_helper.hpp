@@ -13,6 +13,9 @@
 #include <cereal/types/unordered_set.hpp>
 #include <cereal/types/string.hpp>
 
+#define TRIVIAL_SERIALIZABLE template<class Archive> \
+void serialize(Archive & archive) {} \
+
 #define EASY_SERIALIZABLE(...) template<class Archive> \
 void serialize(Archive & archive) \
 {archive( __VA_ARGS__);} \
