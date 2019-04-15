@@ -7,6 +7,7 @@
 #include <dynet/dynet.h>
 #include <dynet/expr.h>
 #include "dyana_dirty_core.hpp"
+#include "dyana_serialization_helper.hpp"
 #include <iostream>
 namespace tg {
   namespace dyana {
@@ -51,7 +52,9 @@ namespace tg {
 
       template<class Archive>
       void save(Archive& archive) const {
-        archive(_dynet_parameter_m);
+        auto valid = (bool)_dynet_parameter_m;
+        archive(cereal::make_nvp("valid", valid));
+        if(valid) dynet::save(archive, *_dynet_parameter_m);
       }
 
       template<class Archive> void load(Archive& archive) {
@@ -59,9 +62,13 @@ namespace tg {
           alives().erase(_dynet_parameter_m);
           num_dead()++;
         }
-
-        archive(_dynet_parameter_m);
-        alives().insert(_dynet_parameter_m);
+        bool valid;
+        archive(cereal::make_nvp("valid", valid));
+        if(valid) {
+          _dynet_parameter_m = std::make_shared<dynet::Parameter>();
+          dynet::load(archive, *_dynet_parameter_m);
+          alives().insert(_dynet_parameter_m);
+        }
       }
     };
 
@@ -315,7 +322,9 @@ namespace tg {
 
       template<class Archive>
       void save(Archive& archive) const {
-        archive(_dynet_parameter_m);
+        auto valid = (bool)_dynet_parameter_m;
+        archive(cereal::make_nvp("valid", valid));
+        if(valid) dynet::save(archive, *_dynet_parameter_m);
       }
 
       template<class Archive> void load(Archive& archive) {
@@ -324,8 +333,13 @@ namespace tg {
           num_dead()++;
         }
 
-        archive(_dynet_parameter_m);
-        alives().insert(_dynet_parameter_m);
+        bool valid;
+        archive(cereal::make_nvp("valid", valid));
+        if(valid) {
+          _dynet_parameter_m = std::make_shared<dynet::LookupParameter>();
+          dynet::load(archive, *_dynet_parameter_m);
+          alives().insert(_dynet_parameter_m);
+        }
       }
     };
     /**

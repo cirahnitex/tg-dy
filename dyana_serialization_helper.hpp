@@ -34,7 +34,7 @@ namespace dynet {
     }
     archive(dim_vec);
 
-    archive(dim.batch_elems());
+    archive(cereal::make_nvp("batch", dim.batch_elems()));
   }
 
   template<class Archive>
@@ -44,7 +44,7 @@ namespace dynet {
     archive(dim_vec);
 
     unsigned num_batches;
-    archive(num_batches);
+    archive(cereal::make_nvp("batch", num_batches));
 
     dim = dynet::Dim(dim_vec, num_batches);
   }
@@ -53,24 +53,24 @@ namespace dynet {
   void save(Archive & archive, Parameter const & p)
   {
     bool isValid = (bool)p.p;
-    archive(isValid);
+    archive(cereal::make_nvp("valid", isValid));
     if(!isValid) return;
 
-    archive(p.dim());
-    archive(dynet::as_vector(p.get_storage().values));
+    archive(cereal::make_nvp("dim",p.dim()));
+    archive(cereal::make_nvp("data", dynet::as_vector(p.get_storage().values)));
   }
 
   template<class Archive>
   void load(Archive & archive, Parameter & p)
   {
     bool isValid;
-    archive(isValid);
+    archive(cereal::make_nvp("valid", isValid));
     if(!isValid) return;
 
     dynet::Dim dim;
-    archive(dim);
+    archive(cereal::make_nvp("dim", dim));
     std::vector<dynet::real> values;
-    archive(values);
+    archive(cereal::make_nvp("data", values));
     if(!p.p) p = tg::dyana::_pc()->add_parameters(dim);
     if(p.dim() != dim) p = tg::dyana::_pc()->add_parameters(dim);
     p.set_value(values);
@@ -79,31 +79,31 @@ namespace dynet {
   template<class Archive>
   void save(Archive& archive, LookupParameter const & p) {
     bool isValid = (bool)p.p;
-    archive(isValid);
+    archive(cereal::make_nvp("valid", isValid));
     if(!isValid) return;
 
     const auto& values = p.get_storage().values;
-    archive((unsigned)values.size());
-    archive(p.dim());
+    archive(cereal::make_nvp("size", (unsigned)values.size()));
+    archive(cereal::make_nvp("dim",p.dim()));
     for(const auto& value:values) {
-      archive(dynet::as_vector(value));
+      archive(cereal::make_nvp("data", dynet::as_vector(value)));
     }
   }
 
   template<class Archive>
   void load(Archive& archive, LookupParameter& p) {
     bool isValid;
-    archive(isValid);
+    archive(cereal::make_nvp("valid", isValid));
     if(!isValid) return;
 
     unsigned size;
-    archive(size);
+    archive(cereal::make_nvp("size", size));
     Dim dim;
-    archive(dim);
+    archive(cereal::make_nvp("dim", dim));
     p = tg::dyana::_pc()->add_lookup_parameters(size, dim);
     for(unsigned i=0; i<size; i++) {
       std::vector<dynet::real> value;
-      archive(value);
+      archive(cereal::make_nvp("data", value));
       p.initialize(i,value);
     }
   }
