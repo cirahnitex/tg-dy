@@ -12,13 +12,16 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/unordered_set.hpp>
 #include <cereal/types/string.hpp>
+#include "FOR_EACH.cmacros.hpp"
 
 #define TRIVIAL_SERIALIZABLE template<class Archive> \
 void serialize(Archive & archive) {} \
 
+#define CALL_ARCHIVE_NVP(name) archive(cereal::make_nvp(#name, name));
+
 #define EASY_SERIALIZABLE(...) template<class Archive> \
 void serialize(Archive & archive) \
-{archive( __VA_ARGS__);} \
+{FOR_EACH(CALL_ARCHIVE_NVP, __VA_ARGS__)} \
 
 namespace dynet {
 
