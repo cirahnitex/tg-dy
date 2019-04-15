@@ -127,8 +127,10 @@ namespace tg {
 
       template<class Archive>
       void save(Archive& a) const {
-        a(dict->get_words());
-        a(capacity, embedding_size, lookup_table);
+        a(cereal::make_nvp("vocab", dict->get_words()));
+        a(cereal::make_nvp("capacity", capacity));
+        a(cereal::make_nvp("embedding_size", embedding_size));
+        a(cereal::make_nvp("lookup_table", lookup_table));
       }
 
       template<class Archive>
