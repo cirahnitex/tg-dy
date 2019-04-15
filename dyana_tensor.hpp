@@ -11,7 +11,59 @@
 namespace tg {
   namespace dyana {
 
-    `;
+    class parameter {
+    public:
+      std::shared_ptr<dynet::Parameter> _dynet_parameter_m;
+      static std::unordered_set<std::shared_ptr<dynet::Parameter>>& alives() {
+        static std::unordered_set<std::shared_ptr<dynet::Parameter>> _;
+        return _;
+      };
+
+      /**
+       * get the number of parameters that should be garbage collected
+       * \return
+       */
+      static unsigned long &num_dead() {
+        static unsigned long _;
+        return _;
+      }
+
+      parameter() = default;
+      parameter(const parameter&) = default;
+      parameter(parameter&&) noexcept = default;
+      parameter &operator=(const parameter&) = default;
+      parameter &operator=(parameter&&) noexcept = default;
+      parameter(const Dim& dim): _dynet_parameter_m(std::make_shared<dynet::Parameter>(_pc()->add_parameters(dim).p)) {
+        alives().insert(_dynet_parameter_m);
+      }
+      ~parameter() {
+        // if this object is the last one holding its parameter storage pointer, mark it as "dead".
+        if(_dynet_parameter_m.use_count()==2) {
+          alives().erase(_dynet_parameter_m);
+          num_dead()++;
+        }
+      }
+
+      bool is_nil() const {return (bool)_dynet_parameter_m;}
+      Dim dim() const {return _dynet_parameter_m->dim();}
+      std::vector<float> get_values() const {return dynet::as_vector(*_dynet_parameter_m->values());}
+      void set_values(const std::vector<float>& vs){_dynet_parameter_m->set_value(vs);}
+
+      template<class Archive>
+      void save(Archive& archive) const {
+        archive(_dynet_parameter_m);
+      }
+
+      template<class Archive> void load(Archive& archive) {
+        if(_dynet_parameter_m && _dynet_parameter_m.use_count()<=2) {
+          alives().erase(_dynet_parameter_m);
+          num_dead()++;
+        }
+
+        archive(_dynet_parameter_m);
+        alives().insert(_dynet_parameter_m);
+      }
+    };
 
     class tensor : public dynet::Expression {
     public:
