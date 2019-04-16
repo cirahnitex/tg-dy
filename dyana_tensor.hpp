@@ -251,6 +251,25 @@ namespace tg {
 
       static unsigned get_exprs_counter() { return num_exprs(); }
 
+      template<typename Archive>
+      void save(Archive &ar) const {
+        ar(cereal::make_nvp("valid", (bool)pg));
+        ar(cereal::make_nvp("dim", dim()));
+        ar(cereal::make_nvp("data", as_vector()));
+      }
+
+      template<typename Archive>
+      void load(Archive &ar) {
+        bool valid;
+        ar(cereal::make_nvp("valid", valid));
+        if(!valid) return;
+        Dim dim;
+        ar(cereal::make_nvp("dim", dim));
+        std::vector<float> data;
+        ar(cereal::make_nvp("data", data));
+        operator=(tensor(data, dim));
+      }
+
     private:
       static unsigned long &num_exprs() {
         static unsigned long _;
