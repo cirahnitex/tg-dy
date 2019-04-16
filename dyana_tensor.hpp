@@ -254,6 +254,7 @@ namespace tg {
       template<typename Archive>
       void save(Archive &ar) const {
         ar(cereal::make_nvp("valid", (bool)pg));
+        if(!pg) return;
         ar(cereal::make_nvp("dim", dim()));
         ar(cereal::make_nvp("data", as_vector()));
       }
