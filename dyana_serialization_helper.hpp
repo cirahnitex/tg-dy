@@ -28,11 +28,11 @@ namespace dynet {
   template<class Archive>
   void save(Archive & archive, Dim const & dim)
   {
-    std::vector<long> dim_vec;
+    std::vector<unsigned> ds;
     for(unsigned i=0; i<dim.ndims(); i++) {
-      dim_vec.push_back(dim[i]);
+      ds.push_back(dim[i]);
     }
-    archive(dim_vec);
+    archive(cereal::make_nvp("ds", ds));
 
     archive(cereal::make_nvp("batch", dim.batch_elems()));
   }
@@ -40,13 +40,13 @@ namespace dynet {
   template<class Archive>
   void load(Archive & archive, Dim & dim)
   {
-    std::vector<long> dim_vec;
-    archive(dim_vec);
+    std::vector<long> ds;
+    archive(cereal::make_nvp("ds", ds));
 
     unsigned num_batches;
     archive(cereal::make_nvp("batch", num_batches));
 
-    dim = dynet::Dim(dim_vec, num_batches);
+    dim = dynet::Dim(ds, num_batches);
   }
 
   template<class Archive>
