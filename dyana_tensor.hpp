@@ -82,7 +82,7 @@ namespace tg {
 
       tensor(dynet::Expression &&x) : dynet::Expression(x) { increment_cnt(); };
 
-      tensor(dyana::tensor &&x) : dynet::Expression(x) { increment_cnt(); };
+      tensor(dyana::tensor &&x) noexcept : dynet::Expression(x) { increment_cnt(); };
 
       tensor(const dyana::parameter &x) : dynet::Expression(dynet::parameter(_cg(), *x._dynet_parameter_m)) { increment_cnt(); }
 
@@ -115,7 +115,7 @@ namespace tg {
         return *this;
       };
 
-      tensor &operator=(dyana::tensor &&x) {
+      tensor &operator=(dyana::tensor &&x) noexcept {
         dynet::Expression::operator=(x);
         return *this;
       };
