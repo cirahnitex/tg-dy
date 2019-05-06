@@ -71,8 +71,8 @@ namespace dynet {
     archive(cereal::make_nvp("dim", dim));
     std::vector<dynet::real> values;
     archive(cereal::make_nvp("data", values));
-    if(!p.p) p = tg::dyana::_pc()->add_parameters(dim);
-    if(p.dim() != dim) p = tg::dyana::_pc()->add_parameters(dim);
+    if(!p.p) p = dyana::_pc()->add_parameters(dim);
+    if(p.dim() != dim) p = dyana::_pc()->add_parameters(dim);
     p.set_value(values);
   }
 
@@ -100,7 +100,7 @@ namespace dynet {
     archive(cereal::make_nvp("size", size));
     Dim dim;
     archive(cereal::make_nvp("dim", dim));
-    p = tg::dyana::_pc()->add_lookup_parameters(size, dim);
+    p = dyana::_pc()->add_lookup_parameters(size, dim);
     for(unsigned i=0; i<size; i++) {
       std::vector<dynet::real> value;
       archive(cereal::make_nvp("data", value));

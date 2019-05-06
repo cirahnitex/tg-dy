@@ -9,42 +9,48 @@
 #include "dyana_serialization_helper.hpp"
 #include "dyana_linear_layer.hpp"
 
-namespace tg {
-  namespace dyana {
-    /*
-     * a binary transduce model does the following when predicting
-     * * takes an embedding (tensor<X>)
-     * * predicts a true/false answer
-     */
-    class binary_readout_model {
-      linear_layer fc;
-    public:
-      EASY_SERIALIZABLE(fc)
-      binary_readout_model():fc(1){};
-      binary_readout_model(const binary_readout_model&) = default;
-      binary_readout_model(binary_readout_model&&) = default;
-      binary_readout_model &operator=(const binary_readout_model&) = default;
-      binary_readout_model &operator=(binary_readout_model&&) = default;
-      /**
-       * performs prediction
-       * \param x tensor<X> the embedding
-       * \return the answer
-       */
-      bool transduce(const tensor &x) {
-        return fc.transduce(x).as_scalar() > 0;
-      }
 
-      /**
-       * compute loss
-       * \param x tensor<X> the embedding
-       * \param oracle the golden answer
-       * \return the loss
-       */
-      tensor compute_loss(const tensor &x, bool oracle) {
-        return dyana::binary_log_loss(dyana::logistic(fc.transduce(x)), oracle?tensor(1):tensor(0));
-      }
-    };
-  }
+namespace dyana {
+  /*
+   * a binary transduce model does the following when predicting
+   * * takes an embedding (tensor<X>)
+   * * predicts a true/false answer
+   */
+  class binary_readout_model {
+    linear_dense_layer fc;
+  public:
+    EASY_SERIALIZABLE(fc)
+
+    binary_readout_model() : fc(1) {};
+
+    binary_readout_model(const binary_readout_model &) = default;
+
+    binary_readout_model(binary_readout_model &&) = default;
+
+    binary_readout_model &operator=(const binary_readout_model &) = default;
+
+    binary_readout_model &operator=(binary_readout_model &&) = default;
+
+    /**
+     * performs prediction
+     * \param x tensor<X> the embedding
+     * \return the answer
+     */
+    bool operator()(const tensor &x) {
+      return fc.operator()(x).as_scalar() > 0;
+    }
+
+    /**
+     * compute loss
+     * \param x tensor<X> the embedding
+     * \param oracle the golden answer
+     * \return the loss
+     */
+    tensor compute_loss(const tensor &x, bool oracle) {
+      return dyana::binary_log_loss(dyana::logistic(fc.operator()(x)), oracle ? tensor(1) : tensor(0));
+    }
+  };
 }
+
 
 #endif //DYANA_BINARY_READOUT_MODEL_HPP

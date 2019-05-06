@@ -9,11 +9,12 @@
 #include <dynet/expr.h>
 #include "dyana_common.hpp"
 
-namespace tg {
-  namespace dyana {
 
-    inline tensor zeros(const Dim& d) {return dynet::zeros(_cg(), d);}
-    inline tensor ones(const Dim& d) {return dynet::ones(_cg(), d);}
+namespace dyana {
+
+  inline tensor zeros(const Dim &d) { return dynet::zeros(_cg(), d); }
+
+  inline tensor ones(const Dim &d) { return dynet::ones(_cg(), d); }
 
 /**
  * \ingroup arithmeticoperations
@@ -30,11 +31,13 @@ namespace tg {
  *
  * \return An expression equal to: xs[0] + xs[1]*xs[2] + xs[3]*xs[4] + ...
  */
-    inline tensor affine_transform(const std::initializer_list<tensor> &xs) {
-      return dynet::affine_transform(tensor::vector_cast_to_base(xs));
-    }
+  inline tensor affine_transform(const std::initializer_list<tensor> &xs) {
+    return dynet::affine_transform(tensor::vector_cast_to_base(xs));
+  }
 
-    inline tensor affine_transform(const std::vector<tensor> &xs) { return dynet::affine_transform(tensor::vector_cast_to_base(xs)); }
+  inline tensor affine_transform(const std::vector<tensor> &xs) {
+    return dynet::affine_transform(tensor::vector_cast_to_base(xs));
+  }
 
 /**
  * \ingroup arithmeticoperations
@@ -45,7 +48,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to xs[0][i] + xs[1][i] + ...
  */
-    inline tensor sum(const std::vector<tensor> &xs) { return dynet::sum(tensor::vector_cast_to_base(xs)); }
+  inline tensor sum(const std::vector<tensor> &xs) { return dynet::sum(tensor::vector_cast_to_base(xs)); }
 
 
 /**
@@ -57,7 +60,7 @@ namespace tg {
  *
  * \return The sum of all of its elements
  */
-    inline tensor sum_elems(const tensor &x) { return dynet::sum_elems(x); }
+  inline tensor sum_elems(const tensor &x) { return dynet::sum_elems(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -69,7 +72,7 @@ namespace tg {
  *
  * \return A scalar expression (with a potential batch dimension)
  */
-    inline tensor moment_elems(const tensor &x, unsigned r) { return dynet::moment_elems(x, r); }
+  inline tensor moment_elems(const tensor &x, unsigned r) { return dynet::moment_elems(x, r); }
 
 /**
  * \ingroup arithmeticoperations
@@ -80,7 +83,7 @@ namespace tg {
  *
  * \return A scalar expression (with a potential batch dimension)
  */
-    inline tensor mean_elems(const tensor &x) { return dynet::mean_elems(x); }
+  inline tensor mean_elems(const tensor &x) { return dynet::mean_elems(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -91,7 +94,7 @@ namespace tg {
  *
  * \return A scalar expression (with a potential batch dimension)
  */
-    inline tensor std_elems(const tensor &x) { return dynet::std_elems(x); }
+  inline tensor std_elems(const tensor &x) { return dynet::std_elems(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -104,7 +107,7 @@ namespace tg {
  *
  * \return An expression with a single batch
  */
-    inline tensor sum_batches(const tensor &x) { return dynet::sum_batches(x); }
+  inline tensor sum_batches(const tensor &x) { return dynet::sum_batches(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -116,7 +119,7 @@ namespace tg {
  *
  * \return An expression with a single batch
  */
-    inline tensor moment_batches(const tensor &x, unsigned r) { return dynet::moment_batches(x, r); }
+  inline tensor moment_batches(const tensor &x, unsigned r) { return dynet::moment_batches(x, r); }
 
 /**
  * \ingroup arithmeticoperations
@@ -127,7 +130,7 @@ namespace tg {
  *
  * \return An expression with a single batch
  */
-    inline tensor mean_batches(const tensor &x) { return dynet::mean_batches(x); }
+  inline tensor mean_batches(const tensor &x) { return dynet::mean_batches(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -138,7 +141,7 @@ namespace tg {
  *
  * \return A scalar expression (with a potential batch dimension)
  */
-    inline tensor std_batches(const tensor &x) { return dynet::std_batches(x); }
+  inline tensor std_batches(const tensor &x) { return dynet::std_batches(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -151,14 +154,14 @@ namespace tg {
  *
  * \return An expression with |d| less dimensions and possibly dropped batch dimension
  */
-    inline tensor sum_dim(const tensor &x, const std::vector<unsigned> &dims, bool b = false) {
-      return dynet::sum_dim(x, dims, b);
-    }
+  inline tensor sum_dim(const tensor &x, const std::vector<unsigned> &dims, bool b = false) {
+    return dynet::sum_dim(x, dims, b);
+  }
 
 // These are deprecated but kept for backward compatibility
-    inline tensor sum_rows(const tensor &x) { return dynet::sum_rows(x); }
+  inline tensor sum_rows(const tensor &x) { return dynet::sum_rows(x); }
 
-    inline tensor sum_cols(const tensor &x) { return dynet::sum_cols(x); }
+  inline tensor sum_cols(const tensor &x) { return dynet::sum_cols(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -170,7 +173,7 @@ namespace tg {
  *
  * \return An expression of the same shape as the input
  */
-    inline tensor cumsum(const tensor &x, unsigned d) { return dynet::cumsum(x, d); }
+  inline tensor cumsum(const tensor &x, unsigned d) { return dynet::cumsum(x, d); }
 
 /**
  * \ingroup arithmeticoperations
@@ -185,8 +188,8 @@ namespace tg {
  *
  * \return An expression with |d| less dimensions and possibly dropped batch dimension
  */
-    inline tensor moment_dim(const tensor &x, const std::vector<unsigned> &dims, unsigned r, bool b = false,
-                                 unsigned n = 0) { return dynet::moment_dim(x, dims, r, b, n); }
+  inline tensor moment_dim(const tensor &x, const std::vector<unsigned> &dims, unsigned r, bool b = false,
+                           unsigned n = 0) { return dynet::moment_dim(x, dims, r, b, n); }
 
 /**
  * \ingroup arithmeticoperations
@@ -200,8 +203,8 @@ namespace tg {
  *
  * \return An expression with |d| less dimensions and possibly dropped batch dimension
  */
-    inline tensor mean_dim(const tensor &x, const std::vector<unsigned> &dims, bool b = false,
-                               unsigned n = 0) { return dynet::mean_dim(x, dims, b, n); }
+  inline tensor mean_dim(const tensor &x, const std::vector<unsigned> &dims, bool b = false,
+                         unsigned n = 0) { return dynet::mean_dim(x, dims, b, n); }
 
 /**
  * \ingroup arithmeticoperations
@@ -215,8 +218,8 @@ namespace tg {
  *
  * \return An expression with |d| less dimensions and possibly dropped batch dimension
  */
-    inline tensor std_dim(const tensor &x, const std::vector<unsigned> &dims, bool b = false,
-                              unsigned n = 0) { return dynet::std_dim(x, dims, b, n); }
+  inline tensor std_dim(const tensor &x, const std::vector<unsigned> &dims, bool b = false,
+                        unsigned n = 0) { return dynet::std_dim(x, dims, b, n); }
 
 /**
  * \ingroup arithmeticoperations
@@ -227,7 +230,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to (xs[0][i] + xs[1][i] + ...)/|xs|
  */
-    inline tensor average(const std::vector<tensor> &xs) { return dynet::average(tensor::vector_cast_to_base(xs)); }
+  inline tensor average(const std::vector<tensor> &xs) { return dynet::average(tensor::vector_cast_to_base(xs)); }
 
 /**
  * \ingroup arithmeticoperations
@@ -238,7 +241,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to \f$\sqrt(x_i)\f$
  */
-    inline tensor sqrt(const tensor &x) { return dynet::sqrt(x); }
+  inline tensor sqrt(const tensor &x) { return dynet::sqrt(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -249,7 +252,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to \f$\vert x_i\vert\f$
  */
-    inline tensor abs(const tensor &x) { return dynet::abs(x); }
+  inline tensor abs(const tensor &x) { return dynet::abs(x); }
 
 
 /**
@@ -261,7 +264,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to erf(x_i)
  */
-    inline tensor erf(const tensor &x) { return dynet::erf(x); }
+  inline tensor erf(const tensor &x) { return dynet::erf(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -272,7 +275,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to asin(x_i)
  */
-    inline tensor asin(const tensor &x) { return dynet::asin(x); }
+  inline tensor asin(const tensor &x) { return dynet::asin(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -283,7 +286,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to acos(x_i)
  */
-    inline tensor acos(const tensor &x) { return dynet::acos(x); }
+  inline tensor acos(const tensor &x) { return dynet::acos(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -294,7 +297,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to atan(x_i)
  */
-    inline tensor atan(const tensor &x) { return dynet::atan(x); }
+  inline tensor atan(const tensor &x) { return dynet::atan(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -305,7 +308,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to sin(x_i)
  */
-    inline tensor sin(const tensor &x) { return dynet::sin(x); }
+  inline tensor sin(const tensor &x) { return dynet::sin(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -316,7 +319,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to cos(x_i)
  */
-    inline tensor cos(const tensor &x) { return dynet::cos(x); }
+  inline tensor cos(const tensor &x) { return dynet::cos(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -327,7 +330,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to tan(x_i)
  */
-    inline tensor tan(const tensor &x) { return dynet::tan(x); }
+  inline tensor tan(const tensor &x) { return dynet::tan(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -338,7 +341,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to sinh(x_i)
  */
-    inline tensor sinh(const tensor &x) { return dynet::sinh(x); }
+  inline tensor sinh(const tensor &x) { return dynet::sinh(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -349,7 +352,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to cosh(x_i)
  */
-    inline tensor cosh(const tensor &x) { return dynet::cosh(x); }
+  inline tensor cosh(const tensor &x) { return dynet::cosh(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -360,7 +363,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to tanh(x_i)
  */
-    inline tensor tanh(const tensor &x) { return dynet::tanh(x); }
+  inline tensor tanh(const tensor &x) { return dynet::tanh(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -371,7 +374,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to asinh(x_i)
  */
-    inline tensor asinh(const tensor &x) { return dynet::asinh(x); }
+  inline tensor asinh(const tensor &x) { return dynet::asinh(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -382,7 +385,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to acosh(x_i)
  */
-    inline tensor acosh(const tensor &x) { return dynet::acosh(x); }
+  inline tensor acosh(const tensor &x) { return dynet::acosh(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -393,7 +396,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to atanh(x_i)
  */
-    inline tensor atanh(const tensor &x) { return dynet::atanh(x); }
+  inline tensor atanh(const tensor &x) { return dynet::atanh(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -404,7 +407,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to e^{x_i}
  */
-    inline tensor exp(const tensor &x) { return dynet::exp(x); }
+  inline tensor exp(const tensor &x) { return dynet::exp(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -415,7 +418,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to x_i^2
  */
-    inline tensor square(const tensor &x) { return dynet::square(x); }
+  inline tensor square(const tensor &x) { return dynet::square(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -426,7 +429,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to x_i^3
  */
-    inline tensor cube(const tensor &x) { return dynet::cube(x); }
+  inline tensor cube(const tensor &x) { return dynet::cube(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -438,7 +441,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to \f$y_i = \ln(\frac{1}{1+e^{-x_i}})\f$
  */
-    inline tensor log_sigmoid(const tensor &x) { return dynet::log_sigmoid(x); }
+  inline tensor log_sigmoid(const tensor &x) { return dynet::log_sigmoid(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -449,7 +452,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to ln(gamma(x_i))
  */
-    inline tensor lgamma(const tensor &x) { return dynet::lgamma(x); }
+  inline tensor lgamma(const tensor &x) { return dynet::lgamma(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -460,7 +463,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to ln(x_i)
  */
-    inline tensor log(const tensor &x) { return dynet::log(x); }
+  inline tensor log(const tensor &x) { return dynet::log(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -471,7 +474,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to y_i = 1/(1+e^{-x_i})
  */
-    inline tensor logistic(const tensor &x) { return 0.5 * dynet::tanh(x * 0.5) + 0.5; }
+  inline tensor logistic(const tensor &x) { return 0.5 * dynet::tanh(x * 0.5) + 0.5; }
 
 /**
  * \ingroup arithmeticoperations
@@ -482,7 +485,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to max(x_i,0)
  */
-    inline tensor rectify(const tensor &x) { return dynet::rectify(x); }
+  inline tensor rectify(const tensor &x) { return dynet::rectify(x); }
 
 
 /**
@@ -503,7 +506,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to \f$\text{ELU}(x_i, \alpha)\f$
  */
-    inline tensor elu(const tensor &x, float alpha = 1.f) { return dynet::elu(x, alpha); }
+  inline tensor elu(const tensor &x, float alpha = 1.f) { return dynet::elu(x, alpha); }
 
 /**
  * \ingroup arithmeticoperations
@@ -531,7 +534,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to \f$\text{SELU}(x_i)\f$
  */
-    inline tensor selu(const tensor &x) { return dynet::selu(x); }
+  inline tensor selu(const tensor &x) { return dynet::selu(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -546,7 +549,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to y_i = x_i / (1 + e^{-beta * x_i})
  */
-    inline tensor silu(const tensor &x, float beta = 1.f) { return dynet::silu(x, beta); }
+  inline tensor silu(const tensor &x, float beta = 1.f) { return dynet::silu(x, beta); }
 
 /**
  * \ingroup arithmeticoperations
@@ -557,7 +560,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to x_i/(1+|x_i|)
  */
-    inline tensor softsign(const tensor &x) { return dynet::softsign(x); }
+  inline tensor softsign(const tensor &x) { return dynet::softsign(x); }
 
 /**
  * \ingroup arithmeticoperations
@@ -569,7 +572,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to x_i^y
  */
-    inline tensor pow(const tensor &x, const tensor &y) { return dynet::pow(x, y); }
+  inline tensor pow(const tensor &x, const tensor &y) { return dynet::pow(x, y); }
 
 /**
  * \ingroup arithmeticoperations
@@ -581,7 +584,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to min(x_i,y_i)
  */
-    inline tensor min(const tensor &x, const tensor &y) { return dynet::min(x, y); }
+  inline tensor min(const tensor &x, const tensor &y) { return dynet::min(x, y); }
 
 /**
  * \ingroup arithmeticoperations
@@ -593,7 +596,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to max(x_i,y_i)
  */
-    inline tensor max(const tensor &x, const tensor &y) { return dynet::max(x, y); }
+  inline tensor max(const tensor &x, const tensor &y) { return dynet::max(x, y); }
 
 /**
  * \ingroup arithmeticoperations
@@ -604,11 +607,11 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to max(xs[0][i], xs[1][i], ...)
  */
-    inline tensor max(const std::vector<tensor> &xs) {
-      if(xs.empty()) {throw std::runtime_error("cannot perform max on empty list");}
-      auto extra_dim = xs[0].dim().nd;
-      return dynet::max_dim(dynet::concatenate(tensor::vector_cast_to_base(xs), extra_dim), extra_dim);
-    }
+  inline tensor max(const std::vector<tensor> &xs) {
+    if (xs.empty()) { throw std::runtime_error("cannot perform max on empty list"); }
+    auto extra_dim = xs[0].dim().nd;
+    return dynet::max_dim(dynet::concatenate(tensor::vector_cast_to_base(xs), extra_dim), extra_dim);
+  }
 
 
 /**
@@ -621,7 +624,7 @@ namespace tg {
  *
  * \return An expression equal to the dot product
  */
-    inline tensor dot_product(const tensor &x, const tensor &y) { return dynet::dot_product(x, y); }
+  inline tensor dot_product(const tensor &x, const tensor &y) { return dynet::dot_product(x, y); }
 
 /**
  * \ingroup arithmeticoperations
@@ -633,7 +636,7 @@ namespace tg {
  *
  * \return An expression equal to the circular convolution
  */
-    inline tensor circ_conv(const tensor &u, const tensor &v) { return dynet::circ_conv(u, v); }
+  inline tensor circ_conv(const tensor &u, const tensor &v) { return dynet::circ_conv(u, v); }
 
 /**
  * \ingroup arithmeticoperations
@@ -645,7 +648,7 @@ namespace tg {
  *
  * \return An expression equal to the circular correlation
  */
-    inline tensor circ_corr(const tensor &u, const tensor &v) { return dynet::circ_corr(u, v); }
+  inline tensor circ_corr(const tensor &u, const tensor &v) { return dynet::circ_corr(u, v); }
 
 /**
  * \ingroup arithmeticoperations
@@ -661,7 +664,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to x_i*y_i
  */
-    inline tensor cmult(const tensor &x, const tensor &y) { return dynet::cmult(x, y); }
+  inline tensor cmult(const tensor &x, const tensor &y) { return dynet::cmult(x, y); }
 
 /**
  * \ingroup arithmeticoperations
@@ -677,7 +680,7 @@ namespace tg {
  *
  * \return An expression where the ith element is equal to x_i/y_i
  */
-    inline tensor cdiv(const tensor &x, const tensor &y) { return dynet::cdiv(x, y); }
+  inline tensor cdiv(const tensor &x, const tensor &y) { return dynet::cdiv(x, y); }
 
 /**
  * \ingroup arithmeticoperations
@@ -689,7 +692,7 @@ namespace tg {
  *
  * \return An expression where bias is added to each column of x
  */
-    inline tensor colwise_add(const tensor &x, const tensor &bias) { return dynet::colwise_add(x, bias); }
+  inline tensor colwise_add(const tensor &x, const tensor &bias) { return dynet::colwise_add(x, bias); }
 
 ////////////////////////////////////////////////
 // Probability/loss operations                //
@@ -707,7 +710,7 @@ namespace tg {
  *
  * \return A vector or matrix after calculating the softmax
  */
-    inline tensor softmax(const tensor &x, unsigned d = 0) { return dynet::softmax(x, d); }
+  inline tensor softmax(const tensor &x, unsigned d = 0) { return dynet::softmax(x, d); }
 
 /**
  * \ingroup lossoperations
@@ -720,7 +723,7 @@ namespace tg {
  *
  * \return A vector or matrix after calculating the log softmax
  */
-    inline tensor log_softmax(const tensor &x) { return dynet::log_softmax(x); }
+  inline tensor log_softmax(const tensor &x) { return dynet::log_softmax(x); }
 
 /**
  * \ingroup lossoperations
@@ -734,9 +737,9 @@ namespace tg {
  *
  * \return A vector with the log softmax over the specified elements
  */
-    inline tensor log_softmax(const tensor &x, const std::vector<unsigned> &restriction) {
-      return dynet::log_softmax(x, restriction);
-    }
+  inline tensor log_softmax(const tensor &x, const std::vector<unsigned> &restriction) {
+    return dynet::log_softmax(x, restriction);
+  }
 
 /**
  * \ingroup lossoperations
@@ -749,7 +752,7 @@ namespace tg {
  *
  * \return The result.
  */
-    inline tensor logsumexp_dim(const tensor &x, unsigned d) { return dynet::logsumexp_dim(x, d); }
+  inline tensor logsumexp_dim(const tensor &x, unsigned d) { return dynet::logsumexp_dim(x, d); }
 
 /**
  * \ingroup lossoperations
@@ -761,7 +764,7 @@ namespace tg {
  *
  * \return The result.
  */
-    inline tensor logsumexp(const std::vector<tensor> &xs) { return dynet::logsumexp(tensor::vector_cast_to_base(xs)); }
+  inline tensor logsumexp(const std::vector<tensor> &xs) { return dynet::logsumexp(tensor::vector_cast_to_base(xs)); }
 
 
 /**
@@ -777,7 +780,7 @@ namespace tg {
  *
  * \return The negative log likelihood of element ``v`` after taking the softmax
  */
-    inline tensor pickneglogsoftmax(const tensor &x, unsigned v) { return dynet::pickneglogsoftmax(x, v); }
+  inline tensor pickneglogsoftmax(const tensor &x, unsigned v) { return dynet::pickneglogsoftmax(x, v); }
 
 
 /**
@@ -792,9 +795,9 @@ namespace tg {
  *
  * \return The negative log likelihoods over all the batch elements
  */
-    inline tensor pickneglogsoftmax(const tensor &x, const std::vector<unsigned> &v) {
-      return dynet::pickneglogsoftmax(x, v);
-    }
+  inline tensor pickneglogsoftmax(const tensor &x, const std::vector<unsigned> &v) {
+    return dynet::pickneglogsoftmax(x, v);
+  }
 
 
 /**
@@ -809,7 +812,7 @@ namespace tg {
  *
  * \return The hinge loss of candidate ``index`` with respect to margin ``m``
  */
-    inline tensor hinge(const tensor &x, unsigned index, float m = 1.0) { return dynet::hinge(x, index, m); }
+  inline tensor hinge(const tensor &x, unsigned index, float m = 1.0) { return dynet::hinge(x, index, m); }
 
 
 /**
@@ -825,9 +828,9 @@ namespace tg {
  *
  * \return The hinge loss of each mini-batch
  */
-    inline tensor hinge(const tensor &x, const std::vector<unsigned> &indices, float m = 1.0) {
-      return dynet::hinge(x, indices, m);
-    }
+  inline tensor hinge(const tensor &x, const std::vector<unsigned> &indices, float m = 1.0) {
+    return dynet::hinge(x, indices, m);
+  }
 
 
 /**
@@ -843,8 +846,8 @@ namespace tg {
  *
  * \return A vector of hinge losses for each index in ``indices``.
  */
-    inline tensor hinge_dim(const tensor &x, const std::vector<unsigned> &indices, unsigned d = 0,
-                                float m = 1.0) { return dynet::hinge_dim(x, indices, d, m); }
+  inline tensor hinge_dim(const tensor &x, const std::vector<unsigned> &indices, unsigned d = 0,
+                          float m = 1.0) { return dynet::hinge_dim(x, indices, d, m); }
 
 
 /**
@@ -860,8 +863,8 @@ namespace tg {
  *
  * \return A vector of hinge losses for each mini-batch
  */
-    inline tensor hinge_dim(const tensor &x, const std::vector<std::vector<unsigned> > &indices, unsigned d = 0,
-                                float m = 1.0) { return dynet::hinge_dim(x, indices, d, m); }
+  inline tensor hinge_dim(const tensor &x, const std::vector<std::vector<unsigned> > &indices, unsigned d = 0,
+                          float m = 1.0) { return dynet::hinge_dim(x, indices, d, m); }
 
 
 /**
@@ -875,7 +878,7 @@ namespace tg {
  *
  * \return The sparsemax of the scores
  */
-    inline tensor sparsemax(const tensor &x) { return dynet::sparsemax(x); }
+  inline tensor sparsemax(const tensor &x) { return dynet::sparsemax(x); }
 
 /**
  * \ingroup lossoperations
@@ -892,9 +895,9 @@ namespace tg {
  *
  * \return The sparsemax loss of the labels
  */
-    inline tensor sparsemax_loss(const tensor &x, const std::vector<unsigned> &target_support) {
-      return dynet::sparsemax_loss(x, target_support);
-    }
+  inline tensor sparsemax_loss(const tensor &x, const std::vector<unsigned> &target_support) {
+    return dynet::sparsemax_loss(x, target_support);
+  }
 
 
 /**
@@ -908,9 +911,9 @@ namespace tg {
  *
  * \return The constrained softmax of the scores.
  */
-    inline tensor constrained_softmax(const tensor &x, const tensor &y) {
-      return dynet::constrained_softmax(x, y);
-    }
+  inline tensor constrained_softmax(const tensor &x, const tensor &y) {
+    return dynet::constrained_softmax(x, y);
+  }
 
 /**
  * \ingroup lossoperations
@@ -921,7 +924,7 @@ namespace tg {
  *
  * \return The squared L2 norm
  */
-    inline tensor squared_norm(const tensor &x) { return dynet::squared_norm(x); }
+  inline tensor squared_norm(const tensor &x) { return dynet::squared_norm(x); }
 
 /**
  * \ingroup lossoperations
@@ -932,7 +935,7 @@ namespace tg {
  *
  * \return The L2 norm
  */
-    inline tensor l2_norm(const tensor &x) { return dynet::l2_norm(x); }
+  inline tensor l2_norm(const tensor &x) { return dynet::l2_norm(x); }
 
 /**
  * \ingroup lossoperations
@@ -944,9 +947,9 @@ namespace tg {
  *
  * \return The squared distance
  */
-    inline tensor squared_distance(const tensor &x, const tensor &y) {
-      return dynet::squared_distance(x, y);
-    }
+  inline tensor squared_distance(const tensor &x, const tensor &y) {
+    return dynet::squared_distance(x, y);
+  }
 
 /**
  * \ingroup lossoperations
@@ -958,7 +961,7 @@ namespace tg {
  *
  * \return The squared distance
  */
-    inline tensor l1_distance(const tensor &x, const tensor &y) { return dynet::l1_distance(x, y); }
+  inline tensor l1_distance(const tensor &x, const tensor &y) { return dynet::l1_distance(x, y); }
 
 /**
  * \ingroup lossoperations
@@ -979,9 +982,9 @@ namespace tg {
  *
  * \return The huber distance
  */
-    inline tensor huber_distance(const tensor &x, const tensor &y, float c = 1.345f) {
-      return dynet::huber_distance(x, y, c);
-    }
+  inline tensor huber_distance(const tensor &x, const tensor &y, float c = 1.345f) {
+    return dynet::huber_distance(x, y, c);
+  }
 
 /**
  * \ingroup lossoperations
@@ -994,7 +997,7 @@ namespace tg {
  *
  * \return The log loss of the sigmoid function
  */
-    inline tensor binary_log_loss(const tensor &x, const tensor &y) { return dynet::binary_log_loss(x, y); }
+  inline tensor binary_log_loss(const tensor &x, const tensor &y) { return dynet::binary_log_loss(x, y); }
 
 /**
  * \ingroup lossoperations
@@ -1008,9 +1011,9 @@ namespace tg {
  *
  * \return The pairwise rank loss
  */
-    inline tensor pairwise_rank_loss(const tensor &x, const tensor &y, float m = 1.0) {
-      return dynet::pairwise_rank_loss(x, y, m);
-    }
+  inline tensor pairwise_rank_loss(const tensor &x, const tensor &y, float m = 1.0) {
+    return dynet::pairwise_rank_loss(x, y, m);
+  }
 
 /**
  * \ingroup lossoperations
@@ -1025,7 +1028,7 @@ namespace tg {
  *
  * \return The Poisson loss
  */
-    inline tensor poisson_loss(const tensor &x, unsigned y) { return dynet::poisson_loss(x, y); }
+  inline tensor poisson_loss(const tensor &x, unsigned y) { return dynet::poisson_loss(x, y); }
 
 
 ////////////////////////////////////////////////
@@ -1043,7 +1046,7 @@ namespace tg {
  *
  * \return The new expression
  */
-    inline tensor nobackprop(const tensor &x) { return dynet::nobackprop(x); }
+  inline tensor nobackprop(const tensor &x) { return dynet::nobackprop(x); }
 
 /**
  * \ingroup flowoperations
@@ -1055,7 +1058,7 @@ namespace tg {
  *
  * \return An output expression containing the same as input (only effects the backprop process)
  */
-    inline tensor flip_gradient(const tensor &x) { return dynet::flip_gradient(x); }
+  inline tensor flip_gradient(const tensor &x) { return dynet::flip_gradient(x); }
 
 /**
  * \ingroup flowoperations
@@ -1067,9 +1070,9 @@ namespace tg {
  *
  * \return An output expression containing the same as input (only effects the backprop process)
  */
-    inline tensor scale_gradient(const tensor &x, float lambd = 1.0f) {
-      return dynet::scale_gradient(x, lambd);
-    }
+  inline tensor scale_gradient(const tensor &x, float lambd = 1.0f) {
+    return dynet::scale_gradient(x, lambd);
+  }
 
 
 /**
@@ -1084,9 +1087,9 @@ namespace tg {
  *
  * \return A mini-batched expression containing the picked elements
  */
-    inline tensor pick(const tensor &x, const std::vector<unsigned> &v, unsigned d = 0) {
-      return dynet::pick(x, v, d);
-    }
+  inline tensor pick(const tensor &x, const std::vector<unsigned> &v, unsigned d = 0) {
+    return dynet::pick(x, v, d);
+  }
 
 
 /**
@@ -1124,7 +1127,7 @@ namespace tg {
  * \return The expression of picked batch element. The picked element is a tensor
  *         whose `bd` equals to one.
  */
-    inline tensor pick_batch_elem(const tensor &x, unsigned v) { return dynet::pick_batch_elem(x, v); }
+  inline tensor pick_batch_elem(const tensor &x, unsigned v) { return dynet::pick_batch_elem(x, v); }
 
 /**
  * \ingroup flowoperations
@@ -1165,8 +1168,8 @@ namespace tg {
  * \return The expression of picked batch elements. The batch elements is a tensor
  *         whose `bd` equals to the size of vector `v`.
  */
-    inline tensor
-    pick_batch_elems(const tensor &x, const std::vector<unsigned> &v) { return dynet::pick_batch_elems(x, v); }
+  inline tensor
+  pick_batch_elems(const tensor &x, const std::vector<unsigned> &v) { return dynet::pick_batch_elems(x, v); }
 
 /**
  * \ingroup flowoperations
@@ -1178,7 +1181,7 @@ namespace tg {
  * \return The expression of picked batch element. The picked element is a tensor
  *         whose `bd` equals to one.
  */
-    inline tensor pick_batch_elem(const tensor &x, const unsigned *v) { return dynet::pick_batch_elem(x, v); }
+  inline tensor pick_batch_elem(const tensor &x, const unsigned *v) { return dynet::pick_batch_elem(x, v); }
 
 /**
  * \ingroup flowoperations
@@ -1190,8 +1193,8 @@ namespace tg {
  * \return The expression of picked batch elements. The batch elements is a tensor
  *         whose `bd` equals to the size of vector `v`.
  */
-    inline tensor
-    pick_batch_elems(const tensor &x, const std::vector<unsigned> *pv) { return dynet::pick_batch_elems(x, pv); }
+  inline tensor
+  pick_batch_elems(const tensor &x, const std::vector<unsigned> *pv) { return dynet::pick_batch_elems(x, pv); }
 
 /**
  * \ingroup flowoperations
@@ -1203,9 +1206,9 @@ namespace tg {
  *
  * \return The expression with the batch dimensions concatenated
  */
-    inline tensor concatenate_to_batch(const std::vector<tensor> &xs) {
-      return dynet::concatenate_to_batch(tensor::vector_cast_to_base(xs));
-    }
+  inline tensor concatenate_to_batch(const std::vector<tensor> &xs) {
+    return dynet::concatenate_to_batch(tensor::vector_cast_to_base(xs));
+  }
 
 /**
  * \ingroup flowoperations
@@ -1219,9 +1222,9 @@ namespace tg {
  *
  * \return The value of x[from[0]:to[0]:strides[0],..] (as it would be in numpy syntax)
  */
-    inline tensor
-    strided_select(const tensor &x, const std::vector<int> &strides, const std::vector<int> &from = {},
-                   const std::vector<int> &to = {}) { return dynet::strided_select(x, strides); }
+  inline tensor
+  strided_select(const tensor &x, const std::vector<int> &strides, const std::vector<int> &from = {},
+                 const std::vector<int> &to = {}) { return dynet::strided_select(x, strides); }
 
 
 /**
@@ -1234,7 +1237,9 @@ namespace tg {
  *
  * \return The expression with the columns concatenated
  */
-    inline tensor concatenate_cols(const std::vector<tensor> &xs) { return dynet::concatenate_cols(tensor::vector_cast_to_base(xs)); }
+  inline tensor concatenate_cols(const std::vector<tensor> &xs) {
+    return dynet::concatenate_cols(tensor::vector_cast_to_base(xs));
+  }
 
 /**
  * \ingroup flowoperations
@@ -1249,14 +1254,14 @@ namespace tg {
  *
  * \return The expression with the specified dimension concatenated
  */
-    inline tensor
-    concatenate(const std::initializer_list<tensor> &xs, unsigned d = 0) {
-      return dynet::concatenate(tensor::vector_cast_to_base(xs), d);
-    }
+  inline tensor
+  concatenate(const std::initializer_list<tensor> &xs, unsigned d = 0) {
+    return dynet::concatenate(tensor::vector_cast_to_base(xs), d);
+  }
 
-    inline tensor concatenate(const std::vector<tensor> &xs, unsigned d = 0) {
-      return dynet::concatenate(tensor::vector_cast_to_base(xs), d);
-    }
+  inline tensor concatenate(const std::vector<tensor> &xs, unsigned d = 0) {
+    return dynet::concatenate(tensor::vector_cast_to_base(xs), d);
+  }
 
 /**
  * \ingroup flowoperations
@@ -1271,7 +1276,7 @@ namespace tg {
  *
  * \return An expression of sub-tensor with max value along dimension d
  */
-    inline tensor max_dim(const tensor &x, unsigned d = 0) { return dynet::max_dim(x, d); }
+  inline tensor max_dim(const tensor &x, unsigned d = 0) { return dynet::max_dim(x, d); }
 
 /**
  * \ingroup flowoperations
@@ -1286,7 +1291,7 @@ namespace tg {
  *
  * \return An expression of sub-tensor with min value along dimension d
  */
-    inline tensor min_dim(const tensor &x, unsigned d = 0) { return dynet::min_dim(x, d); }
+  inline tensor min_dim(const tensor &x, unsigned d = 0) { return dynet::min_dim(x, d); }
 
 
 ////////////////////////////////////////////////
@@ -1303,7 +1308,7 @@ namespace tg {
  *
  * \return The noised expression
  */
-    inline tensor noise(const tensor &x, float stddev) { return dynet::noise(x, stddev); }
+  inline tensor noise(const tensor &x, float stddev) { return dynet::noise(x, stddev); }
 
 /**
  * \ingroup noiseoperations
@@ -1324,7 +1329,7 @@ namespace tg {
  *
  * \return The dropped out expression
  */
-    inline tensor dropout(const tensor &x, float p) { return dynet::dropout(x, p); }
+  inline tensor dropout(const tensor &x, float p) { return dynet::dropout(x, p); }
 
 /**
  * \ingroup noiseoperations
@@ -1339,7 +1344,7 @@ namespace tg {
  *
  * \return The dropped out expression
  */
-    inline tensor dropout_dim(const tensor &x, unsigned d, float p) { return dynet::dropout_dim(x, d, p); }
+  inline tensor dropout_dim(const tensor &x, unsigned d, float p) { return dynet::dropout_dim(x, d, p); }
 
 /**
  * \ingroup noiseoperations
@@ -1351,7 +1356,7 @@ namespace tg {
  *
  * \return The dropped out expression
  */
-    inline tensor dropout_batch(const tensor &x, float p) { return dynet::dropout_batch(x, p); }
+  inline tensor dropout_batch(const tensor &x, float p) { return dynet::dropout_batch(x, p); }
 
 /**
  * \ingroup noiseoperations
@@ -1365,7 +1370,7 @@ namespace tg {
  *
  * \return The block dropout expression
  */
-    inline tensor block_dropout(const tensor &x, float p) { return dynet::block_dropout(x, p); }
+  inline tensor block_dropout(const tensor &x, float p) { return dynet::block_dropout(x, p); }
 
 
 ////////////////////////////////////////////////
@@ -1382,7 +1387,7 @@ namespace tg {
  *
  * \return Matrix
  */
-    inline tensor contract3d_1d(const tensor &x, const tensor &y) { return dynet::contract3d_1d(x, y); }
+  inline tensor contract3d_1d(const tensor &x, const tensor &y) { return dynet::contract3d_1d(x, y); }
 // z_i = x_ijk * y_k * z_j (+ b_i)
 /**
  * \ingroup tensoroperations
@@ -1396,9 +1401,9 @@ namespace tg {
  * \param z Vector
  * \return Vector
  */
-    inline tensor contract3d_1d_1d(const tensor &x, const tensor &y, const tensor &z) {
-      return dynet::contract3d_1d_1d(x, y, z);
-    }
+  inline tensor contract3d_1d_1d(const tensor &x, const tensor &y, const tensor &z) {
+    return dynet::contract3d_1d_1d(x, y, z);
+  }
 
 /**
  * \ingroup tensoroperations
@@ -1413,8 +1418,8 @@ namespace tg {
  * \param b Bias vector
  * \return Vector
  */
-    inline tensor contract3d_1d_1d(const tensor &x, const tensor &y, const tensor &z,
-                                       const tensor &b) { return dynet::contract3d_1d_1d(x, y, z, b); }
+  inline tensor contract3d_1d_1d(const tensor &x, const tensor &y, const tensor &z,
+                                 const tensor &b) { return dynet::contract3d_1d_1d(x, y, z, b); }
 // z_ij = x_ijk * y_k + b_ij
 /**
  * \ingroup tensoroperations
@@ -1426,9 +1431,9 @@ namespace tg {
  * \param b Bias matrix
  * \return Matrix
  */
-    inline tensor contract3d_1d(const tensor &x, const tensor &y, const tensor &b) {
-      return dynet::contract3d_1d(x, y, b);
-    }
+  inline tensor contract3d_1d(const tensor &x, const tensor &y, const tensor &b) {
+    return dynet::contract3d_1d(x, y, b);
+  }
 
 
 ////////////////////////////////////////////////
@@ -1447,7 +1452,7 @@ namespace tg {
  *
  * \return The inverse of the matrix
  */
-    inline tensor inverse(const tensor &x) { return dynet::inverse(x); }
+  inline tensor inverse(const tensor &x) { return dynet::inverse(x); }
 
 /**
  * \ingroup linalgoperations
@@ -1460,7 +1465,7 @@ namespace tg {
  *
  * \return The log of its determinant
  */
-    inline tensor logdet(const tensor &x) { return dynet::logdet(x); }
+  inline tensor logdet(const tensor &x) { return dynet::logdet(x); }
 
 /**
  * \ingroup linalgoperations
@@ -1474,9 +1479,9 @@ namespace tg {
  *
  * \return trace(x1 * x2)
  */
-    inline tensor trace_of_product(const tensor &x, const tensor &y) {
-      return dynet::trace_of_product(x, y);
-    }
+  inline tensor trace_of_product(const tensor &x, const tensor &y) {
+    return dynet::trace_of_product(x, y);
+  }
 
 ////////////////////////////////////////////////
 // Normalization operations                   //
@@ -1502,29 +1507,29 @@ namespace tg {
  * \param b Bias (same dimension as x, no batch dimension)
  * \return An expression of the same dimension as `x`
  */
-    inline tensor
-    layer_norm(const tensor &x, const tensor &g, const tensor &b) { return dynet::layer_norm(x, g, b); }
+  inline tensor
+  layer_norm(const tensor &x, const tensor &g, const tensor &b) { return dynet::layer_norm(x, g, b); }
 
 
-    /**
-     * find the index of the largest value
-     * \param logits must be of dim{n}
-     * \return
-     */
-    inline unsigned argmax_index(const tensor &logits) {
-      auto logits_value = as_vector(dyana::_cg().incremental_forward(logits));
+  /**
+   * find the index of the largest value
+   * \param logits must be of dim{n}
+   * \return
+   */
+  inline unsigned argmax_index(const tensor &logits) {
+    auto logits_value = as_vector(dyana::_cg().incremental_forward(logits));
 
-      float max_value = logits_value[0];
-      unsigned max_index = 0;
-      for (unsigned i = 1; i < logits_value.size(); ++i) {
-        float val = logits_value[i];
-        if (val > max_value) {
-          max_value = val;
-          max_index = i;
-        }
+    float max_value = logits_value[0];
+    unsigned max_index = 0;
+    for (unsigned i = 1; i < logits_value.size(); ++i) {
+      float val = logits_value[i];
+      if (val > max_value) {
+        max_value = val;
+        max_index = i;
       }
-      return max_index;
     }
+    return max_index;
+  }
 
 /**
  * \ingroup normoperations
@@ -1543,31 +1548,44 @@ namespace tg {
  * \param g Gain (scalar expression, usually also a parameter)
  * \return An expression of the same dimension as `w`
  */
-    inline tensor weight_norm(const tensor &w, const tensor &g) { return dynet::weight_norm(w, g); }
+  inline tensor weight_norm(const tensor &w, const tensor &g) { return dynet::weight_norm(w, g); }
 
-    inline tensor operator+(const tensor& x, const tensor& y) {return dynet::operator+(x, y);}
-    inline tensor operator+(const tensor& x, float y) {return dynet::operator+(x, y);}
-    inline tensor operator+(const float x, const tensor& y) {return dynet::operator+(x, y);}
-    inline tensor operator+(const tensor& x, const parameter& y) {return x + dyana::tensor(y);}
-    inline tensor operator+(const parameter& x, const tensor& y) {return dyana::tensor(x) + y;}
+  inline tensor operator+(const tensor &x, const tensor &y) { return dynet::operator+(x, y); }
 
-    inline tensor operator-(const tensor& x, const tensor& y) {return dynet::operator-(x, y);}
-    inline tensor operator-(const tensor& x, float y) {return dynet::operator-(x, y);}
-    inline tensor operator-(float x, const tensor& y) {return dynet::operator-(x, y);}
-    inline tensor operator-(const tensor& x) {return dynet::operator-(x);}
-    inline tensor operator-(const tensor& x, const parameter& y) {return x - dyana::tensor(y);}
-    inline tensor operator-(const parameter& x, const tensor& y) {return dyana::tensor(x) - y;}
+  inline tensor operator+(const tensor &x, float y) { return dynet::operator+(x, y); }
 
-    inline tensor operator*(const tensor& x, const tensor& y) {return dynet::operator*(x, y);}
-    inline tensor operator*(const tensor& x, float y) {return dynet::operator*(x, y);}
-    inline tensor operator*(float x, const tensor& y) {return dynet::operator*(x, y);}
-    inline tensor operator*(const tensor& x, const parameter& y) {return x * dyana::tensor(y);}
-    inline tensor operator*(const parameter& x, const tensor& y) {return dyana::tensor(x) * y;}
+  inline tensor operator+(const float x, const tensor &y) { return dynet::operator+(x, y); }
 
-    inline tensor operator/(const tensor& x, float y) {return dynet::operator/(x, y);}
-    inline tensor operator/(const parameter& x, float y) {return dyana::tensor(x) / y;}
+  inline tensor operator+(const tensor &x, const parameter &y) { return x + dyana::tensor(y); }
 
-  }
+  inline tensor operator+(const parameter &x, const tensor &y) { return dyana::tensor(x) + y; }
+
+  inline tensor operator-(const tensor &x, const tensor &y) { return dynet::operator-(x, y); }
+
+  inline tensor operator-(const tensor &x, float y) { return dynet::operator-(x, y); }
+
+  inline tensor operator-(float x, const tensor &y) { return dynet::operator-(x, y); }
+
+  inline tensor operator-(const tensor &x) { return dynet::operator-(x); }
+
+  inline tensor operator-(const tensor &x, const parameter &y) { return x - dyana::tensor(y); }
+
+  inline tensor operator-(const parameter &x, const tensor &y) { return dyana::tensor(x) - y; }
+
+  inline tensor operator*(const tensor &x, const tensor &y) { return dynet::operator*(x, y); }
+
+  inline tensor operator*(const tensor &x, float y) { return dynet::operator*(x, y); }
+
+  inline tensor operator*(float x, const tensor &y) { return dynet::operator*(x, y); }
+
+  inline tensor operator*(const tensor &x, const parameter &y) { return x * dyana::tensor(y); }
+
+  inline tensor operator*(const parameter &x, const tensor &y) { return dyana::tensor(x) * y; }
+
+  inline tensor operator/(const tensor &x, float y) { return dynet::operator/(x, y); }
+
+  inline tensor operator/(const parameter &x, float y) { return dyana::tensor(x) / y; }
+
 }
 
 #endif //DYANA_OPERATIONS_HPP

@@ -7,8 +7,8 @@
 using namespace tg;
 using namespace std;
 class XorModel {
-  dyana::linear_layer fc1;
-  dyana::linear_layer fc2;
+  dyana::linear_dense_layer fc1;
+  dyana::linear_dense_layer fc2;
 public:
   EASY_SERIALIZABLE(fc1, fc2)
   XorModel(const XorModel&) = default;

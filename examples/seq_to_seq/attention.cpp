@@ -118,8 +118,8 @@ private:
   dyana::mono_lookup_readout e_embedding_table;
   dyana::bidirectional_vanilla_lstm encoder;
   dyana::vanilla_lstm decoder;
-  dyana::linear_layer attention_fc1;
-  dyana::linear_layer attention_fc2;
+  dyana::linear_dense_layer attention_fc1;
+  dyana::linear_dense_layer attention_fc2;
 
   dyana::tensor compute_context(const vector<dyana::tensor>& f_hiddens, const dyana::vanilla_lstm::stacked_cell_state& prev_cell_state) {
     auto flattened = dyana::vanilla_lstm::flatten_stacked_cell_state(prev_cell_state);

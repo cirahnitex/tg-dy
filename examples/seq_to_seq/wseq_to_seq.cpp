@@ -117,7 +117,7 @@ private:
   dyana::mono_lookup_readout e_embedding_table;
   dyana::vanilla_lstm encoder;
   dyana::vanilla_lstm decoder;
-  dyana::linear_layer output_fc;
+  dyana::linear_dense_layer output_fc;
 };
 
 int main() {

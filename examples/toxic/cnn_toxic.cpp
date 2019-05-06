@@ -58,7 +58,7 @@ private:
   dyana::conv1d_layer conv0;
   dyana::conv1d_layer conv1;
   dyana::conv1d_layer conv2;
-  dyana::linear_layer fc;
+  dyana::linear_dense_layer fc;
   dyana::multi_readout_model ro;
 };
 
