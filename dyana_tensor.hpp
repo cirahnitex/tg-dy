@@ -84,6 +84,16 @@ namespace dyana {
     }
   };
 
+  template<typename NUMBER_RANGE>
+  std::vector<float> _convert_to_float_range(NUMBER_RANGE&& xs) {
+    std::vector<float> ret;
+    ret.reserve(xs.size());
+    for(auto&& x:xs) {
+      ret.push_back((float)x);
+    }
+    return ret;
+  }
+
   class tensor : public dynet::Expression {
   public:
     tensor() : dynet::Expression() { increment_cnt(); };
@@ -99,16 +109,35 @@ namespace dyana {
     tensor(const dyana::parameter &x) : dynet::Expression(
       dynet::parameter(_cg(), *x._dynet_parameter_m)) { increment_cnt(); }
 
-    tensor(float x) : dynet::Expression(dynet::input(dyana::_cg(), x)) { increment_cnt(); }
+    explicit tensor(float x) : dynet::Expression(dynet::input(dyana::_cg(), x)) { increment_cnt(); }
 
-    tensor(const std::vector<float> x) : dynet::Expression(
+    template<typename T, typename  = typename std::enable_if<std::is_convertible_v<T, float>, int>::type>
+    explicit tensor(T&& x) : dynet::Expression(dynet::input(dyana::_cg(), (float)x)) { increment_cnt(); }
+
+    explicit tensor(const std::vector<float> x) : dynet::Expression(
       dynet::input(dyana::_cg(), {(unsigned) x.size()}, x)) { increment_cnt(); }
+
+    explicit tensor(const std::vector<double> x) : dynet::Expression(
+      dynet::input(dyana::_cg(), {(unsigned) x.size()}, _convert_to_float_range(x))) { increment_cnt(); }
+
+    explicit tensor(const std::vector<bool> x) : dynet::Expression(
+      dynet::input(dyana::_cg(), {(unsigned) x.size()}, _convert_to_float_range(x))) { increment_cnt(); }
+
+    template<typename T>
+    explicit tensor(const std::vector<T>&& x) : dynet::Expression(
+      dynet::input(dyana::_cg(), {(unsigned) x.size()}, _convert_to_float_range(x))) { increment_cnt(); }
 
     tensor(const std::initializer_list<float> x) : dynet::Expression(
       dynet::input(dyana::_cg(), {(unsigned) x.size()}, x)) { increment_cnt(); }
 
     tensor(const std::vector<float> &values, const dynet::Dim &dim) : dynet::Expression(
       dynet::input(dyana::_cg(), dim, values)) { increment_cnt(); }
+
+    tensor(const std::vector<double> &values, const dynet::Dim &dim) : dynet::Expression(
+      dynet::input(dyana::_cg(), dim, _convert_to_float_range(values))) { increment_cnt(); }
+
+    tensor(const std::vector<bool> &values, const dynet::Dim &dim) : dynet::Expression(
+      dynet::input(dyana::_cg(), dim, _convert_to_float_range(values))) { increment_cnt(); }
 
     tensor(const std::initializer_list<float> &values, const dynet::Dim &dim) : dynet::Expression(
       dynet::input(dyana::_cg(), dim, values)) { increment_cnt(); }

@@ -16,20 +16,20 @@ public:
 
   xor_model():fc_0(4), fc_1(1) {}
 
-  dyana::tensor transduce_numeric(const dyana::tensor &x, const dyana::tensor &y) {
+  dyana::tensor operator()(const dyana::tensor &x, const dyana::tensor &y) {
     auto t = dyana::concatenate({x, y});
     t = dyana::tanh(fc_0(t));
     return dyana::logistic(fc_1(t));
   }
 
   bool operator()(bool x, bool y) {
-    dyana::tensor numeric_result = transduce_numeric((float)x, (float)y);
+    dyana::tensor numeric_result = operator()((dyana::tensor)x, (dyana::tensor)y);
     return numeric_result.as_scalar() > 0.5;
   }
 
   dyana::tensor compute_loss(bool x, bool y, bool oracle) {
-    dyana::tensor numeric_result = transduce_numeric((float)x, (float)y);
-    return dyana::binary_log_loss(numeric_result, (float)oracle);
+    dyana::tensor numeric_result = operator()((dyana::tensor)x, (dyana::tensor)y);
+    return dyana::binary_log_loss(numeric_result, (dyana::tensor)oracle);
   }
 };
 
