@@ -99,7 +99,7 @@ namespace dyana {
     tensor(const dyana::parameter &x) : dynet::Expression(
       dynet::parameter(_cg(), *x._dynet_parameter_m)) { increment_cnt(); }
 
-    explicit tensor(float x) : dynet::Expression(dynet::input(dyana::_cg(), x)) { increment_cnt(); }
+    tensor(float x) : dynet::Expression(dynet::input(dyana::_cg(), x)) { increment_cnt(); }
 
     tensor(const std::vector<float> x) : dynet::Expression(
       dynet::input(dyana::_cg(), {(unsigned) x.size()}, x)) { increment_cnt(); }
