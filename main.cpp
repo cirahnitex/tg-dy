@@ -4,22 +4,21 @@
 using namespace std;
 
 class xor_model {
-  dyana::linear_dense_layer fc_0;
-  dyana::linear_dense_layer fc_1;
+  dyana::linear_dense_layer dense0;
+  dyana::linear_dense_layer dense1;
 public:
-  EASY_SERIALIZABLE(fc_0, fc_1)
+  EASY_SERIALIZABLE(dense0, dense1)
 
+  xor_model():dense0(2), dense1(1) {}
   xor_model(const xor_model&) = default;
   xor_model(xor_model&&) noexcept = default;
   xor_model &operator=(const xor_model&) = default;
   xor_model &operator=(xor_model&&) noexcept = default;
 
-  xor_model():fc_0(4), fc_1(1) {}
-
   dyana::tensor operator()(const dyana::tensor &x, const dyana::tensor &y) {
     auto t = dyana::concatenate({x, y});
-    t = dyana::tanh(fc_0(t));
-    return dyana::logistic(fc_1(t));
+    t = dyana::logistic(dense0(t));
+    return dyana::logistic(dense1(t));
   }
 
   bool operator()(bool x, bool y) {
@@ -36,19 +35,21 @@ public:
 int main() {
   dyana::initialize();
 
-  vector<bool> x0s{true, true, false, false};
-  vector<bool> x1s{true, false, true, false};
+  vector<bool> input0s{true, true, false, false};
+  vector<bool> input1s{true, false, true, false};
   vector<bool> oracles{false, true, true, false};
 
   xor_model my_model;
 
   dyana::adam_trainer trainer(0.1);
-  trainer.num_workers = 10;
   trainer.num_epochs = 100;
-  trainer.train(my_model, x0s, x1s, oracles);
+  trainer.num_workers = 4;
+  trainer.train(my_model, input0s, input1s, oracles);
 
-  for(const auto &[x0, x1]:dyana::zip(x0s, x1s)) {
-    cout << my_model(x0, x1) <<endl;
+
+  cout << "input0" << "," << "input1" << "," << "output" <<endl;
+  for(const auto &[input0, input1]:dyana::zip(input0s, input1s)) {
+    cout << input0 << "," << input1 << "," << my_model(input0, input1) <<endl;
   }
 
   return 0;

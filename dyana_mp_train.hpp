@@ -112,7 +112,6 @@ namespace dyana {
       :
       compute_loss(compute_loss), save(save) {
       if (training_set.empty()) return;
-      _force_garbage_collection();
       compute_loss(
         training_set[0]); // for its side-effect only. to ensure that all lazy-initialized layers has been initialized before going parallel
       if (num_workers <= 1) {
@@ -147,7 +146,7 @@ namespace dyana {
     std::function<void()> save;
   };
 
-  std::vector<std::tuple<>> zip() {
+  inline std::vector<std::tuple<>> zip() {
     return {};
   }
 
@@ -362,7 +361,12 @@ namespace dyana {
       _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple, compute_loss_tuple, save_behavior);
     }
   public:
-
+    virtual ~trainer_base() {
+      // perform parameter collection GC only when destroying a trainer
+      // because parameter collection GC will invalidate existing trainers
+      // as a result, performing GC here is techically not 100% safe, but enough for daily use
+      _force_garbage_collection();
+    }
     /**
      * train your model on a training set. For each epochs, it reports the score on the training set (to standard error)
      * \param model your model. must have a compute_loss function that returns a loss value as tensor

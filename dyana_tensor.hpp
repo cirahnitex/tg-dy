@@ -430,6 +430,7 @@ namespace dyana {
 
   inline void _force_garbage_collection() {
     if (parameter::num_dead() <= 0 && lookup_parameter::num_dead() <= 0) return;
+    using namespace std;
     auto new_pc = new dynet::ParameterCollection();
     for (const auto &dp:parameter::alives()) {
       auto new_p = new_pc->add_parameters(dp->dim());
