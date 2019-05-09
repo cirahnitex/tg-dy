@@ -24,27 +24,11 @@ namespace dyana {
 
     immutable_dict &operator=(immutable_dict &&) = default;
 
-    template<typename InputIterator>
-    immutable_dict(InputIterator _begin, InputIterator _end) :
+    template<typename RANGE_EXP>
+    explicit immutable_dict(RANGE_EXP&& entries) :
       dict(std::make_shared<dynet::Dict>()) {
-      for (auto itr = _begin; itr != _end; ++itr) {
+      for (auto itr = std::begin(entries); itr != std::end(entries); ++itr) {
         dict->convert(*itr);
-      }
-      dict->freeze();
-      dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);
-    }
-
-    explicit immutable_dict(const std::unordered_set<std::string> &entries) : immutable_dict(entries.begin(),
-                                                                                             entries.end()) {}
-
-    explicit immutable_dict(const std::unordered_set<std::string> &entries,
-                            const std::unordered_set<std::string> &more_entries) :
-      dict(std::make_shared<dynet::Dict>()) {
-      for (const auto &entry:entries) {
-        dict->convert(entry);
-      }
-      for (const auto &entry:more_entries) {
-        dict->convert(entry);
       }
       dict->freeze();
       dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);

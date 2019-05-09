@@ -30,18 +30,9 @@ namespace dyana {
      * construct given a set of labels
      * \param labels the set of all possible labels
      */
-    readout_model(const std::unordered_set<std::string> &labels) :
+    template<typename RANGE_EXP>
+    explicit readout_model(RANGE_EXP &&labels) :
       dict(labels), fc(dict.size()) {
-    }
-
-    /**
-     * construct given two sets of labels.
-     * this is the same as calling the previous constructor with two sets concatenated together
-     * \param labels the set of all possible labels, part-I
-     * \param more_labels the set of all possible labels, part-II
-     */
-    readout_model(const std::unordered_set<std::string> &labels, const std::unordered_set<std::string> &more_labels) :
-      dict(labels, more_labels), fc(dict.size()) {
     }
 
     /**

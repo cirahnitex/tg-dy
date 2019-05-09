@@ -33,7 +33,8 @@ namespace dyana {
      * \param embedding_size the size of embedding
      * \param tokens the list of tokens
      */
-    embedding_lookup(unsigned embedding_size, const std::unordered_set<std::string> &tokens) :
+    template<typename RANGE_EXP>
+    embedding_lookup(unsigned embedding_size, RANGE_EXP &&tokens) :
       dict(std::make_shared<dynet::Dict>()),
       capacity(),
       embedding_size(embedding_size),
@@ -54,7 +55,8 @@ namespace dyana {
      * \param tokens the list of tokens
      * \param lookup_init_embedding how to get initial embedding from a token. this function may return an empty std::vector or even throw an exception to indicate that the initial embedding of a given token is unknown
      */
-    embedding_lookup(unsigned embedding_size, const std::unordered_set<std::string> &tokens,
+    template<typename RANGE_EXP>
+    embedding_lookup(unsigned embedding_size, RANGE_EXP &&tokens,
                      std::function<std::vector<float>(const std::string &)> lookup_init_embedding) : embedding_lookup(
       embedding_size, tokens) {
       for (const auto &token:list_tokens()) {

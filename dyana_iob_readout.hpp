@@ -20,7 +20,8 @@ namespace dyana {
 
     iob_readout &operator=(iob_readout &&) = default;
 
-    iob_readout(const std::unordered_set<std::string> &tokens) :
+    template<typename RANGE_EXP>
+    iob_readout(RANGE_EXP &&tokens) :
       iobes_readout_base({"I", "B"}, tokens) {}
 
   protected:

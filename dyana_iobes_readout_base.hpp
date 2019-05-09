@@ -7,10 +7,8 @@
 
 #include "dyana.hpp"
 #include <dynet/dynet.h>
-#include <srl_graph.hpp>
+#include <chart.hpp>
 
-
-typedef tg::srl_graph<std::size_t, std::size_t, std::string, std::string> web_srl_graph;
 namespace dyana {
   class iobes_readout_base {
   public:
@@ -24,11 +22,13 @@ namespace dyana {
 
     iobes_readout_base &operator=(iobes_readout_base &&) = default;
 
-    typedef web_srl_graph::item_type labeled_span_type;
+    typedef tg::labeled_span<tg::span<unsigned>, std::string> labeled_span_type;
 
-    iobes_readout_base(const std::unordered_set<std::string> &prefixes, const std::unordered_set<std::string> &labels) :
+    template<typename RANGE_EXP0, typename RANGE_EXP1>
+    iobes_readout_base(RANGE_EXP0 &&prefixes, RANGE_EXP1 &&labels) :
       ro_prefix(prefixes),
-      ro_label(std::unordered_set<std::string>({""}), labels) {}
+      ro_label(labels) {
+      }
 
     /**
      * train the IOBES labeler
@@ -38,7 +38,7 @@ namespace dyana {
      * \return
      */
     dyana::tensor
-    compute_loss(const std::vector<dyana::tensor> &embeddings_in, const std::vector<web_srl_graph::item_type> oracle) {
+    compute_loss(const std::vector<dyana::tensor> &embeddings_in, const std::vector<labeled_span_type> &oracle) {
       std::vector<dyana::tensor> ret;
       for (unsigned i = 0; i < embeddings_in.size(); i++) {
         std::string prefix_oracle, label_oracle;
@@ -60,13 +60,13 @@ namespace dyana {
      * \param embeddings_in embedding of each token in sentence
      * \return
      */
-    std::vector<web_srl_graph::item_type> operator()(const std::vector<dyana::tensor> &embeddings_in) {
+    std::vector<labeled_span_type> operator()(const std::vector<dyana::tensor> &embeddings_in) {
       enum {
         OUTSIDE, INSIDE
       } state = OUTSIDE;
       unsigned s_anchor = 0;
       std::string label_anchor;
-      std::vector<web_srl_graph::item_type> ret;
+      std::vector<labeled_span_type> ret;
       for (unsigned i = 0; i < embeddings_in.size(); ++i) {
         auto embedding = embeddings_in[i];
         auto prefix = ro_prefix.operator()(embedding);
@@ -117,7 +117,7 @@ namespace dyana {
 
   protected:
     virtual std::pair<std::string, std::string> get_prefixed_label_at_token_index(unsigned index,
-                                                                                  const std::vector<web_srl_graph::item_type> &labeled_spans) const = 0;
+                                                                                  const std::vector<labeled_span_type> &labeled_spans) const = 0;
 
     dyana::readout_model ro_prefix;
     dyana::readout_model ro_label;
