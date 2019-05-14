@@ -179,32 +179,28 @@ namespace dyana {
   private:
     template<typename MODEL, typename D0>
     void _fit_with_dev_set_helper(MODEL &model, const std::function<void()> &save_behavior, D0&& trainingset_p0, D0&& devset_p0) {
-      using V0 = typename std::decay_t<D0>::value_type;
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
       using datum_type = std::tuple<V0>;
       auto training_set_tuple = zip(trainingset_p0);
       auto dev_set_tuple = zip(devset_p0);
 
-      auto compute_loss = [&](auto&&... args) {
-        return model.compute_loss(args...);
-      };
-      auto compute_loss_tuple = [&](auto&& args_pack) {
-        return std::apply(compute_loss, args_pack);
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(get<0>(args_pack));
       };
       _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple, compute_loss_tuple, save_behavior);
     }
     template<typename MODEL, typename D0, typename D1>
     void _fit_with_dev_set_helper(MODEL &model,const std::function<void()> &save_behavior, D0&& trainingset_p0, D1&& trainingset_p1, D0&& devset_p0, D1&& devset_p1) {
-      using V0 = typename std::decay_t<D0>::value_type;
-      using V1 = typename std::decay_t<D1>::value_type;
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using V1 = typename std::decay<D1>::type::value_type;
       using datum_type = std::tuple<V0, V1>;
       auto training_set_tuple = zip(trainingset_p0, trainingset_p1);
       auto dev_set_tuple = zip(devset_p0, devset_p1);
 
-      auto compute_loss = [&](auto&&... args) {
-        return model.compute_loss(args...);
-      };
-      auto compute_loss_tuple = [&](auto&& args_pack) {
-        return std::apply(compute_loss, args_pack);
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(get<0>(args_pack), get<1>(args_pack));
       };
 
       _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple, compute_loss_tuple, save_behavior);
@@ -213,18 +209,16 @@ namespace dyana {
     void _fit_with_dev_set_helper(MODEL &model, const std::function<void()> &save_behavior,
                                   D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2,
                                   D0&& devset_p0, D1&& devset_p1, D2&& devset_p2) {
-      using V0 = typename std::decay_t<D0>::value_type;
-      using V1 = typename std::decay_t<D1>::value_type;
-      using V2 = typename std::decay_t<D2>::value_type;
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using V1 = typename std::decay<D1>::type::value_type;
+      using V2 = typename std::decay<D2>::type::value_type;
       using datum_type = std::tuple<V0, V1, V2>;
       auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2);
       auto dev_set_tuple = zip(devset_p0, devset_p1, devset_p2);
 
-      auto compute_loss = [&](auto&&... args) {
-        return model.compute_loss(args...);
-      };
-      auto compute_loss_tuple = [&](auto&& args_pack) {
-        return std::apply(compute_loss, args_pack);
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(get<0>(args_pack), get<1>(args_pack), get<2>(args_pack));
       };
 
       _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple, compute_loss_tuple, save_behavior);
@@ -233,19 +227,17 @@ namespace dyana {
     void _fit_with_dev_set_helper(MODEL &model, const std::function<void()> &save_behavior,
                                   D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3,
                                   D0&& devset_p0, D1&& devset_p1, D2&& devset_p2, D3&& devset_p3) {
-      using V0 = typename std::decay_t<D0>::value_type;
-      using V1 = typename std::decay_t<D1>::value_type;
-      using V2 = typename std::decay_t<D2>::value_type;
-      using V3 = typename std::decay_t<D3>::value_type;
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using V1 = typename std::decay<D1>::type::value_type;
+      using V2 = typename std::decay<D2>::type::value_type;
+      using V3 = typename std::decay<D3>::type::value_type;
       using datum_type = std::tuple<V0, V1, V2, V3>;
       auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3);
       auto dev_set_tuple = zip(devset_p0, devset_p1, devset_p2, devset_p3);
 
-      auto compute_loss = [&](auto&&... args) {
-        return model.compute_loss(args...);
-      };
-      auto compute_loss_tuple = [&](auto&& args_pack) {
-        return std::apply(compute_loss, args_pack);
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack));
       };
 
       _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple, compute_loss_tuple, save_behavior);
@@ -256,20 +248,20 @@ namespace dyana {
                                   D4&& trainingset_p4,
                                   D0&& devset_p0, D1&& devset_p1, D2&& devset_p2, D3&& devset_p3,
                                   D4&& devset_p4) {
-      using V0 = typename std::decay_t<D0>::value_type;
-      using V1 = typename std::decay_t<D1>::value_type;
-      using V2 = typename std::decay_t<D2>::value_type;
-      using V3 = typename std::decay_t<D3>::value_type;
-      using V4 = typename std::decay_t<D4>::value_type;
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using V1 = typename std::decay<D1>::type::value_type;
+      using V2 = typename std::decay<D2>::type::value_type;
+      using V3 = typename std::decay<D3>::type::value_type;
+      using V4 = typename std::decay<D4>::type::value_type;
       using datum_type = std::tuple<V0, V1, V2, V3, V4>;
       auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3, trainingset_p4);
       auto dev_set_tuple = zip(devset_p0, devset_p1, devset_p2, devset_p3, devset_p4);
 
-      auto compute_loss = [&](auto&&... args) {
-        return model.compute_loss(args...);
-      };
-      auto compute_loss_tuple = [&](auto&& args_pack) {
-        return std::apply(compute_loss, args_pack);
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(
+          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
+          get<4>(args_pack));
       };
 
       _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple, compute_loss_tuple, save_behavior);
@@ -280,21 +272,21 @@ namespace dyana {
                                   D4&& trainingset_p4, D5&& trainingset_p5,
                                   D0&& devset_p0, D1&& devset_p1, D2&& devset_p2, D3&& devset_p3,
                                   D4&& devset_p4, D5&& devset_p5) {
-      using V0 = typename std::decay_t<D0>::value_type;
-      using V1 = typename std::decay_t<D1>::value_type;
-      using V2 = typename std::decay_t<D2>::value_type;
-      using V3 = typename std::decay_t<D3>::value_type;
-      using V4 = typename std::decay_t<D4>::value_type;
-      using V5 = typename std::decay_t<D5>::value_type;
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using V1 = typename std::decay<D1>::type::value_type;
+      using V2 = typename std::decay<D2>::type::value_type;
+      using V3 = typename std::decay<D3>::type::value_type;
+      using V4 = typename std::decay<D4>::type::value_type;
+      using V5 = typename std::decay<D5>::type::value_type;
       using datum_type = std::tuple<V0, V1, V2, V3, V4, V5>;
       auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3, trainingset_p4, trainingset_p5);
       auto dev_set_tuple = zip(devset_p0, devset_p1, devset_p2, devset_p3, devset_p4, devset_p5);
 
-      auto compute_loss = [&](auto&&... args) {
-        return model.compute_loss(args...);
-      };
-      auto compute_loss_tuple = [&](auto&& args_pack) {
-        return std::apply(compute_loss, args_pack);
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(
+          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
+          get<4>(args_pack), get<5>(args_pack));
       };
 
       _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple, compute_loss_tuple, save_behavior);
@@ -305,13 +297,14 @@ namespace dyana {
                                   D4&& trainingset_p4, D5&& trainingset_p5, D6&& trainingset_p6,
                                   D0&& devset_p0, D1&& devset_p1, D2&& devset_p2, D3&& devset_p3,
                                   D4&& devset_p4, D5&& devset_p5, D6&& devset_p6) {
-      using V0 = typename std::decay_t<D0>::value_type;
-      using V1 = typename std::decay_t<D1>::value_type;
-      using V2 = typename std::decay_t<D2>::value_type;
-      using V3 = typename std::decay_t<D3>::value_type;
-      using V4 = typename std::decay_t<D4>::value_type;
-      using V5 = typename std::decay_t<D5>::value_type;
-      using V6 = typename std::decay_t<D6>::value_type;
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using V1 = typename std::decay<D1>::type::value_type;
+      using V2 = typename std::decay<D2>::type::value_type;
+      using V3 = typename std::decay<D3>::type::value_type;
+      using V4 = typename std::decay<D4>::type::value_type;
+      using V5 = typename std::decay<D5>::type::value_type;
+      using V6 = typename std::decay<D6>::type::value_type;
       using datum_type = std::tuple<V0, V1, V2, V3, V4, V5, V6>;
       auto training_set_tuple = zip(
         trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3,
@@ -320,11 +313,10 @@ namespace dyana {
         devset_p0, devset_p1, devset_p2, devset_p3,
         devset_p4, devset_p5, devset_p6);
 
-      auto compute_loss = [&](auto&&... args) {
-        return model.compute_loss(args...);
-      };
-      auto compute_loss_tuple = [&](auto&& args_pack) {
-        return std::apply(compute_loss, args_pack);
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(
+          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
+          get<4>(args_pack), get<5>(args_pack), get<6>(args_pack));
       };
 
       _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple, compute_loss_tuple, save_behavior);
@@ -335,14 +327,15 @@ namespace dyana {
                                   D4&& trainingset_p4, D5&& trainingset_p5, D6&& trainingset_p6, D7&& trainingset_p7,
                                   D0&& devset_p0, D1&& devset_p1, D2&& devset_p2, D3&& devset_p3,
                                   D4&& devset_p4, D5&& devset_p5, D6&& devset_p6, D7&& devset_p7) {
-      using V0 = typename std::decay_t<D0>::value_type;
-      using V1 = typename std::decay_t<D1>::value_type;
-      using V2 = typename std::decay_t<D2>::value_type;
-      using V3 = typename std::decay_t<D3>::value_type;
-      using V4 = typename std::decay_t<D4>::value_type;
-      using V5 = typename std::decay_t<D5>::value_type;
-      using V6 = typename std::decay_t<D6>::value_type;
-      using V7 = typename std::decay_t<D7>::value_type;
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using V1 = typename std::decay<D1>::type::value_type;
+      using V2 = typename std::decay<D2>::type::value_type;
+      using V3 = typename std::decay<D3>::type::value_type;
+      using V4 = typename std::decay<D4>::type::value_type;
+      using V5 = typename std::decay<D5>::type::value_type;
+      using V6 = typename std::decay<D6>::type::value_type;
+      using V7 = typename std::decay<D7>::type::value_type;
       using datum_type = std::tuple<V0, V1, V2, V3, V4, V5, V6, V7>;
       auto training_set_tuple = zip(
         trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3,
@@ -351,14 +344,169 @@ namespace dyana {
         devset_p0, devset_p1, devset_p2, devset_p3,
         devset_p4, devset_p5, devset_p6, devset_p7);
 
-      auto compute_loss = [&](auto&&... args) {
-        return model.compute_loss(args...);
-      };
-      auto compute_loss_tuple = [&](auto&& args_pack) {
-        return std::apply(compute_loss, args_pack);
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(
+          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
+          get<4>(args_pack), get<5>(args_pack), get<6>(args_pack), get<7>(args_pack));
       };
 
       _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple, compute_loss_tuple, save_behavior);
+    }
+
+
+
+    template<typename MODEL, typename D0>
+    void _fit_helper(MODEL &model, const std::function<void()> &save_behavior, D0&& trainingset_p0) {
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using datum_type = std::tuple<V0>;
+      auto training_set_tuple = zip(trainingset_p0);
+
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(get<0>(args_pack));
+      };
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+    }
+    template<typename MODEL, typename D0, typename D1>
+    void _fit_helper(MODEL &model,const std::function<void()> &save_behavior, D0&& trainingset_p0, D1&& trainingset_p1) {
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using V1 = typename std::decay<D1>::type::value_type;
+      using datum_type = std::tuple<V0, V1>;
+      auto training_set_tuple = zip(trainingset_p0, trainingset_p1);
+
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(get<0>(args_pack), get<1>(args_pack));
+      };
+
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+    }
+    template<typename MODEL, typename D0, typename D1, typename D2>
+    void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
+                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2) {
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using V1 = typename std::decay<D1>::type::value_type;
+      using V2 = typename std::decay<D2>::type::value_type;
+      using datum_type = std::tuple<V0, V1, V2>;
+      auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2);
+
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(get<0>(args_pack), get<1>(args_pack), get<2>(args_pack));
+      };
+
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+    }
+    template<typename MODEL, typename D0, typename D1, typename D2, typename D3>
+    void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
+                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3) {
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using V1 = typename std::decay<D1>::type::value_type;
+      using V2 = typename std::decay<D2>::type::value_type;
+      using V3 = typename std::decay<D3>::type::value_type;
+      using datum_type = std::tuple<V0, V1, V2, V3>;
+      auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3);
+
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack));
+      };
+
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+    }
+    template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4>
+    void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
+                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3,
+                                  D4&& trainingset_p4) {
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using V1 = typename std::decay<D1>::type::value_type;
+      using V2 = typename std::decay<D2>::type::value_type;
+      using V3 = typename std::decay<D3>::type::value_type;
+      using V4 = typename std::decay<D4>::type::value_type;
+      using datum_type = std::tuple<V0, V1, V2, V3, V4>;
+      auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3, trainingset_p4);
+
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(
+          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
+          get<4>(args_pack));
+      };
+
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+    }
+    template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5>
+    void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
+                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3,
+                                  D4&& trainingset_p4, D5&& trainingset_p5) {
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using V1 = typename std::decay<D1>::type::value_type;
+      using V2 = typename std::decay<D2>::type::value_type;
+      using V3 = typename std::decay<D3>::type::value_type;
+      using V4 = typename std::decay<D4>::type::value_type;
+      using V5 = typename std::decay<D5>::type::value_type;
+      using datum_type = std::tuple<V0, V1, V2, V3, V4, V5>;
+      auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3, trainingset_p4, trainingset_p5);
+
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(
+          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
+          get<4>(args_pack), get<5>(args_pack));
+      };
+
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+    }
+    template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5, typename D6>
+    void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
+                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3,
+                                  D4&& trainingset_p4, D5&& trainingset_p5, D6&& trainingset_p6) {
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using V1 = typename std::decay<D1>::type::value_type;
+      using V2 = typename std::decay<D2>::type::value_type;
+      using V3 = typename std::decay<D3>::type::value_type;
+      using V4 = typename std::decay<D4>::type::value_type;
+      using V5 = typename std::decay<D5>::type::value_type;
+      using V6 = typename std::decay<D6>::type::value_type;
+      using datum_type = std::tuple<V0, V1, V2, V3, V4, V5, V6>;
+      auto training_set_tuple = zip(
+        trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3,
+        trainingset_p4, trainingset_p5, trainingset_p6);
+
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(
+          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
+          get<4>(args_pack), get<5>(args_pack), get<6>(args_pack));
+      };
+
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+    }
+    template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5, typename D6, typename D7>
+    void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
+                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3,
+                                  D4&& trainingset_p4, D5&& trainingset_p5, D6&& trainingset_p6, D7&& trainingset_p7) {
+      using namespace std;
+      using V0 = typename std::decay<D0>::type::value_type;
+      using V1 = typename std::decay<D1>::type::value_type;
+      using V2 = typename std::decay<D2>::type::value_type;
+      using V3 = typename std::decay<D3>::type::value_type;
+      using V4 = typename std::decay<D4>::type::value_type;
+      using V5 = typename std::decay<D5>::type::value_type;
+      using V6 = typename std::decay<D6>::type::value_type;
+      using V7 = typename std::decay<D7>::type::value_type;
+      using datum_type = std::tuple<V0, V1, V2, V3, V4, V5, V6, V7>;
+      auto training_set_tuple = zip(
+        trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3,
+        trainingset_p4, trainingset_p5, trainingset_p6, trainingset_p7);
+
+      auto compute_loss_tuple = [&](const datum_type &args_pack) {
+        return model.compute_loss(
+          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
+          get<4>(args_pack), get<5>(args_pack), get<6>(args_pack), get<7>(args_pack));
+      };
+
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
     }
   public:
     virtual ~trainer_base() {
@@ -379,17 +527,7 @@ namespace dyana {
      */
     template<typename MODEL, typename ...DATASET>
     void train(MODEL &model, DATASET ...training_set) {
-      auto training_set_tuple = zip(training_set...);
-
-      auto compute_loss = [&](auto&&... args) {
-        return model.compute_loss(args...);
-      };
-      auto compute_loss_tuple = [&](auto&& args_pack) {
-        return std::apply(compute_loss, args_pack);
-      };
-
-      using DATASET_TUPLE = std::tuple<typename DATASET::value_type...>;
-      _mp_train_learner<DATASET_TUPLE>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, std::vector<DATASET_TUPLE>{}, compute_loss_tuple, [](){});
+      _fit_helper(model, [](){}, training_set...);
     }
 
     /**

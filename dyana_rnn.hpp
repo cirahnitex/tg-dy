@@ -82,7 +82,9 @@ namespace dyana {
     std::pair<stacked_cell_state, std::vector<dyana::tensor>>
     predict(const stacked_cell_state &prev_state, const std::vector<dyana::tensor> &x_sequence) {
       if (x_sequence.empty()) return std::make_pair(default_cell_state(), std::vector<dyana::tensor>());
-      auto[_state, y] = predict(prev_state, x_sequence[0]);
+      stacked_cell_state _state;
+      dyana::tensor y;
+      std::tie(_state, y) = predict(prev_state, x_sequence[0]);
       std::vector<dyana::tensor> ys;
       ys.push_back(std::move(y));
       for (unsigned i = 1; i < x_sequence.size(); i++) {
