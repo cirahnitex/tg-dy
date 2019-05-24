@@ -1,113 +1,223 @@
 #include <iostream>
-#include "dyana.hpp"
-#include <xml_archive.hpp>
+#include <vector>
+#include <dyana.hpp>
+#include <stdexcept>
+#include <algorithm>
 
-using namespace std;
+//using namespace std;
+//using namespace dynet;
 
-struct labeled_image {
-  std::vector<float> pixels;
-  std::string oracle;
+// do not use cpp math function since the training need those information
 
-};
+dyana::tensor normalize(const dyana::tensor& x);
 
-struct dataset_t {
-  unsigned width;
-  unsigned height;
-  std::vector<std::string> labels;
-  std::vector<labeled_image> data;
+dyana::tensor max1d(const dyana::tensor& x);
 
-  template<typename Archive>
-  void serialize(Archive &ar) {
-    ar(cereal::make_nvp("width", width));
-    ar(cereal::make_nvp("height", height));
-    ar.nest_list("digits", labels, [&](string &label) {
-      ar(cereal::make_nvp("digit", label));
-    });
-    ar.nest_list("images", data, [&](labeled_image &datum) {
-      ar.attribute("digit", datum.oracle);
-      ar.nest_list("image", datum.pixels, [&](float &pixel) {
-        ar(cereal::make_nvp("px", pixel));
-      });
-    });
-  }
-};
-
-class mnist_model {
-  unsigned image_width_m;
-  unsigned image_height_m;
-  dyana::conv2d_layer conv0_m;
-  dyana::conv2d_layer conv1_m;
-  dyana::readout_model final_readout_m;
+class tanh_dense_layer
+{
+  // tanh dense layer requires a linear dense layer under the hood
+  dyana::linear_dense_layer fc_m;
 public:
-  EASY_SERIALIZABLE(image_width_m, image_height_m, conv0_m, conv1_m, final_readout_m)
+  // SL layer macro
+  EASY_SERIALIZABLE(fc_m);
 
-  template<typename RANGE_EXP>
-  mnist_model(unsigned image_width, unsigned image_height, RANGE_EXP &&labels)
-    : image_width_m(image_width), image_height_m(image_height), conv0_m(16, 5, 5), conv1_m(32, 3, 3),
-      final_readout_m(labels) {}
+  tanh_dense_layer() = default; // default constructor
+  tanh_dense_layer(const tanh_dense_layer&) = default; // copy constructor
+  tanh_dense_layer(tanh_dense_layer&&) noexcept = default; // move constructor && gives rvalue
 
-  mnist_model(const mnist_model &) = default;
+  tanh_dense_layer &operator = (const tanh_dense_layer&) = default;
+  tanh_dense_layer &operator = (tanh_dense_layer&&) noexcept = default;
 
-  mnist_model(mnist_model &&) noexcept = default;
+  explicit tanh_dense_layer(unsigned dim_out):fc_m(dim_out) {}
 
-  mnist_model &operator=(const mnist_model &) = default;
+  explicit tanh_dense_layer(const dyana::linear_dense_layer& ori_layer): fc_m(ori_layer) {}
 
-  mnist_model &operator=(mnist_model &&) noexcept = default;
-
-  dyana::tensor get_image_embedding(const vector<float> &pixels) {
-    if (pixels.size() != image_width_m * image_height_m) throw std::runtime_error("unexpected image resolution");
-    dyana::tensor x(pixels, {image_width_m, image_height_m});
-    x = dyana::tanh(conv0_m(x));
-    x = dyana::maxpooling2d(x, 3, 3, 3, 3);
-    x = dyana::tanh(conv1_m(x));
-    return dyana::max_dim(dyana::max_dim(x));
+  dyana::tensor operator()(const dyana::tensor &x) {
+    return dyana::tanh(fc_m(x));
   }
 
-  string operator()(const vector<float> &pixels) {
-    return final_readout_m(get_image_embedding(pixels));
-  }
-
-  dyana::tensor compute_loss(const labeled_image &img) {
-    return final_readout_m.compute_loss(get_image_embedding(img.pixels), img.oracle);
-  }
 };
 
-int main() {
+
+class xor_model {
+  dyana::linear_dense_layer dense0;
+  dyana::linear_dense_layer dense1;
+public:
+  EASY_SERIALIZABLE(dense0, dense1);
+
+  xor_model():dense0(2), dense1(1) {}
+  // ouput of dim layer dense0 is called hiddend units. to solve XOR, at least need 2.
+  xor_model(const xor_model&) = default;
+  xor_model(xor_model&&) noexcept = default;
+  xor_model &operator = (const xor_model&) = default;
+  xor_model &operator = (xor_model&&) = default;
+
+  // a transduce method to stacking two sigmoid dense layers historically named as logistic
+  // S-function is a kind of logistc function = 1/(1+exp[-x])
+
+  dyana::tensor operator()(const dyana::tensor &x, const dyana::tensor &y) {
+    auto t = dyana::concatenate({x,y});
+    t = dyana::logistic(dense0(t));
+    return dyana::logistic(dense1(t));
+  }
+
+
+  // wraper of the tensor function
+  bool operator()(bool x, bool y) {
+    dyana::tensor numeric_result = operator()((dyana::tensor)x, (dyana::tensor)y);
+    //std::cout << numeric_result;
+    return numeric_result.as_scalar()>0.5;
+  }
+
+  // binary log loss
+  // y ln(y hat) + (1 - y) ln(1 - y hat)
+  dyana::tensor compute_loss(bool x, bool y, bool oracle) {
+    dyana::tensor numeric_result = operator()((dyana::tensor)x, (dyana::tensor)y);
+    return dyana::binary_log_loss(numeric_result, (dyana::tensor)oracle);
+  }
+
+};
+
+
+int main(int argc, char** argv) {
+
+  /*dynet::initialize(argc, argv);
+  // create pc and trainer
+  dynet::ParameterCollection pc;
+  dynet::SimpleSGDTrainer trainer(pc);
+
+  // defines flow of information
+  dynet::ComputationGraph cg;
+
+  // training matrix?
+  dynet::Expression W = parameter(cg, pc.add_parameters({1,3}));
+
+  // input and output?
+  vector<dynet::real> x_values(3);
+  dynet::Expression x = input(cg, {3}, &x_values);
+  dynet::real y_value;
+  dynet::Expression y = input(cg, &y_value);
+  // prediction from x
+  dynet::Expression y_pred = logistic(W*x);
+
+  // calculate departure?
+  dynet::Expression l = binary_log_loss(y_pred, y);
+  cg.print_graphviz();
+  // example
+  x_values = {0.5, 0.3, 0.7};
+  y_value = 1.0;
+
+  // forward propagates values through computation graph, return loss
+  dynet::real loss = as_scalar(cg.forward(l));
+  cg.backward(l);
+  trainer.update();
+
+std::cout << loss;
+    */
+
   dyana::initialize();
 
-  dataset_t trainingset;
-  {
-    cout << "loading mnist.xml" << endl;
-    ifstream ifs("mnist.xml");
-    hltc_xml_input_archive ia(ifs);
-    ia >> trainingset;
-    cout << "# of images loaded " << trainingset.data.size() << endl;
-  }
 
-  unsigned cut = trainingset.data.size() * 9 / 10;
-  vector<labeled_image> devset;
-  std::move(trainingset.data.begin() + cut, trainingset.data.end(), back_inserter(devset));
-  trainingset.data.resize(cut);
+  /*
+  dyana::tensor W({1,2,3,4,5,6},{3,2});
+  dyana::tensor x({-1,0});
 
-  mnist_model model(trainingset.width, trainingset.height, trainingset.labels);
+  dyana::tensor y = W*x;
 
-  cout << "training" << endl;
-  dyana::adam_trainer trainer;
+  y = normalize(y);
+
+  std::vector<float> values = y.as_vector();
+
+  for (auto val:values) std::cout << val << " ";
+  std::cout << std::endl;
+
+  std::cout << "Max value: " << max1d(y).as_scalar() << std::endl;
+  */
+
+
+  // linear dense layer
+  /*
+  dyana::linear_dense_layer dense(2); // dim 2 output linear layer
+
+  tanh_dense_layer test_tanh(dense);
+
+  dyana::tensor x({-1, 0, 1, 2, 3}); //input
+
+  dyana::tensor y = dense(x); // apply
+
+  dyana::tensor ty = test_tanh(x);
+
+  std::vector<float> values = y.as_vector();
+
+  for (auto val: values) std::cout << val << " ";
+  std::cout << std::endl;
+
+  for (auto val : ty.as_vector()) std::cout << val << " ";
+  std::cout << std::endl;
+  */
+  // you will see different result as the layer is initialized randomly
+  // the layer only take output dimension, when this has been applied first time, it will be initialized
+
+
+  // will see error by running also:
+  /*
+  dyana::tensor x2({1,2});
+  dyana::tensor y2 = dense(x2);
+  for (auto val: y2.as_vector()) std::cout << val << " ";
+  std::cout << std::endl;
+  */
+  //terminate called after throwing an instance of 'std::runtime_error' what():  linear dense layer: input dimension mismatch. expected 5, got 2 Aborted (core dumped)
+
+
+
+  // training
+  // test
+  std::vector<bool> input0s{true, true, false, false};
+  std::vector<bool> input1s{true, false, true, false};
+  std::vector<bool> oracles{false, true, true, false};
+
+  xor_model test;
+
+  dyana::adam_trainer trainer(0.1); // train rate
+  trainer.num_epochs = 100;
   trainer.num_workers = 4;
-  trainer.num_epochs = 4;
-  trainer.train_reporting_dev_score(model, trainingset.data, devset);
-
-  cout << "dev testing" << endl;
-
-  unsigned total_cnt{};
-  unsigned correct_cnt{};
-  for (auto &&dev_img:devset) {
-    auto prediction = model(dev_img.pixels);
-    total_cnt++;
-    if (prediction == dev_img.oracle) correct_cnt++;
+  trainer.train(test, input0s, input1s, oracles);
+  /*
+  std::cout << "input0" << "," << "input1" << "," << "output" << std::endl;
+  for(const auto &[input0, input1]:dyana::zip(input0s, input1s)) {
+      using namespace std;
+      std::cout << input0 << "," << input1 << "," << my_model(input0, input1) << std::endl;
   }
-
-  cout << "dev accuracy = " << (correct_cnt / (double) total_cnt) << endl;
+  */
 
   return 0;
+
 }
+
+
+
+
+dyana::tensor normalize(const dyana::tensor& x) {
+  dyana::tensor modulus = dyana::l2_norm(x);
+  return dyana::cdiv(x, modulus + 1e-6);
+}
+
+// e.g. of good forward backward implement
+
+dyana::tensor max1d(const dyana::tensor& x) {
+  if(x.dim().nd !=1) throw std::runtime_error("max1d only works with rank 1 tensor");
+  std::vector<float> values = x.as_vector();
+  auto max_iter = std::max_element(values.begin(), values.end());
+  unsigned index_of_max_element = std::distance(max_iter, values.begin());
+  return x.at(index_of_max_element);
+}
+
+
+// layer concept
+// linear dense layer
+// custom layer
+
+// eg tanh dense layer
+
+
+

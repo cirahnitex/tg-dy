@@ -7,7 +7,6 @@
 
 #include "dyana_common.hpp"
 #include <dynet/dynet.h>
-#include <dict.hpp>
 #include <dynet/dict.h>
 #include <regex>
 #include "dyana_serialization_helper.hpp"

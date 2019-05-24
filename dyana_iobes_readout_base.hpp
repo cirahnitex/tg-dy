@@ -6,6 +6,7 @@
 #define FRAME_ANALYSIS_DYNET_IOBES_READOUT_BASE_HPP
 
 #include "dyana.hpp"
+#include <dict.hpp>
 #include <dynet/dynet.h>
 #include <chart.hpp>
 

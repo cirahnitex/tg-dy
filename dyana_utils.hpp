@@ -12,7 +12,6 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <ECMAScript_string_utils.hpp>
 #include <queue>
 
 
@@ -46,7 +45,7 @@ namespace dyana {
       for (const auto &p:counts) {
         pairs.push_back(p);
       }
-      std::sort(pairs.begin(), pairs.end(), [](const auto &x, const auto &y) { return x.second > y.second; });
+      std::sort(pairs.begin(), pairs.end(), [](const std::pair<std::string, unsigned> &x, const std::pair<std::string, unsigned> &y) { return x.second > y.second; });
       if (pairs.size() > size) pairs.resize(size);
       std::vector<std::string> ret;
       for (const auto &p:pairs) {
