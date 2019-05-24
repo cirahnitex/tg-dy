@@ -365,7 +365,7 @@ namespace dyana {
       auto compute_loss_tuple = [&](const datum_type &args_pack) {
         return model.compute_loss(get<0>(args_pack));
       };
-      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple, save_behavior);
     }
     template<typename MODEL, typename D0, typename D1>
     void _fit_helper(MODEL &model,const std::function<void()> &save_behavior, D0&& trainingset_p0, D1&& trainingset_p1) {
@@ -379,7 +379,7 @@ namespace dyana {
         return model.compute_loss(get<0>(args_pack), get<1>(args_pack));
       };
 
-      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple, save_behavior);
     }
     template<typename MODEL, typename D0, typename D1, typename D2>
     void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
@@ -395,7 +395,7 @@ namespace dyana {
         return model.compute_loss(get<0>(args_pack), get<1>(args_pack), get<2>(args_pack));
       };
 
-      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple, save_behavior);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3>
     void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
@@ -412,7 +412,7 @@ namespace dyana {
         return model.compute_loss(get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack));
       };
 
-      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple, save_behavior);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4>
     void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
@@ -433,7 +433,7 @@ namespace dyana {
           get<4>(args_pack));
       };
 
-      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple, save_behavior);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5>
     void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
@@ -455,7 +455,7 @@ namespace dyana {
           get<4>(args_pack), get<5>(args_pack));
       };
 
-      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple, save_behavior);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5, typename D6>
     void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
@@ -480,7 +480,7 @@ namespace dyana {
           get<4>(args_pack), get<5>(args_pack), get<6>(args_pack));
       };
 
-      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple, save_behavior);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5, typename D6, typename D7>
     void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
@@ -506,7 +506,7 @@ namespace dyana {
           get<4>(args_pack), get<5>(args_pack), get<6>(args_pack), get<7>(args_pack));
       };
 
-      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, compute_loss_tuple, save_behavior);
+      _mp_train_learner<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple, save_behavior);
     }
   public:
     virtual ~trainer_base() {
