@@ -19,7 +19,7 @@ namespace dyana {
   class rnn_cell_t {
   public:
     virtual std::pair<rnn_cell_state_t, dyana::tensor>
-    forward(const rnn_cell_state_t &prev_state, const dyana::tensor &x) = 0;
+    operator()(const rnn_cell_state_t &prev_state, const dyana::tensor &x) = 0;
   };
 
 
@@ -60,13 +60,19 @@ namespace dyana {
      *         1) the output
      */
     std::pair<stacked_cell_state, dyana::tensor>
-    predict(const stacked_cell_state &prev_state, const dyana::tensor &x) {
+    operator()(const stacked_cell_state &prev_state, const dyana::tensor &x) {
       tensor y = x;
       std::vector<rnn_cell_state_t> output_stacked_cell_state;
       for (unsigned i = 0; i < cells.size(); i++) {
         auto &cell = cells[i];
         auto _ = cell.forward(i < prev_state.size() ? prev_state[i] : rnn_cell_state_t(), y);
-        y = std::move(_.second);
+
+        if(use_residual()) {
+          y = y + std::move(_.second);
+        } else {
+          y = std::move(_.second);
+        }
+
         output_stacked_cell_state.push_back(std::move(_.first));
       }
       return std::make_pair(output_stacked_cell_state, y);
@@ -80,15 +86,15 @@ namespace dyana {
      *         1) the list of output in chronological order
      */
     std::pair<stacked_cell_state, std::vector<dyana::tensor>>
-    predict(const stacked_cell_state &prev_state, const std::vector<dyana::tensor> &x_sequence) {
+    operator()(const stacked_cell_state &prev_state, const std::vector<dyana::tensor> &x_sequence) {
       if (x_sequence.empty()) return std::make_pair(default_cell_state(), std::vector<dyana::tensor>());
       stacked_cell_state _state;
       dyana::tensor y;
-      std::tie(_state, y) = predict(prev_state, x_sequence[0]);
+      std::tie(_state, y) = operator()(prev_state, x_sequence[0]);
       std::vector<dyana::tensor> ys;
       ys.push_back(std::move(y));
       for (unsigned i = 1; i < x_sequence.size(); i++) {
-        std::tie(_state, y) = predict(_state, x_sequence[i]);
+        std::tie(_state, y) = operator()(_state, x_sequence[i]);
         ys.push_back(std::move(y));
       }
       return std::make_pair(std::move(_state), std::move(ys));
@@ -101,7 +107,7 @@ namespace dyana {
      *         1) the list of output in chronological order
      */
     std::pair<stacked_cell_state, std::vector<dyana::tensor>>
-    predict(const std::vector<dyana::tensor> &x_sequence) {
+    operator()(const std::vector<dyana::tensor> &x_sequence) {
       return predict(default_cell_state(), x_sequence);
     }
 
@@ -140,6 +146,15 @@ namespace dyana {
 
   protected:
     std::vector<RNN_CELL_T> cells;
+
+    bool use_residual() {
+
+      // use residual connection when # of stacks >= 4
+      // reference: arXiv:1609.08144v2
+      // Google’s Neural Machine Translation System: Bridging the Gap
+      // between Human and Machine Translation
+      return cells.size() >= 4;
+    }
   };
 
   template<class RNN_CELL_T>
@@ -222,7 +237,7 @@ namespace dyana {
     }
 
     virtual std::pair<rnn_cell_state_t, dyana::tensor>
-    forward(const rnn_cell_state_t &prev_state, const dyana::tensor &x) {
+    operator()(const rnn_cell_state_t &prev_state, const dyana::tensor &x) {
       if (prev_state.empty()) {
         throw std::runtime_error("RNN: previous cell state empty. call default_cell_state to get a default one");
       }
@@ -274,7 +289,7 @@ namespace dyana {
     }
 
     virtual std::pair<rnn_cell_state_t, dyana::tensor>
-    forward(const rnn_cell_state_t &prev_state, const dyana::tensor &x) {
+    operator()(const rnn_cell_state_t &prev_state, const dyana::tensor &x) {
       if (prev_state.empty()) {
         throw std::runtime_error("RNN: previous cell state empty. call default_cell_state to get a default one");
       }
@@ -327,7 +342,7 @@ namespace dyana {
     }
 
     virtual std::pair<rnn_cell_state_t, dyana::tensor>
-    forward(const rnn_cell_state_t &prev_state, const dyana::tensor &x) {
+    operator()(const rnn_cell_state_t &prev_state, const dyana::tensor &x) {
       if (prev_state.empty()) {
         throw std::runtime_error("RNN: previous cell state empty. call default_cell_state to get a default one");
       }
