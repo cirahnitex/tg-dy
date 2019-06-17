@@ -27,12 +27,14 @@ namespace dyana {
 
     static const unsigned SAMPLE_THRESHOLD = 128;
 
-    mono_lookup_readout(unsigned embedding_size, const std::unordered_set<std::string> &tokens) :
+    template<typename STRING_RANGE>
+    mono_lookup_readout(unsigned embedding_size, STRING_RANGE &&tokens) :
       embedding_lookup(embedding_size, tokens),
       readout_table({embedding_size + 1, capacity}) // embedding +1 for bias
     {}
 
-    mono_lookup_readout(unsigned embedding_size, const std::unordered_set<std::string> &tokens,
+    template<typename STRING_RANGE>
+    mono_lookup_readout(unsigned embedding_size, STRING_RANGE &&tokens,
                         std::function<std::vector<float>(const std::string &)> lookup_init_embedding) :
       embedding_lookup(embedding_size, tokens, lookup_init_embedding),
       readout_table({embedding_size + 1, capacity}) // embedding +1 for bias
