@@ -31,6 +31,10 @@ namespace dyana {
       if (with_bias) bias = parameter({output_channels});
     }
 
+    operator bool() {
+      return output_channels > 0;
+    }
+
     dyana::Dim calculate_output_dimension(unsigned input_height, unsigned input_width) {
       if (disable_padding) {
         return dyana::Dim({

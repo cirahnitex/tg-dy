@@ -31,6 +31,10 @@ namespace dyana {
 
     binary_readout_model &operator=(binary_readout_model &&) = default;
 
+    operator bool() const {
+      return (bool)fc;
+    }
+
     /**
      * performs prediction
      * \param x tensor<X> the embedding

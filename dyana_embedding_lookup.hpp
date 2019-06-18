@@ -97,6 +97,10 @@ namespace dyana {
       }
     }
 
+    operator bool() {
+      return embedding_size > 0;
+    }
+
     dyana::tensor operator()(const std::string &token, bool as_constant = false) const {
       return lookup(token_to_id(token), as_constant);
     }

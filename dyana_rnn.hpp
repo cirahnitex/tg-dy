@@ -44,6 +44,10 @@ namespace dyana {
       }
     }
 
+    operator bool() const {
+      return !cells.empty();
+    }
+
     stacked_cell_state default_cell_state() const {
       stacked_cell_state ret;
       for (const auto &cell:cells) {

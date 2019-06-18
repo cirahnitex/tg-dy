@@ -29,6 +29,10 @@
         : dim_in(0), dim_out(dim_out), W(), b({dim_out}) {
       }
 
+      operator bool() const {
+        return dim_out != 0;
+      }
+
       dyana::tensor operator()(const dyana::tensor &x) {
         ensure_init(x);
         if(x.dim()[0] != dim_in) throw std::runtime_error("linear dense layer: input dimension mismatch. expected " + std::to_string(dim_in) + ", got " + std::to_string(x.dim()[0]));

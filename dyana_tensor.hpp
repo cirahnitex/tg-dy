@@ -162,6 +162,10 @@ namespace dyana {
       return *this;
     };
 
+    operator bool() const {
+      return pg;
+    }
+
     /**
      * \brief Pick element
      * \details Pick a single element/row/column/sub-tensor.

@@ -38,12 +38,16 @@ namespace dyana {
                                                                                   fc(labels.size()) {
     }
 
+    operator bool() const {
+      return !labels.empty();
+    }
+
     /**
      * perform a prediction
      * \param x the embedding
      * \return predicted labels
      */
-    std::unordered_set<std::string> readout(const dyana::tensor &x) {
+    std::unordered_set<std::string> operator()(const dyana::tensor &x) {
       const auto evidences = fc.operator()(x).as_vector();
       std::unordered_set<std::string> ret;
       for (unsigned i = 0; i < labels.size(); i++) {

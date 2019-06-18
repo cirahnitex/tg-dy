@@ -35,6 +35,10 @@ namespace dyana {
       dict(labels), fc(dict.size()) {
     }
 
+    operator bool() const {
+      return (bool)fc;
+    }
+
     /**
      * given an embedding, predict a label
      * \param embedding tensor<X>

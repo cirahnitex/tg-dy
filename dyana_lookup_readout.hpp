@@ -46,6 +46,10 @@ namespace dyana {
       readout_table({embedding_size + 1, capacity}) // embedding +1 for bias
     {}
 
+    operator bool() const {
+      return embedding_size > 0;
+    }
+
     std::pair<dyana::tensor, dyana::tensor> transduce_with_loss(const std::string &token) const {
       auto id = token_to_id(token);
       auto ret_embedding = lookup(id);
