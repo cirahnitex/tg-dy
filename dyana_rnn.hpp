@@ -356,7 +356,7 @@ namespace dyana {
       auto output_gate_coef = dyana::logistic(output_gate.operator()(input_for_gates));
       auto gated_concat = dyana::concatenate({dyana::cmult(hidden, pre_input_gate_coef), x});
       auto output_candidate = dyana::tanh(input_fc.operator()(gated_concat));
-      auto after_forget = dyana::cmult(hidden, 1.0 - output_gate_coef);
+      auto after_forget = dyana::cmult(hidden, (float)1.0 - output_gate_coef);
       auto output_hidden = after_forget + dyana::cmult(output_gate_coef, output_candidate);
       return std::make_pair(rnn_cell_state_t({output_hidden}), output_hidden);
     }
