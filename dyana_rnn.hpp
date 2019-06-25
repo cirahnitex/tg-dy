@@ -38,9 +38,9 @@ namespace dyana {
 
     typedef std::vector<rnn_cell_state_t> stacked_cell_state;
 
-    rnn(unsigned num_stack, unsigned hidden_dim) : cells() {
+    rnn(unsigned num_stack, unsigned output_dim) : cells() {
       for (unsigned i = 0; i < num_stack; i++) {
-        cells.emplace_back(hidden_dim);
+        cells.emplace_back(output_dim);
       }
     }
 
@@ -174,8 +174,8 @@ namespace dyana {
 
     bidirectional_rnn &operator=(bidirectional_rnn &&) = default;
 
-    bidirectional_rnn(unsigned num_stack, unsigned hidden_dim) : forward_rnn(num_stack, hidden_dim),
-                                                                 backward_rnn(num_stack, hidden_dim) {}
+    bidirectional_rnn(unsigned num_stack, unsigned output_dim) : forward_rnn(num_stack, output_dim),
+                                                                 backward_rnn(num_stack, output_dim) {}
 
     typedef typename rnn<RNN_CELL_T>::stacked_cell_state inner_cell_state;
 
@@ -231,12 +231,12 @@ namespace dyana {
 
     vanilla_lstm_cell_t &operator=(vanilla_lstm_cell_t &&) = default;
 
-    vanilla_lstm_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), forget_gate(hidden_dim),
-                                               input_gate(hidden_dim), input_fc(hidden_dim),
-                                               output_gate(hidden_dim) {};
+    vanilla_lstm_cell_t(unsigned output_dim) : output_dim(output_dim), forget_gate(output_dim),
+                                               input_gate(output_dim), input_fc(output_dim),
+                                               output_gate(output_dim) {};
 
     rnn_cell_state_t default_cell_state() const {
-      auto zeros = dyana::zeros({hidden_dim});
+      auto zeros = dyana::zeros({output_dim});
       return rnn_cell_state_t({zeros, zeros});
     }
 
@@ -257,10 +257,10 @@ namespace dyana {
       return std::make_pair(rnn_cell_state_t({std::move(output_cell_state), output_hidden_state}), output_hidden_state);
     }
 
-    EASY_SERIALIZABLE(hidden_dim, forget_gate, input_gate, input_fc, output_gate)
+    EASY_SERIALIZABLE(output_dim, forget_gate, input_gate, input_fc, output_gate)
 
   private:
-    unsigned hidden_dim;
+    unsigned output_dim;
     linear_dense_layer forget_gate;
     linear_dense_layer input_gate;
     linear_dense_layer input_fc;
@@ -284,11 +284,11 @@ namespace dyana {
 
     coupled_lstm_cell_t &operator=(coupled_lstm_cell_t &&) = default;
 
-    coupled_lstm_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), forget_gate(hidden_dim), input_fc(hidden_dim),
-                                               output_gate(hidden_dim) {};
+    coupled_lstm_cell_t(unsigned output_dim) : output_dim(output_dim), forget_gate(output_dim), input_fc(output_dim),
+                                               output_gate(output_dim) {};
 
     rnn_cell_state_t default_cell_state() const {
-      auto zeros = dyana::zeros({hidden_dim});
+      auto zeros = dyana::zeros({output_dim});
       return rnn_cell_state_t({zeros, zeros});
     }
 
@@ -304,7 +304,7 @@ namespace dyana {
       auto forget_coef = dyana::logistic(forget_gate.operator()(concat));
       auto after_forget = dyana::cmult(cell_state, forget_coef);
       auto input_candidate = dyana::tanh(input_fc.operator()(concat));
-      auto input = dyana::cmult(1.0 - forget_coef, input_candidate);
+      auto input = dyana::cmult((float)1.0 - forget_coef, input_candidate);
       auto output_cell_state = after_forget + input;
       auto output_hidden_state = dyana::cmult(dyana::logistic(output_gate.operator()(concat)),
                                               dyana::tanh(output_cell_state));
@@ -312,10 +312,10 @@ namespace dyana {
       return std::make_pair(rnn_cell_state_t({std::move(output_cell_state), output_hidden_state}), output_hidden_state);
     }
 
-    EASY_SERIALIZABLE(hidden_dim, forget_gate, input_fc, output_gate)
+    EASY_SERIALIZABLE(output_dim, forget_gate, input_fc, output_gate)
 
   private:
-    unsigned hidden_dim;
+    unsigned output_dim;
     linear_dense_layer forget_gate;
     linear_dense_layer input_fc;
     linear_dense_layer output_gate;
@@ -338,11 +338,11 @@ namespace dyana {
 
     gru_cell_t &operator=(gru_cell_t &&) = default;
 
-    gru_cell_t(unsigned hidden_dim) : hidden_dim(hidden_dim), pre_input_gate(hidden_dim), input_fc(hidden_dim),
-                                      output_gate(hidden_dim) {};
+    gru_cell_t(unsigned output_dim) : output_dim(output_dim), pre_input_gate(output_dim), input_fc(output_dim),
+                                      output_gate(output_dim) {};
 
     rnn_cell_state_t default_cell_state() const {
-      return rnn_cell_state_t({dyana::zeros({hidden_dim})});
+      return rnn_cell_state_t({dyana::zeros({output_dim})});
     }
 
     virtual std::pair<rnn_cell_state_t, dyana::tensor>
@@ -361,10 +361,10 @@ namespace dyana {
       return std::make_pair(rnn_cell_state_t({output_hidden}), output_hidden);
     }
 
-    EASY_SERIALIZABLE(hidden_dim, pre_input_gate, input_fc, output_gate)
+    EASY_SERIALIZABLE(output_dim, pre_input_gate, input_fc, output_gate)
 
   private:
-    unsigned hidden_dim;
+    unsigned output_dim;
     linear_dense_layer pre_input_gate;
     linear_dense_layer input_fc;
     linear_dense_layer output_gate;
