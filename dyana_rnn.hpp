@@ -112,7 +112,7 @@ namespace dyana {
      */
     std::pair<stacked_cell_state, std::vector<dyana::tensor>>
     operator()(const std::vector<dyana::tensor> &x_sequence) {
-      return predict(default_cell_state(), x_sequence);
+      return operator()(default_cell_state(), x_sequence);
     }
 
     /**
@@ -186,10 +186,10 @@ namespace dyana {
      */
     std::vector<dyana::tensor>
     predict_output_sequence(const std::vector<dyana::tensor> &x_sequence) {
-      auto forward_ys = forward_rnn.predict(forward_rnn.default_cell_state(), x_sequence).second;
+      auto forward_ys = forward_rnn(forward_rnn.default_cell_state(), x_sequence).second;
       auto reversed_xs = x_sequence;
       std::reverse(reversed_xs.begin(), reversed_xs.end());
-      auto backward_ys = backward_rnn.predict(backward_rnn.default_cell_state(), reversed_xs).second;
+      auto backward_ys = backward_rnn(backward_rnn.default_cell_state(), reversed_xs).second;
       std::reverse(backward_ys.begin(), backward_ys.end());
       std::vector<dyana::tensor> ret;
       for (unsigned i = 0; i < forward_ys.size(); i++) {
@@ -204,10 +204,10 @@ namespace dyana {
      * \return concatenating the final output from both direction. i.e. forward output for t[-1] and reversed output for t[0]
      */
     dyana::tensor predict_output_final(const std::vector<dyana::tensor> &x_sequence) {
-      auto forward_ys = forward_rnn.predict(forward_rnn.default_cell_state(), x_sequence).second;
+      auto forward_ys = forward_rnn(forward_rnn.default_cell_state(), x_sequence).second;
       auto reversed_xs = x_sequence;
       std::reverse(reversed_xs.begin(), reversed_xs.end());
-      auto backward_ys = backward_rnn.predict(backward_rnn.default_cell_state(), reversed_xs).second;
+      auto backward_ys = backward_rnn(backward_rnn.default_cell_state(), reversed_xs).second;
       return dyana::concatenate({forward_ys.back(), backward_ys.back()});
     }
 
