@@ -70,6 +70,7 @@ namespace dyana {
 
     template<class Archive>
     void load(Archive &archive) {
+      using namespace std;
       if (_dynet_parameter_m && _dynet_parameter_m.use_count() <= 2) {
         alives().erase(_dynet_parameter_m);
         num_dead()++;

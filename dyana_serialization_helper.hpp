@@ -27,7 +27,7 @@ namespace dynet {
   template<class Archive>
   void save(Archive & archive, Dim const & dim)
   {
-    std::vector<unsigned> ds;
+    std::vector<long> ds;
     for(unsigned i=0; i<dim.ndims(); i++) {
       ds.push_back(dim[i]);
     }
@@ -51,10 +51,10 @@ namespace dynet {
   template<class Archive>
   void save(Archive & archive, Parameter const & p)
   {
+    using namespace std;
     bool isValid = (bool)p.p;
     archive(cereal::make_nvp("valid", isValid));
     if(!isValid) return;
-
     archive(cereal::make_nvp("dim",p.dim()));
     archive(cereal::make_nvp("data", dynet::as_vector(p.get_storage().values)));
   }
@@ -62,10 +62,10 @@ namespace dynet {
   template<class Archive>
   void load(Archive & archive, Parameter & p)
   {
+    using namespace std;
     bool isValid;
     archive(cereal::make_nvp("valid", isValid));
     if(!isValid) return;
-
     dynet::Dim dim;
     archive(cereal::make_nvp("dim", dim));
     std::vector<dynet::real> values;

@@ -12,6 +12,77 @@
 
 namespace dyana {
 
+/**
+ * \ingroup normoperations
+ * \brief Weight normalization
+ * \details Performs weight normalization :
+ *
+ * \f$
+ * \begin{split}
+ *    \hat{w} &= g\frac{w}{\Vert w\Vert}\\
+ * \end{split}
+ * \f$
+ *
+ * Reference : [Salimans, Kingma 2016](https://arxiv.org/abs/1602.07868)
+ *
+ * \param w Input expression (weight parameter)
+ * \param g Gain (scalar expression, usually also a parameter)
+ * \return An expression of the same dimension as `w`
+ */
+  inline tensor weight_norm(const tensor &w, const tensor &g) { return dynet::weight_norm(w, g); }
+
+  inline tensor operator+(const tensor &x, const tensor &y) { return dynet::operator+(x, y); }
+
+  inline tensor operator+(const tensor &x, float y) { return dynet::operator+(x, y); }
+
+  inline tensor operator+(const tensor &x, double y) { return dynet::operator+(x, (float)y); }
+
+  inline tensor operator+(const float x, const tensor &y) { return dynet::operator+(x, y); }
+
+  inline tensor operator+(const double x, const tensor &y) { return dynet::operator+((double)x, y); }
+
+  inline tensor operator+(const tensor &x, const parameter &y) { return x + dyana::tensor(y); }
+
+  inline tensor operator+(const parameter &x, const tensor &y) { return dyana::tensor(x) + y; }
+
+  inline tensor operator-(const tensor &x, const tensor &y) { return dynet::operator-(x, y); }
+
+  inline tensor operator-(const tensor &x, float y) { return dynet::operator-(x, y); }
+
+  inline tensor operator-(const tensor &x, double y) { return dynet::operator-(x, (float)y); }
+
+  inline tensor operator-(float x, const tensor &y) { return dynet::operator-(x, y); }
+
+  inline tensor operator-(double x, const tensor &y) { return dynet::operator-((float)x, y); }
+
+  inline tensor operator-(const tensor &x) { return dynet::operator-(x); }
+
+  inline tensor operator-(const tensor &x, const parameter &y) { return x - dyana::tensor(y); }
+
+  inline tensor operator-(const parameter &x, const tensor &y) { return dyana::tensor(x) - y; }
+
+  inline tensor operator*(const tensor &x, const tensor &y) { return dynet::operator*(x, y); }
+
+  inline tensor operator*(const tensor &x, float y) { return dynet::operator*(x, y); }
+
+  inline tensor operator*(const tensor &x, double y) { return dynet::operator*(x, (float)y); }
+
+  inline tensor operator*(float x, const tensor &y) { return dynet::operator*(x, y); }
+
+  inline tensor operator*(double x, const tensor &y) { return dynet::operator*((float)x, y); }
+
+  inline tensor operator*(const tensor &x, const parameter &y) { return x * dyana::tensor(y); }
+
+  inline tensor operator*(const parameter &x, const tensor &y) { return dyana::tensor(x) * y; }
+
+  inline tensor operator/(const tensor &x, float y) { return dynet::operator/(x, y); }
+
+  inline tensor operator/(const tensor &x, double y) { return dynet::operator/(x, (float)y); }
+
+  inline tensor operator/(const parameter &x, float y) { return dyana::tensor(x) / y; }
+
+  inline tensor operator/(const parameter &x, double y) { return dyana::tensor(x) / (float)y; }
+
   inline tensor zeros(const Dim &d) { return dynet::zeros(_cg(), d); }
 
   inline tensor ones(const Dim &d) { return dynet::ones(_cg(), d); }
@@ -474,7 +545,7 @@ namespace dyana {
  *
  * \return An expression where the ith element is equal to y_i = 1/(1+e^{-x_i})
  */
-  inline tensor logistic(const tensor &x) { return 0.5 * dynet::tanh(x * 0.5) + 0.5; }
+  inline tensor logistic(const tensor &x) { return 0.5 * dyana::tanh(x * 0.5) + 0.5; }
 
 /**
  * \ingroup arithmeticoperations
@@ -1530,62 +1601,6 @@ namespace dyana {
     }
     return max_index;
   }
-
-/**
- * \ingroup normoperations
- * \brief Weight normalization
- * \details Performs weight normalization :
- *
- * \f$
- * \begin{split}
- *    \hat{w} &= g\frac{w}{\Vert w\Vert}\\
- * \end{split}
- * \f$
- *
- * Reference : [Salimans, Kingma 2016](https://arxiv.org/abs/1602.07868)
- *
- * \param w Input expression (weight parameter)
- * \param g Gain (scalar expression, usually also a parameter)
- * \return An expression of the same dimension as `w`
- */
-  inline tensor weight_norm(const tensor &w, const tensor &g) { return dynet::weight_norm(w, g); }
-
-  inline tensor operator+(const tensor &x, const tensor &y) { return dynet::operator+(x, y); }
-
-  inline tensor operator+(const tensor &x, float y) { return dynet::operator+(x, y); }
-
-  inline tensor operator+(const float x, const tensor &y) { return dynet::operator+(x, y); }
-
-  inline tensor operator+(const tensor &x, const parameter &y) { return x + dyana::tensor(y); }
-
-  inline tensor operator+(const parameter &x, const tensor &y) { return dyana::tensor(x) + y; }
-
-  inline tensor operator-(const tensor &x, const tensor &y) { return dynet::operator-(x, y); }
-
-  inline tensor operator-(const tensor &x, float y) { return dynet::operator-(x, y); }
-
-  inline tensor operator-(float x, const tensor &y) { return dynet::operator-(x, y); }
-
-  inline tensor operator-(const tensor &x) { return dynet::operator-(x); }
-
-  inline tensor operator-(const tensor &x, const parameter &y) { return x - dyana::tensor(y); }
-
-  inline tensor operator-(const parameter &x, const tensor &y) { return dyana::tensor(x) - y; }
-
-  inline tensor operator*(const tensor &x, const tensor &y) { return dynet::operator*(x, y); }
-
-  inline tensor operator*(const tensor &x, float y) { return dynet::operator*(x, y); }
-
-  inline tensor operator*(float x, const tensor &y) { return dynet::operator*(x, y); }
-
-  inline tensor operator*(const tensor &x, const parameter &y) { return x * dyana::tensor(y); }
-
-  inline tensor operator*(const parameter &x, const tensor &y) { return dyana::tensor(x) * y; }
-
-  inline tensor operator/(const tensor &x, float y) { return dynet::operator/(x, y); }
-
-  inline tensor operator/(const parameter &x, float y) { return dyana::tensor(x) / y; }
-
 }
 
 #endif //DYANA_OPERATIONS_HPP
