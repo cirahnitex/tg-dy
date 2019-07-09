@@ -101,7 +101,7 @@ namespace dyana {
 
     tensor(const dynet::Expression &x) : dynet::Expression(x) { increment_cnt(); };
 
-    tensor(const dyana::tensor &x) : dynet::Expression(x) { increment_cnt(); };
+    tensor(const dyana::tensor &x) : dynet::Expression(x) {increment_cnt(); };
 
     tensor(dynet::Expression &&x) : dynet::Expression(x) { increment_cnt(); };
 
@@ -111,9 +111,6 @@ namespace dyana {
       dynet::parameter(_cg(), *x._dynet_parameter_m)) { increment_cnt(); }
 
     explicit tensor(float x) : dynet::Expression(dynet::input(dyana::_cg(), x)) { increment_cnt(); }
-
-    template<typename T, typename  = typename std::enable_if<std::is_convertible<T, float>::value, int>::type>
-    explicit tensor(T&& x) : dynet::Expression(dynet::input(dyana::_cg(), (float)x)) { increment_cnt(); }
 
     explicit tensor(const std::vector<float> x) : dynet::Expression(
       dynet::input(dyana::_cg(), {(unsigned) x.size()}, x)) { increment_cnt(); }
