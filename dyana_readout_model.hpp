@@ -126,12 +126,12 @@ namespace dyana {
     /**
      * if #labels greater than this number, loss will be computed by sampled_readout_loss
      */
-    static constexpr unsigned SAMPLED_READOUT_THRESHOLD = 128;
+    static constexpr unsigned SAMPLED_READOUT_THRESHOLD = 16;
 
     /**
      * controls how many samples to take when computing sampled_readout_loss
      */
-    static constexpr unsigned SAMPLED_READOUT_NUM_SAMPLES = 32;
+    static constexpr unsigned SAMPLED_READOUT_NUM_SAMPLES = 8;
 
     dyana::immutable_dict dict;
     dyana::linear_dense_layer fc;
