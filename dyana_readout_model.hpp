@@ -70,6 +70,30 @@ namespace dyana {
     }
 
     /**
+     * compute the readout loss.
+     * only a fixed number of false candidates are randomly selected
+     * the number equals to ( SAMPLED_READOUT_NUM_SAMPLES - 1 )
+     * \param embedding the embedding to readout from
+     * \param oracle the true answer
+     * \param num_false_samples number of false samples to provide
+     * \return
+     */
+    dyana::tensor sampled_readout_loss(const dyana::tensor &embedding, const std::string &oracle, unsigned num_false_samples) {
+      unsigned num_samples = num_false_samples + 1;
+      std::vector<unsigned> sampled_ids(num_samples);
+      auto oracle_id = get_internal_label_id(oracle);
+      sampled_ids[0] = oracle_id;
+      for (unsigned i = 1; i < num_samples; i++) {
+        unsigned false_option = dynet::rand0n(size() - 1); // -1 because false options exclude oracle
+        if (false_option >= oracle_id) false_option++;
+        sampled_ids[i] = false_option;
+      }
+
+      auto logits = fc.predict_given_output_positions(embedding, sampled_ids);
+      return dyana::pickneglogsoftmax(logits, (unsigned) 0);
+    }
+
+    /**
      * given an embedding and a desired label, compute the loss
      * if there are too many labels, it will compute sampled_readout_loss instead
      * two private constants control the behavior of sampled_readout_loss, see later documentations
@@ -78,7 +102,7 @@ namespace dyana {
      * \return the loss
      */
     dyana::tensor compute_loss(const dyana::tensor &embedding, const std::string &oracle) {
-      if (size() > SAMPLED_READOUT_THRESHOLD) return sampled_readout_loss(embedding, oracle);
+      if (size() > SAMPLED_READOUT_THRESHOLD) return sampled_readout_loss(embedding, oracle, SAMPLED_READOUT_NUM_SAMPLES - 1);
       return dyana::pickneglogsoftmax(fc.operator()(embedding), get_internal_label_id(oracle));
     }
 
@@ -126,37 +150,15 @@ namespace dyana {
     /**
      * if #labels greater than this number, loss will be computed by sampled_readout_loss
      */
-    static constexpr unsigned SAMPLED_READOUT_THRESHOLD = 16;
+    static constexpr unsigned SAMPLED_READOUT_THRESHOLD = 32;
 
     /**
      * controls how many samples to take when computing sampled_readout_loss
      */
-    static constexpr unsigned SAMPLED_READOUT_NUM_SAMPLES = 8;
+    static constexpr unsigned SAMPLED_READOUT_NUM_SAMPLES = 16;
 
     dyana::immutable_dict dict;
     dyana::linear_dense_layer fc;
-
-    /**
-     * compute the readout loss.
-     * only a fixed number of false candidates are randomly selected
-     * the number equals to ( SAMPLED_READOUT_NUM_SAMPLES - 1 )
-     * \param embedding the embedding to readout from
-     * \param oracle the true answer
-     * \return
-     */
-    dyana::tensor sampled_readout_loss(const dyana::tensor &embedding, const std::string &oracle) {
-      std::vector<unsigned> sampled_ids(SAMPLED_READOUT_NUM_SAMPLES);
-      auto oracle_id = get_internal_label_id(oracle);
-      sampled_ids[0] = oracle_id;
-      for (unsigned i = 1; i < SAMPLED_READOUT_NUM_SAMPLES; i++) {
-        unsigned false_option = dynet::rand0n(size() - 1); // -1 because false options exclude oracle
-        if (false_option >= oracle_id) false_option++;
-        sampled_ids[i] = false_option;
-      }
-
-      auto logits = fc.predict_given_output_positions(embedding, sampled_ids);
-      return dyana::pickneglogsoftmax(logits, (unsigned) 0);
-    }
   };
 }
 
