@@ -69,6 +69,38 @@ namespace dyana {
       return dyana::softmax(fc.operator()(embedding)).at(get_internal_label_id(label));
     }
 
+    std::vector<unsigned> randomly_sample_ids(unsigned num_samples) {
+      std::vector<unsigned> ids(size());
+      std::iota(ids.begin(), ids.end(), 0);
+      if(num_samples >= size()) {
+        return ids;
+      }
+      for(unsigned i=0; i<num_samples; i++) {
+        unsigned swap_target = i + dynet::rand0n(size() - i);
+        unsigned t = ids[swap_target];
+        ids[swap_target] = ids[i];
+        ids[i] = t;
+      }
+      ids.resize(num_samples);
+      return std::vector<unsigned>(ids.begin(), ids.begin() + num_samples);
+    }
+
+    dyana::tensor sampled_readout_loss(const dyana::tensor &embedding, const std::string &oracle, const std::vector<unsigned> sampled_ids) {
+
+      auto oracle_id = get_internal_label_id(oracle);
+
+      std::vector<unsigned> filtered_ids{oracle_id};
+      filtered_ids.reserve(sampled_ids.size() + 1);
+      for(auto&& sampled_id:sampled_ids) {
+        if(sampled_id != oracle_id) {
+          filtered_ids.push_back(sampled_id);
+        }
+      }
+
+      auto logits = fc.predict_given_output_positions(embedding, filtered_ids);
+      return dyana::pickneglogsoftmax(logits, (unsigned) 0);
+    }
+
     /**
      * compute the readout loss.
      * only a fixed number of false candidates are randomly selected
@@ -79,18 +111,7 @@ namespace dyana {
      * \return
      */
     dyana::tensor sampled_readout_loss(const dyana::tensor &embedding, const std::string &oracle, unsigned num_false_samples) {
-      unsigned num_samples = num_false_samples + 1;
-      std::vector<unsigned> sampled_ids(num_samples);
-      auto oracle_id = get_internal_label_id(oracle);
-      sampled_ids[0] = oracle_id;
-      for (unsigned i = 1; i < num_samples; i++) {
-        unsigned false_option = dynet::rand0n(size() - 1); // -1 because false options exclude oracle
-        if (false_option >= oracle_id) false_option++;
-        sampled_ids[i] = false_option;
-      }
-
-      auto logits = fc.predict_given_output_positions(embedding, sampled_ids);
-      return dyana::pickneglogsoftmax(logits, (unsigned) 0);
+      return sampled_readout_loss(embedding, oracle, randomly_sample_ids(num_false_samples));
     }
 
     /**
@@ -102,7 +123,7 @@ namespace dyana {
      * \return the loss
      */
     dyana::tensor compute_loss(const dyana::tensor &embedding, const std::string &oracle) {
-      if (size() > SAMPLED_READOUT_THRESHOLD) return sampled_readout_loss(embedding, oracle, SAMPLED_READOUT_NUM_SAMPLES - 1);
+//      if (size() > SAMPLED_READOUT_THRESHOLD) return sampled_readout_loss(embedding, oracle, SAMPLED_READOUT_NUM_SAMPLES - 1);
       return dyana::pickneglogsoftmax(fc.operator()(embedding), get_internal_label_id(oracle));
     }
 
@@ -150,12 +171,12 @@ namespace dyana {
     /**
      * if #labels greater than this number, loss will be computed by sampled_readout_loss
      */
-    static constexpr unsigned SAMPLED_READOUT_THRESHOLD = 32;
+//    static constexpr unsigned SAMPLED_READOUT_THRESHOLD = 128;
 
     /**
      * controls how many samples to take when computing sampled_readout_loss
      */
-    static constexpr unsigned SAMPLED_READOUT_NUM_SAMPLES = 16;
+//    static constexpr unsigned SAMPLED_READOUT_NUM_SAMPLES = 64;
 
     dyana::immutable_dict dict;
     dyana::linear_dense_layer fc;

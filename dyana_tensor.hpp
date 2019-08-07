@@ -276,9 +276,13 @@ namespace dyana {
       return dynet::transpose(*this, dims);
     }
 
-    float as_scalar() const { return dynet::as_scalar(dyana::_cg().incremental_forward(*this)); }
+    float as_scalar() const {
+      return dynet::as_scalar(dyana::_cg().incremental_forward(*this));
+    }
 
-    std::vector<float> as_vector() const { return dynet::as_vector(dyana::_cg().incremental_forward(*this)); }
+    std::vector<float> as_vector() const {
+      return dynet::as_vector(dyana::_cg().incremental_forward(*this));
+    }
 
     ~tensor() {
       num_exprs()--;
@@ -317,7 +321,7 @@ namespace dyana {
 
   private:
     static unsigned long &num_exprs() {
-      static unsigned long _;
+      thread_local static unsigned long _{0};
       return _;
     }
 

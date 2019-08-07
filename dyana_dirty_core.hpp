@@ -9,6 +9,7 @@
 #include <dynet/dynet.h>
 #include <vector>
 #include <dynet/training.h>
+#include <mutex>
 
 #define AUTO_START_GRAPH(ptr, action) \
   if(tg::dyana::_those_who_have_their_graph_started().count(ptr)<=0) {\
@@ -69,7 +70,7 @@ namespace dyana {
    */
   inline dynet::ComputationGraph &_cg() {
     _ensure_initialized();
-    static dynet::ComputationGraph _cg;
+    thread_local static dynet::ComputationGraph _cg;
     return _cg;
   }
 
@@ -79,7 +80,7 @@ namespace dyana {
   }
 
   inline std::unordered_set<const void *> &_those_who_have_their_graph_started() {
-    static std::unordered_set<const void *> _those_who_have_their_graph_started;
+    thread_local static std::unordered_set<const void *> _those_who_have_their_graph_started;
     return _those_who_have_their_graph_started;
   }
 

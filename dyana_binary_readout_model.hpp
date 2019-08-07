@@ -41,7 +41,7 @@ namespace dyana {
      * \return the answer
      */
     bool operator()(const tensor &x) {
-      return fc.operator()(x).as_scalar() > 0;
+      return fc(x).as_scalar() > 0;
     }
 
     /**
@@ -51,7 +51,12 @@ namespace dyana {
      * \return the loss
      */
     tensor compute_loss(const tensor &x, bool oracle) {
-      return dyana::binary_log_loss(dyana::logistic(fc.operator()(x)), oracle ? tensor(1) : tensor(0));
+      if(oracle) {
+        return -dyana::log_sigmoid(fc(x));
+      }
+      else {
+        return -dyana::log_sigmoid(-fc(x));
+      }
     }
   };
 }
