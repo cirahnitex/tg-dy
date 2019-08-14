@@ -17,7 +17,7 @@ namespace dyana {
   public:
     std::shared_ptr<dynet::Parameter> _dynet_parameter_m;
 
-    static std::unordered_set<std::shared_ptr<dynet::Parameter>> &alives() {
+    static std::unordered_set<std::shared_ptr<dynet::Parameter>>& alives() {
       static std::unordered_set<std::shared_ptr<dynet::Parameter>> _;
       return _;
     };
@@ -26,22 +26,22 @@ namespace dyana {
      * get the number of parameters that should be garbage collected
      * \return
      */
-    static unsigned long &num_dead() {
+    static unsigned long& num_dead() {
       static unsigned long _;
       return _;
     }
 
     parameter() = default;
 
-    parameter(const parameter &) = default;
+    parameter(const parameter&) = default;
 
-    parameter(parameter &&) noexcept = default;
+    parameter(parameter&&) noexcept = default;
 
-    parameter &operator=(const parameter &) = default;
+    parameter& operator=(const parameter&) = default;
 
-    parameter &operator=(parameter &&) noexcept = default;
+    parameter& operator=(parameter&&) noexcept = default;
 
-    parameter(const Dim &dim) : _dynet_parameter_m(std::make_shared<dynet::Parameter>(_pc()->add_parameters(dim).p)) {
+    parameter(const Dim& dim) : _dynet_parameter_m(std::make_shared<dynet::Parameter>(_pc()->add_parameters(dim).p)) {
       alives().insert(_dynet_parameter_m);
     }
 
@@ -59,17 +59,17 @@ namespace dyana {
 
     std::vector<float> get_values() const { return dynet::as_vector(*_dynet_parameter_m->values()); }
 
-    void set_values(const std::vector<float> &vs) { _dynet_parameter_m->set_value(vs); }
+    void set_values(const std::vector<float>& vs) { _dynet_parameter_m->set_value(vs); }
 
     template<class Archive>
-    void save(Archive &archive) const {
+    void save(Archive& archive) const {
       auto valid = (bool) _dynet_parameter_m;
       archive(cereal::make_nvp("valid", valid));
       if (valid) dynet::save(archive, *_dynet_parameter_m);
     }
 
     template<class Archive>
-    void load(Archive &archive) {
+    void load(Archive& archive) {
       using namespace std;
       if (_dynet_parameter_m && _dynet_parameter_m.use_count() <= 2) {
         alives().erase(_dynet_parameter_m);
@@ -89,26 +89,43 @@ namespace dyana {
   std::vector<float> _convert_to_float_range(NUMBER_RANGE&& xs) {
     std::vector<float> ret;
     ret.reserve(xs.size());
-    for(auto&& x:xs) {
-      ret.push_back((float)x);
+    for (auto&& x:xs) {
+      ret.push_back((float) x);
     }
     return ret;
   }
+
+  /**
+   * parameters receive no gradients from computations defined during the scope of this guard
+   */
+  class const_guard {
+    thread_local static unsigned num_instances;
+  public:
+    static bool is_guarded() {
+      return num_instances > 0;
+    }
+    const_guard() {num_instances++;}
+    const_guard(const const_guard&) = delete;
+    const_guard(const_guard&&) noexcept = delete;
+    const_guard &operator=(const const_guard&) = delete;
+    const_guard &operator=(const_guard&&) noexcept = delete;
+    ~const_guard() {num_instances--;}
+  };
 
   class tensor : public dynet::Expression {
   public:
     tensor() : dynet::Expression() { increment_cnt(); };
 
-    tensor(const dynet::Expression &x) : dynet::Expression(x) { increment_cnt(); };
+    tensor(const dynet::Expression& x) : dynet::Expression(x) { increment_cnt(); };
 
-    tensor(const dyana::tensor &x) : dynet::Expression(x) {increment_cnt(); };
+    tensor(const dyana::tensor& x) : dynet::Expression(x) { increment_cnt(); };
 
-    tensor(dynet::Expression &&x) : dynet::Expression(x) { increment_cnt(); };
+    tensor(dynet::Expression&& x) : dynet::Expression(x) { increment_cnt(); };
 
-    tensor(dyana::tensor &&x) noexcept : dynet::Expression(x) { increment_cnt(); };
+    tensor(dyana::tensor&& x) noexcept : dynet::Expression(x) { increment_cnt(); };
 
-    tensor(const dyana::parameter &x) : dynet::Expression(
-      dynet::parameter(_cg(), *x._dynet_parameter_m)) { increment_cnt(); }
+    tensor(const dyana::parameter& x) : dynet::Expression(
+      const_guard::is_guarded()?dynet::const_parameter(_cg(), *x._dynet_parameter_m):dynet::parameter(_cg(), *x._dynet_parameter_m)) { increment_cnt(); }
 
     explicit tensor(float x) : dynet::Expression(dynet::input(dyana::_cg(), x)) { increment_cnt(); }
 
@@ -128,34 +145,34 @@ namespace dyana {
     tensor(const std::initializer_list<float> x) : dynet::Expression(
       dynet::input(dyana::_cg(), {(unsigned) x.size()}, x)) { increment_cnt(); }
 
-    tensor(const std::vector<float> &values, const dynet::Dim &dim) : dynet::Expression(
+    tensor(const std::vector<float>& values, const dynet::Dim& dim) : dynet::Expression(
       dynet::input(dyana::_cg(), dim, values)) { increment_cnt(); }
 
-    tensor(const std::vector<double> &values, const dynet::Dim &dim) : dynet::Expression(
+    tensor(const std::vector<double>& values, const dynet::Dim& dim) : dynet::Expression(
       dynet::input(dyana::_cg(), dim, _convert_to_float_range(values))) { increment_cnt(); }
 
-    tensor(const std::vector<bool> &values, const dynet::Dim &dim) : dynet::Expression(
+    tensor(const std::vector<bool>& values, const dynet::Dim& dim) : dynet::Expression(
       dynet::input(dyana::_cg(), dim, _convert_to_float_range(values))) { increment_cnt(); }
 
-    tensor(const std::initializer_list<float> &values, const dynet::Dim &dim) : dynet::Expression(
+    tensor(const std::initializer_list<float>& values, const dynet::Dim& dim) : dynet::Expression(
       dynet::input(dyana::_cg(), dim, values)) { increment_cnt(); }
 
-    tensor &operator=(const dynet::Expression &x) {
+    tensor& operator=(const dynet::Expression& x) {
       dynet::Expression::operator=(x);
       return *this;
     };
 
-    tensor &operator=(const dyana::tensor &x) {
+    tensor& operator=(const dyana::tensor& x) {
       dynet::Expression::operator=(x);
       return *this;
     };
 
-    tensor &operator=(dynet::Expression &&x) {
+    tensor& operator=(dynet::Expression&& x) {
       dynet::Expression::operator=(x);
       return *this;
     };
 
-    tensor &operator=(dyana::tensor &&x) noexcept {
+    tensor& operator=(dyana::tensor&& x) noexcept {
       dynet::Expression::operator=(x);
       return *this;
     };
@@ -204,7 +221,7 @@ namespace dyana {
       auto size = dim()[d];
       std::vector<tensor> ret;
       ret.reserve(size);
-      for(unsigned i=0; i<size; i++) {
+      for (unsigned i = 0; i < size; i++) {
         ret.push_back(at(i, d));
       }
       return ret;
@@ -218,7 +235,7 @@ namespace dyana {
      *
      * \return An expression containing the selected rows
      */
-    tensor select_rows(const std::vector<unsigned> &rows) const {
+    tensor select_rows(const std::vector<unsigned>& rows) const {
       return dynet::select_rows(*this, rows);
     }
 
@@ -231,7 +248,7 @@ namespace dyana {
      *
      * \return An expression containing the selected columns
      */
-    tensor select_cols(const std::vector<unsigned> &cols) const {
+    tensor select_cols(const std::vector<unsigned>& cols) const {
       return dynet::select_cols(*this, cols);
     }
 
@@ -264,7 +281,7 @@ namespace dyana {
      *
      * \return The reshaped expression
      */
-    tensor reshape(const Dim &d) const {
+    tensor reshape(const Dim& d) const {
       return dynet::reshape(*this, d);
     }
 
@@ -281,7 +298,7 @@ namespace dyana {
      *
      * \return The transposed/shuffled expression
      */
-    tensor transpose(const std::vector<unsigned> &dims = {1, 0}) const {
+    tensor transpose(const std::vector<unsigned>& dims = {1, 0}) const {
       return dynet::transpose(*this, dims);
     }
 
@@ -298,18 +315,18 @@ namespace dyana {
       if (num_exprs() == 0) dyana::_renew_cg();
     }
 
-    static std::vector<dynet::Expression> vector_cast_to_base(const std::vector<tensor> &x) {
+    static std::vector<dynet::Expression> vector_cast_to_base(const std::vector<tensor>& x) {
       return std::vector<dynet::Expression>(x.begin(), x.end());
     }
 
-    static std::vector<tensor> vector_cast_to_parent(const std::vector<dynet::Expression> &x) {
+    static std::vector<tensor> vector_cast_to_parent(const std::vector<dynet::Expression>& x) {
       return std::vector<tensor>(x.begin(), x.end());
     }
 
     static unsigned get_exprs_counter() { return num_exprs(); }
 
     template<typename Archive>
-    void save(Archive &ar) const {
+    void save(Archive& ar) const {
       ar(cereal::make_nvp("valid", (bool) pg));
       if (!pg) return;
       ar(cereal::make_nvp("dim", dim()));
@@ -317,7 +334,7 @@ namespace dyana {
     }
 
     template<typename Archive>
-    void load(Archive &ar) {
+    void load(Archive& ar) {
       bool valid;
       ar(cereal::make_nvp("valid", valid));
       if (!valid) return;
@@ -329,7 +346,7 @@ namespace dyana {
     }
 
   private:
-    static unsigned long &num_exprs() {
+    static unsigned long& num_exprs() {
       thread_local static unsigned long _{0};
       return _;
     }
@@ -341,7 +358,7 @@ namespace dyana {
   public:
     std::shared_ptr<dynet::LookupParameter> _dynet_parameter_m;
 
-    static std::unordered_set<std::shared_ptr<dynet::LookupParameter>> &alives() {
+    static std::unordered_set<std::shared_ptr<dynet::LookupParameter>>& alives() {
       static std::unordered_set<std::shared_ptr<dynet::LookupParameter>> _;
       return _;
     };
@@ -350,22 +367,22 @@ namespace dyana {
      * get the number of parameters that should be garbage collected
      * \return
      */
-    static unsigned long &num_dead() {
+    static unsigned long& num_dead() {
       static unsigned long _;
       return _;
     }
 
     lookup_parameter() = default;
 
-    lookup_parameter(const lookup_parameter &) = default;
+    lookup_parameter(const lookup_parameter&) = default;
 
-    lookup_parameter(lookup_parameter &&) noexcept = default;
+    lookup_parameter(lookup_parameter&&) noexcept = default;
 
-    lookup_parameter &operator=(const lookup_parameter &) = default;
+    lookup_parameter& operator=(const lookup_parameter&) = default;
 
-    lookup_parameter &operator=(lookup_parameter &&) noexcept = default;
+    lookup_parameter& operator=(lookup_parameter&&) noexcept = default;
 
-    lookup_parameter(unsigned size, const Dim &dim) : _dynet_parameter_m(
+    lookup_parameter(unsigned size, const Dim& dim) : _dynet_parameter_m(
       std::make_shared<dynet::LookupParameter>(_pc()->add_lookup_parameters(size, dim).p)) {
       alives().insert(_dynet_parameter_m);
     }
@@ -386,19 +403,19 @@ namespace dyana {
       auto tensors = _dynet_parameter_m->values();
       std::vector<std::vector<float>> ret;
       ret.reserve(tensors->size());
-      for (const auto &tensor:*tensors) {
+      for (const auto& tensor:*tensors) {
         ret.push_back(dynet::as_vector(tensor));
       }
       return ret;
     }
 
-    void set_values(const std::vector<std::vector<float>> &vs) {
+    void set_values(const std::vector<std::vector<float>>& vs) {
       for (unsigned i = 0; i < vs.size(); ++i) {
         _dynet_parameter_m->initialize(i, vs[i]);
       }
     }
 
-    void initialize(unsigned index, const std::vector<float> &values) { _dynet_parameter_m->initialize(index, values); }
+    void initialize(unsigned index, const std::vector<float>& values) { _dynet_parameter_m->initialize(index, values); }
 
     tensor lookup(unsigned index) const {
       return dynet::lookup(_cg(), *_dynet_parameter_m, index);
@@ -409,14 +426,14 @@ namespace dyana {
     }
 
     template<class Archive>
-    void save(Archive &archive) const {
+    void save(Archive& archive) const {
       auto valid = (bool) _dynet_parameter_m;
       archive(cereal::make_nvp("valid", valid));
       if (valid) dynet::save(archive, *_dynet_parameter_m);
     }
 
     template<class Archive>
-    void load(Archive &archive) {
+    void load(Archive& archive) {
       if (_dynet_parameter_m && _dynet_parameter_m.use_count() <= 2) {
         alives().erase(_dynet_parameter_m);
         num_dead()++;
@@ -439,7 +456,7 @@ namespace dyana {
   * \param p the Parameter
   * \return the const Expression
   */
-  inline tensor const_expr(const parameter &p) {
+  inline tensor const_expr(const parameter& p) {
     return dynet::const_parameter(_cg(), *p._dynet_parameter_m);
   }
 
@@ -447,12 +464,12 @@ namespace dyana {
     if (parameter::num_dead() <= 0 && lookup_parameter::num_dead() <= 0) return;
     using namespace std;
     auto new_pc = new dynet::ParameterCollection();
-    for (const auto &dp:parameter::alives()) {
+    for (const auto& dp:parameter::alives()) {
       auto new_p = new_pc->add_parameters(dp->dim());
       new_p.set_value(dynet::as_vector(*(dp->values())));
       *dp = new_p;
     }
-    for (const auto &dp:lookup_parameter::alives()) {
+    for (const auto& dp:lookup_parameter::alives()) {
       auto n = dp->get_storage().values.size();
       auto new_p = new_pc->add_lookup_parameters(n, dp->dim());
       for (unsigned i = 0; i < dp->values()->size(); ++i) {

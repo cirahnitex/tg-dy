@@ -101,14 +101,14 @@ namespace dyana {
       return embedding_size > 0;
     }
 
-    dyana::tensor operator()(const std::string &token, bool as_constant = false) const {
-      return lookup(token_to_id(token), as_constant);
+    dyana::tensor operator()(const std::string &token) const {
+      return lookup(token_to_id(token));
     }
 
-    std::vector<dyana::tensor> operator()(const std::vector<std::string> &tokens, bool as_constant = false) const {
+    std::vector<dyana::tensor> operator()(const std::vector<std::string> &tokens) const {
       std::vector<dyana::tensor> ret;
       for (auto itr = tokens.begin(); itr != tokens.end(); ++itr) {
-        ret.push_back(operator()(*itr, as_constant));
+        ret.push_back(operator()(*itr));
       }
       return ret;
     }
@@ -167,8 +167,8 @@ namespace dyana {
     unsigned embedding_size;
     dyana::lookup_parameter lookup_table;
 
-    dyana::tensor lookup(unsigned token_id, bool as_constant = false) const {
-      return as_constant ? lookup_table.const_lookup(token_id) : lookup_table.lookup(token_id);
+    dyana::tensor lookup(unsigned token_id) const {
+      return const_guard::is_guarded() ? lookup_table.const_lookup(token_id) : lookup_table.lookup(token_id);
     }
 
     static std::vector<float> resize_fill_random(const std::vector<float> &arr, unsigned size) {
