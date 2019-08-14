@@ -170,7 +170,6 @@ namespace dyana {
      *          This will result in the dimension of the tensor being reduced
      *          by 1.
      *
-     * \param x The input expression
      * \param v The index of the element to select
      * \param d The dimension along which to choose the element
      *
@@ -186,22 +185,35 @@ namespace dyana {
      * \brief Pick range of elements
      * \details Pick a range of elements from a tensor.
      *
-     * \param x The input expression
      * \param s The start index
      * \param e The end index, excluding itself
      * \param d The dimension along which to pick
      *
-     * \return The value of {x[v],...,x[u]}
+     * \return The value of {x[s],x[s+1]...,x[e-1]}
      */
     tensor slice(unsigned s, unsigned e, unsigned d = 0) const {
       return dynet::pick_range(*this, s, e, d);
     }
 
     /**
+     * \brief split a tensor into vector of tensors
+     * \param d the dimension along which to split
+     * \return the value of {x[0],x[1],...,x[n-1]}
+     */
+    std::vector<tensor> split(unsigned d = 1) const {
+      auto size = dim()[d];
+      std::vector<tensor> ret;
+      ret.reserve(size);
+      for(unsigned i=0; i<size; i++) {
+        ret.push_back(at(i, d));
+      }
+      return ret;
+    }
+
+    /**
      * \brief Select rows
      * \details Select a subset of rows of a matrix.
      *
-     * \param x The input expression
      * \param rows The rows to extract
      *
      * \return An expression containing the selected rows
@@ -215,8 +227,7 @@ namespace dyana {
      * \details Select a subset of columns of a matrix. select_cols is more
      *          efficient than select_rows since DyNet uses column-major order.
      *
-     * \param x The input expression
-     * \param columns The columns to extract
+     * \param cols The columns to extract
      *
      * \return An expression containing the selected columns
      */
@@ -249,7 +260,6 @@ namespace dyana {
      *
      *         **Note:** This is O(1) for forward, and O(n) for backward.
      *
-     * \param x The input expression
      * \param d The new dimensions
      *
      * \return The reshaped expression
@@ -265,7 +275,6 @@ namespace dyana {
      *          **Note:** This is O(1) if either the row or column dimension is 1,
      *          and O(n) otherwise.
      *
-     * \param x The input expression
      * \param dims The dimensions to swap. The ith dimension of the output will be equal
      *          to the dims[i] dimension of the input. dims must have the same number
      *          of dimensions as x.
