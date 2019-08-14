@@ -22,6 +22,14 @@ void serialize(Archive & archive) {} \
 void serialize(Archive & archive) \
 {FOR_EACH(CALL_ARCHIVE_NVP, __VA_ARGS__)} \
 
+#define INHERITANCE_TRIVIAL_SERIALIZABLE(BaseClass) template<class Archive> \
+void serialize(Archive & archive) \
+{archive(cereal::base_class< BaseClass >(this));} \
+
+#define INHERITANCE_EASY_SERIALIZABLE(BaseClass, ...) template<class Archive> \
+void serialize(Archive & archive) \
+{archive(cereal::base_class< BaseClass >(this)); FOR_EACH(CALL_ARCHIVE_NVP, __VA_ARGS__)} \
+
 namespace dynet {
 
   template<class Archive>
