@@ -103,6 +103,16 @@ namespace dynet {
 
 namespace dyana {
 
+  /**
+   * if the model is training
+   * useful when determining whether to add training noise or not, like dropout.
+   * \return whether or not the model is training
+   */
+  bool& is_training() {
+    thread_local static bool _ = false;
+    return _;
+  }
+
   template<typename DATUM>
   class _mp_train_learner : private dynet::mp::ILearner<DATUM, float> {
   public:
@@ -143,11 +153,12 @@ namespace dyana {
         throw std::runtime_error(
           "NO GLOBAL TENSOR. All dyana::Tensor instances must be cleaned up before training on a new Datum. Otherwise severe memory leak will occur while training.");
       }
+      if(learn) is_training() = true;
       dyana::tensor loss = compute_loss(datum);
+      is_training() = false;
       float ret = loss.as_scalar();
       if (learn) dyana::_cg().backward(loss);
       return ret;
-      return 0;
     }
 
     virtual void SaveModel() { save(); }
