@@ -128,10 +128,12 @@ namespace dyana {
         std::vector<unsigned> train_indices(training_set.size());
         std::iota(train_indices.begin(), train_indices.end(), 0);
         std::shuffle(train_indices.begin(), train_indices.end(), *dynet::rndeng);
+        is_training() = true;
         for(unsigned i=0; i<10 && i<train_indices.size(); i++) {
           compute_loss(
             training_set[train_indices[i]]);
         }
+        is_training() = false;
       }
 
       if (num_workers <= 1) {
