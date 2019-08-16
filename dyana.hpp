@@ -21,5 +21,6 @@
 #include "dyana_cnn.hpp"
 #include "dyana_normalization_layer.hpp"
 #include "dyana_binary_readout_model.hpp"
+#include "dyana_dropout_layer.hpp"
 
 #endif //DYANA_HPP
