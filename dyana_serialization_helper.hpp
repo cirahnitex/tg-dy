@@ -14,6 +14,7 @@
 #include <cereal/types/base_class.hpp>
 #include <cereal/types/polymorphic.hpp>
 #include "FOR_EACH.cmacros.hpp"
+#include <fstream>
 
 #define TRIVIAL_SERIALIZABLE template<class Archive> \
 void serialize(Archive & archive) {} \
@@ -119,5 +120,25 @@ namespace dynet {
 
 }
 
+namespace dyana {
+
+  template<class MODEL>
+  void save_model(const MODEL& model, const std::string& path) {
+    std::ofstream ofs(path);
+    if(!ofs.is_open()) throw std::runtime_error("cannot open file for output: "+path);
+    cereal::BinaryOutputArchive oa(ofs);
+    oa << model;
+  }
+
+  template<class MODEL>
+  MODEL load_model(const std::string& path) {
+    std::ifstream ifs(path);
+    if(!ifs.is_open()) throw std::runtime_error("cannot open file for input: "+path);
+    cereal::BinaryInputArchive ia(ifs);
+    MODEL ret;
+    ia >> ret;
+    return ret;
+  }
+}
 
 #endif //DYANA_SERIALIZATION_HELPER_HPP

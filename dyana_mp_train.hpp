@@ -604,10 +604,7 @@ namespace dyana {
     void train_reporting_dev_score_save_best(MODEL &model, const std::string &file_path_to_save_to, Args... training_set_and_dev_set) {
 
       auto save_behavior = [&]() {
-        std::ofstream ofs(file_path_to_save_to);
-        if(!ofs.is_open()) throw std::runtime_error("could not open file for output: "+file_path_to_save_to);
-        cereal::BinaryOutputArchive oa(ofs);
-        oa << model;
+        save_model(model, file_path_to_save_to);
       };
       _fit_with_dev_set_helper(model, save_behavior, training_set_and_dev_set...);
     }
