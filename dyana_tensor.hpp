@@ -99,17 +99,20 @@ namespace dyana {
    * parameters receive no gradients from computations defined during the scope of this guard
    */
   class const_guard {
-    thread_local static unsigned num_instances;
+    static unsigned& num_instances() {
+      thread_local static unsigned _;
+      return _;
+    };
   public:
     static bool is_guarded() {
-      return num_instances > 0;
+      return num_instances() > 0;
     }
-    const_guard() {num_instances++;}
+    const_guard() {num_instances()++;}
     const_guard(const const_guard&) = delete;
     const_guard(const_guard&&) noexcept = delete;
     const_guard &operator=(const const_guard&) = delete;
     const_guard &operator=(const_guard&&) noexcept = delete;
-    ~const_guard() {num_instances--;}
+    ~const_guard() {num_instances()--;}
   };
 
   class tensor : public dynet::Expression {

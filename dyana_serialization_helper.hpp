@@ -11,6 +11,8 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/unordered_set.hpp>
 #include <cereal/types/string.hpp>
+#include <cereal/types/base_class.hpp>
+#include <cereal/types/polymorphic.hpp>
 #include "FOR_EACH.cmacros.hpp"
 
 #define TRIVIAL_SERIALIZABLE template<class Archive> \

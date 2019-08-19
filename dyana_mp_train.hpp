@@ -108,7 +108,7 @@ namespace dyana {
    * useful when determining whether to add training noise or not, like dropout.
    * \return whether or not the model is training
    */
-  bool& is_training() {
+  inline bool& is_training() {
     thread_local static bool _ = false;
     return _;
   }
