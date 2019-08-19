@@ -111,6 +111,7 @@ namespace dyana {
      * \return
      */
     dyana::tensor sampled_readout_loss(const dyana::tensor &embedding, const std::string &oracle, unsigned num_false_samples) {
+      if(num_false_samples >= size()) return compute_loss(embedding, oracle);
       return sampled_readout_loss(embedding, oracle, randomly_sample_ids(num_false_samples));
     }
 
