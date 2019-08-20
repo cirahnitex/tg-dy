@@ -141,8 +141,10 @@ namespace dyana {
                                               training_set.size()/num_reports_per_epoch,
                                               training_set.size()/num_reports_per_epoch, 1);
       } else {
+        _is_multi_processing() = true;
         dynet::mp::run_multi_process(num_workers, this, trainer, training_set, dev_set, num_epochs,
                                      training_set.size()/num_reports_per_epoch, training_set.size()/num_reports_per_epoch);
+        _is_multi_processing() = false;
       }
 
     }

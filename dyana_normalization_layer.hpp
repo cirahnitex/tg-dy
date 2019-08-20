@@ -14,7 +14,7 @@ namespace dyana {
     parameter b;
 
     void ensure_init(const tensor &x) {
-      if (g.is_nil()) return; // ensure that this lazy initialization is only executed once
+      if ((bool)g) return; // ensure that this lazy initialization is only executed once
       auto dim = x.dim()[0];
       g = parameter({dim});
       b = parameter({dim});

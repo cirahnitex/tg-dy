@@ -13,8 +13,18 @@
 
 namespace dyana {
 
+  /**
+   * if the model is currently under multithread training
+   */
+  inline bool& _is_multi_processing() {
+    static bool _ = false;
+    return _;
+  }
+
   class parameter {
   public:
+    static constexpr char MP_PARAM_INIT_ERR_MSG[] = "cannot initialize parameters while multi-process training. please call your model's compute_loss function on some good piece of data mannually before training, to ensure that all parameters have been initialized";
+
     std::shared_ptr<dynet::Parameter> _dynet_parameter_m;
 
     static std::unordered_set<std::shared_ptr<dynet::Parameter>>& alives() {
@@ -43,6 +53,7 @@ namespace dyana {
 
     parameter(const Dim& dim) : _dynet_parameter_m(std::make_shared<dynet::Parameter>(_pc()->add_parameters(dim).p)) {
       alives().insert(_dynet_parameter_m);
+      if(_is_multi_processing()) throw std::runtime_error(MP_PARAM_INIT_ERR_MSG);
     }
 
     ~parameter() {
@@ -53,7 +64,7 @@ namespace dyana {
       }
     }
 
-    bool is_nil() const { return (bool) _dynet_parameter_m; }
+    operator bool() const { return (bool) _dynet_parameter_m; }
 
     Dim dim() const { return _dynet_parameter_m->dim(); }
 
@@ -388,6 +399,7 @@ namespace dyana {
     lookup_parameter(unsigned size, const Dim& dim) : _dynet_parameter_m(
       std::make_shared<dynet::LookupParameter>(_pc()->add_lookup_parameters(size, dim).p)) {
       alives().insert(_dynet_parameter_m);
+      if(_is_multi_processing()) throw std::runtime_error(parameter::MP_PARAM_INIT_ERR_MSG);
     }
 
     ~lookup_parameter() {
@@ -400,7 +412,7 @@ namespace dyana {
 
     Dim dim() const { return _dynet_parameter_m->dim(); }
 
-    bool is_nil() const { return (bool) _dynet_parameter_m; }
+    operator bool() const { return (bool) _dynet_parameter_m; }
 
     std::vector<std::vector<float>> get_values() const {
       auto tensors = _dynet_parameter_m->values();
