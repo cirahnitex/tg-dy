@@ -30,24 +30,6 @@ namespace dyana {
   }
 
   /**
-   * ensure that a directory exists, creating directories when necessary.
-   * \param path
-   */
-  void ensure_dir(const std::string &path) {
-    if (path.empty()) return;
-
-    // recursively ensure parent directory
-    std::size_t last_slash_pos = path.find_last_of('/');
-    if (last_slash_pos != std::string::npos) ensure_dir(path.substr(0, last_slash_pos));
-
-    // mkdir if doesn't exist
-    struct stat st = {0};
-    if (stat(path.c_str(), &st) == -1) {
-      mkdir(path.c_str(), 0775);
-    }
-  }
-
-  /**
    * get the filename of the latest file in a directory, according to the last modified time.
    * \param dir_path path to the directory
    * \param regex_filter a filter to match filename
