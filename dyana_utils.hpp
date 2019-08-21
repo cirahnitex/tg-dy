@@ -122,7 +122,7 @@ namespace dyana {
    * ensure that a directory exists, creating directories when necessary.
    * \param path
    */
-  void ensure_dir(const std::string &path) {
+  inline void ensure_dir(const std::string &path) {
     if (path.empty()) return;
 
     // recursively ensure parent directory
