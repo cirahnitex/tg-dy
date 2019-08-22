@@ -33,6 +33,7 @@ namespace dyana {
     template<typename RANGE_EXP>
     explicit readout_model(RANGE_EXP &&labels) :
       dict(labels), fc(dict.size()) {
+        if(dict.size()<=1) throw std::runtime_error("dyana::readout_model: label set cannot be empty");
     }
 
     operator bool() const {
@@ -117,15 +118,23 @@ namespace dyana {
 
     /**
      * given an embedding and a desired label, compute the loss
-     * if there are too many labels, it will compute sampled_readout_loss instead
-     * two private constants control the behavior of sampled_readout_loss, see later documentations
      * \param embedding tensor<X>
      * \param oracle the desired label
      * \return the loss
      */
     dyana::tensor compute_loss(const dyana::tensor &embedding, const std::string &oracle) {
-//      if (size() > SAMPLED_READOUT_THRESHOLD) return sampled_readout_loss(embedding, oracle, SAMPLED_READOUT_NUM_SAMPLES - 1);
       return dyana::pickneglogsoftmax(fc.operator()(embedding), get_internal_label_id(oracle));
+    }
+
+    /**
+     * given an embedding and a desired label, compute the loss
+     * normalized in such a way that a random model is expected to have loss = 1
+     * \param embedding
+     * \param oracle
+     * \return
+     */
+    dyana::tensor compute_normalized_loss(const dyana::tensor &embedding, const std::string& oracle) {
+      return compute_loss(embedding, oracle) / get_normalization_divider();
     }
 
     /**
@@ -169,18 +178,16 @@ namespace dyana {
     EASY_SERIALIZABLE(dict, fc)
 
   private:
-    /**
-     * if #labels greater than this number, loss will be computed by sampled_readout_loss
-     */
-//    static constexpr unsigned SAMPLED_READOUT_THRESHOLD = 128;
-
-    /**
-     * controls how many samples to take when computing sampled_readout_loss
-     */
-//    static constexpr unsigned SAMPLED_READOUT_NUM_SAMPLES = 64;
 
     dyana::immutable_dict dict;
     dyana::linear_dense_layer fc;
+    float normalization_divider{};
+
+    float get_normalization_divider() {
+      if(normalization_divider > 0) return normalization_divider;
+      normalization_divider = log(dyana::tensor((float)size())).as_scalar();
+      return normalization_divider;
+    }
   };
 }
 
