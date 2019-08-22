@@ -75,6 +75,8 @@ namespace dyana {
 
   inline tensor operator*(const parameter &x, const tensor &y) { return dyana::tensor(x) * y; }
 
+  inline tensor operator/(const tensor &x, const tensor& y) { return dynet::operator/(x, y); }
+
   inline tensor operator/(const tensor &x, float y) { return dynet::operator/(x, y); }
 
   inline tensor operator/(const tensor &x, double y) { return dynet::operator/(x, (float)y); }
@@ -82,6 +84,10 @@ namespace dyana {
   inline tensor operator/(const parameter &x, float y) { return dyana::tensor(x) / y; }
 
   inline tensor operator/(const parameter &x, double y) { return dyana::tensor(x) / (float)y; }
+
+  inline tensor operator/(const tensor &x, const parameter &y) { return x / dyana::tensor(y); }
+
+  inline tensor operator/(const parameter &x, const tensor &y) { return dyana::tensor(x) / y; }
 
   inline tensor zeros(const Dim &d) { return dynet::zeros(_cg(), d); }
 
