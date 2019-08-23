@@ -29,7 +29,7 @@
         : dim_in(0), dim_out(dim_out), W(), b({dim_out}) {
       }
 
-      operator bool() const {
+      explicit operator bool() const {
         return dim_out != 0;
       }
 

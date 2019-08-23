@@ -64,7 +64,7 @@ namespace dyana {
       }
     }
 
-    operator bool() const { return (bool) _dynet_parameter_m; }
+    explicit operator bool() const { return (bool) _dynet_parameter_m; }
 
     Dim dim() const { return _dynet_parameter_m->dim(); }
 
@@ -191,7 +191,7 @@ namespace dyana {
       return *this;
     };
 
-    operator bool() const {
+    explicit operator bool() const {
       return pg;
     }
 
@@ -412,7 +412,7 @@ namespace dyana {
 
     Dim dim() const { return _dynet_parameter_m->dim(); }
 
-    operator bool() const { return (bool) _dynet_parameter_m; }
+    explicit operator bool() const { return (bool) _dynet_parameter_m; }
 
     std::vector<std::vector<float>> get_values() const {
       auto tensors = _dynet_parameter_m->values();
