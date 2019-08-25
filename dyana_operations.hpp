@@ -93,6 +93,32 @@ namespace dyana {
 
   inline tensor ones(const Dim &d) { return dynet::ones(_cg(), d); }
 
+  /**
+   * \ingroup inputoperations
+   * \brief Create a random normal vector
+   * \details Create a vector distributed according to normal distribution with specified mean and standard deviation.
+   *
+   * \param d The dimensions of the input
+   * \param mean The mean of the distribution (default: 0.0)
+   * \param stddev The standard deviation of the distribution (default: 1.0)
+   *
+   * \return A "d" dimensioned normally distributed vector
+   */
+  inline tensor random_normal(const Dim& d, float mean = 0, float stddev = 1) { return dynet::random_normal(_cg(), d, mean, stddev);}
+
+  /**
+   * \ingroup inputoperations
+   * \brief Create a random uniform vector
+   * \details Create a vector distributed according to uniform distribution with boundaries left and right.
+   *
+   * \param d The dimensions of the input
+   * \param left The left boundary
+   * \param right The right boundary
+   *
+   * \return A "d" dimensioned uniform distributed vector
+   */
+  inline tensor random_uniform(const Dim& d, float left, float right) { return dynet::random_uniform(_cg(), d, left, right); }
+
 /**
  * \ingroup arithmeticoperations
  * \brief Affine transform
