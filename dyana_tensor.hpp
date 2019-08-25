@@ -139,7 +139,7 @@ namespace dyana {
     tensor(dyana::tensor&& x) noexcept : dynet::Expression(x) { increment_cnt(); };
 
     tensor(const dyana::parameter& x) : dynet::Expression(
-      const_guard::is_guarded()?dynet::const_parameter(_cg(), *x._dynet_parameter_m):dynet::parameter(_cg(), *x._dynet_parameter_m)) { increment_cnt(); }
+      get_param_expr(x._dynet_parameter_m)) { increment_cnt(); }
 
     explicit tensor(float x) : dynet::Expression(dynet::input(dyana::_cg(), x)) { increment_cnt(); }
 
@@ -326,7 +326,7 @@ namespace dyana {
 
     ~tensor() {
       num_exprs()--;
-      if (num_exprs() == 0) dyana::_renew_cg();
+      if (num_exprs() == 0) clear_tensors();
     }
 
     static std::vector<dynet::Expression> vector_cast_to_base(const std::vector<tensor>& x) {
@@ -366,6 +366,27 @@ namespace dyana {
     }
 
     void increment_cnt() { num_exprs()++; };
+
+    static std::unordered_map<std::shared_ptr<dynet::Parameter>, dynet::Expression>& param_expr_map(bool is_const) {
+      static thread_local std::unordered_map<std::shared_ptr<dynet::Parameter>, dynet::Expression> c, v;
+      return is_const?c:v;
+    }
+
+    static void clear_tensors() {
+      param_expr_map(true).clear();
+      param_expr_map(false).clear();
+      dyana::_renew_cg();
+    }
+
+    static const dynet::Expression& get_param_expr(const std::shared_ptr<dynet::Parameter>& dynet_param) {
+      auto&& pem = param_expr_map(const_guard::is_guarded());
+      try {
+        return pem.at(dynet_param);
+      }
+      catch(...) {
+        return pem[dynet_param] = const_guard::is_guarded()?dynet::const_parameter(_cg(), *dynet_param):dynet::parameter(_cg(), *dynet_param);
+      }
+    }
   };
 
   class lookup_parameter {
