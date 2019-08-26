@@ -158,10 +158,10 @@ namespace dyana {
      * normalized in such a way that a random model is expected to have loss = 1
      * \param batched_embedding
      * \param oracles
-     * \return
+     * \return batched loss
      */
     dyana::tensor compute_normalized_loss(const dyana::tensor &batched_embedding, const std::vector<std::string>& oracles) {
-      return compute_loss(batched_embedding, oracles) / get_normalization_divider() / (float)oracles.size();
+      return compute_loss(batched_embedding, oracles) / get_normalization_divider();
     }
 
     /**
