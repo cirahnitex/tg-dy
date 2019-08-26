@@ -127,6 +127,21 @@ namespace dyana {
     }
 
     /**
+     * batched compute_loss
+     * given N embedding and N desired labels, compute the loss
+     * \param batched_embedding tensor<X>, batch N
+     * \param oracles N desired label
+     * \return the loss
+     */
+    dyana::tensor compute_loss(const dyana::tensor &batched_embedding, const std::vector<std::string> &oracles) {
+      std::vector<unsigned> ids;
+      for(auto&& oracle:oracles) {
+        ids.push_back(get_internal_label_id(oracle));
+      }
+      return dyana::pickneglogsoftmax(fc.operator()(batched_embedding), ids);
+    }
+
+    /**
      * given an embedding and a desired label, compute the loss
      * normalized in such a way that a random model is expected to have loss = 1
      * \param embedding
@@ -135,6 +150,18 @@ namespace dyana {
      */
     dyana::tensor compute_normalized_loss(const dyana::tensor &embedding, const std::string& oracle) {
       return compute_loss(embedding, oracle) / get_normalization_divider();
+    }
+
+    /**
+     * batched compute_loss_normalized
+     * given an embedding and a desired label, compute the loss
+     * normalized in such a way that a random model is expected to have loss = 1
+     * \param batched_embedding
+     * \param oracles
+     * \return
+     */
+    dyana::tensor compute_normalized_loss(const dyana::tensor &batched_embedding, const std::vector<std::string>& oracles) {
+      return compute_loss(batched_embedding, oracles) / get_normalization_divider() / (float)oracles.size();
     }
 
     /**

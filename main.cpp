@@ -27,17 +27,17 @@ vector<bool> input0s{true, true, false, false};
 vector<bool> input1s{true, false, true, false};
 vector<bool> oracles{true, true, true, false};
 
+struct simple_timer {
+  std::clock_t start;
+  simple_timer(): start(std::clock()){}
+  ~simple_timer() {
+    std::cout << (std::clock() - start) / (CLOCKS_PER_SEC / 1000) << "ms" <<std::endl;
+  }
+};
+
 
 int main() {
   dyana::initialize();
-
-  xor_model my_model;
-
-  auto loss1 = my_model.compute_loss(true, true, true);
-  auto loss2 = my_model.compute_loss(true, false, true);
-
-  cout << dyana::_cg().nodes.size() <<endl;
-  cout << dyana::_cg().parameter_nodes.size() <<endl;
 
 
   return 0;
