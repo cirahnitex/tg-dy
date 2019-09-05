@@ -10,6 +10,7 @@
 #include <dynet/mp.h>
 #include "dyana_common.hpp"
 #include "dyana_serialization_helper.hpp"
+#include "dyana_event_emitter.hpp"
 
 namespace dynet {
   namespace mp {
@@ -207,6 +208,7 @@ namespace dyana {
   protected:
     virtual dynet::Trainer* get_dynet_trainer_p() = 0;
   private:
+    event_emitter<> new_best_evt;
     template<typename MODEL, typename D0>
     void _fit_with_dev_set_helper(MODEL &model, const std::function<void()> &save_behavior, D0&& trainingset_p0, D0&& devset_p0) {
       using namespace std;
@@ -579,7 +581,9 @@ namespace dyana {
      */
     template<typename MODEL, typename ...Args>
     void train_reporting_dev_score(MODEL &model, Args... training_set_and_dev_set) {
-      _fit_with_dev_set_helper(model, [](){}, training_set_and_dev_set...);
+      _fit_with_dev_set_helper(model, [&](){
+        new_best_evt.fire();
+      }, training_set_and_dev_set...);
     }
 
     /**
@@ -607,8 +611,17 @@ namespace dyana {
 
       auto save_behavior = [&]() {
         save_model(model, file_path_to_save_to);
+        new_best_evt.fire();
       };
       _fit_with_dev_set_helper(model, save_behavior, training_set_and_dev_set...);
+    }
+
+    void add_new_best_listener(const event_emitter<>::listener_ptr& listener) {
+      new_best_evt.add_listener(listener);
+    }
+
+    void remove_new_best_listener(const event_emitter<>::listener_ptr& listener) {
+      new_best_evt.remove_listener(listener);
     }
   };
 
