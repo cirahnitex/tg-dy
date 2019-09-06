@@ -12,8 +12,6 @@
 #include "dyana_immutable_dict.hpp"
 #include "dyana_linear_layer.hpp"
 #include "dyana_rnn.hpp"
-#include "dyana_lookup_readout.hpp"
-#include "dyana_bi_lookup_readout.hpp"
 #include "dyana_embedding_lookup.hpp"
 #include "dyana_mp_train.hpp"
 #include "dyana_readout_model.hpp"

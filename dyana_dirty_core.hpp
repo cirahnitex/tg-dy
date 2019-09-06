@@ -22,7 +22,8 @@
 
 namespace dyana {
 
-  typedef dynet::Dim Dim;
+
+  using Dim = dynet::Dim;
 
   inline bool &_is_initialized() {
     static bool _ = false;
@@ -40,7 +41,7 @@ namespace dyana {
   inline void
   initialize(unsigned memory = 512) {
     if (_is_initialized()) return;
-    std::vector<std::string> arguments = {"", "--dynet-mem=" + std::to_string(memory)};
+    std::vector<std::string> arguments = {"", "--dynet-autobatch=1 --dynet-mem=" + std::to_string(memory)};
 
     std::vector<char *> argv;
     for (const auto &arg : arguments)

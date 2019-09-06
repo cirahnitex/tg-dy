@@ -3,7 +3,7 @@
 #include <xml_archive.hpp>
 #include <sstream>
 #include <vector>
-#include <thread>
+#include "dyana_timer.hpp"
 using namespace std;
 
 class xor_model {
@@ -23,22 +23,17 @@ public:
   }
 };
 
-vector<bool> input0s{true, true, false, false};
-vector<bool> input1s{true, false, true, false};
-vector<bool> oracles{true, true, true, false};
-
-struct simple_timer {
-  std::clock_t start;
-  simple_timer(): start(std::clock()){}
-  ~simple_timer() {
-    std::cout << (std::clock() - start) / (CLOCKS_PER_SEC / 1000) << "ms" <<std::endl;
-  }
-};
-
+vector<bool> input0s{true, true, false, false, true, true, false, false};
+vector<bool> input1s{true, false, true, false, true, false, true, false};
+vector<bool> oracles{true, true, true, false, true, true, true, false};
 
 int main() {
   dyana::initialize();
 
+  xor_model model;
+  dyana::simple_sgd_trainer trainer;
+  trainer.num_epochs = 50;
+  trainer.train(model, input0s, input1s, oracles);
 
   return 0;
 }

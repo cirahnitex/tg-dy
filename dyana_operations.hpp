@@ -886,22 +886,6 @@ namespace dyana {
   inline tensor pickneglogsoftmax(const tensor &x, unsigned v) { return dynet::pickneglogsoftmax(x, v); }
 
 
-/**
- * \ingroup lossoperations
- * \brief Batched negative softmax log likelihood
- * \details This function is similar to standard pickneglogsoftmax, but calculates loss with
- *          respect to multiple batch elements. The input will be a mini-batch of score vectors
- *          where the number of batch elements is equal to the number of indices in ``v``.
- *
- * \param x An expression with vectors of scores over N batch elements
- * \param v A size-N vector indicating the index with respect to all the batch elements
- *
- * \return The negative log likelihoods over all the batch elements
- */
-  inline tensor pickneglogsoftmax(const tensor &x, const std::vector<unsigned> &v) {
-    return dynet::pickneglogsoftmax(x, v);
-  }
-
 
 /**
  * \ingroup lossoperations
@@ -916,24 +900,6 @@ namespace dyana {
  * \return The hinge loss of candidate ``index`` with respect to margin ``m``
  */
   inline tensor hinge(const tensor &x, unsigned index, float m = 1.0) { return dynet::hinge(x, index, m); }
-
-
-/**
- * \ingroup lossoperations
- * \brief Batched hinge loss
- * \details The same as hinge loss, but for the case where ``x`` is a mini-batched tensor
- *          with ``indices.size()`` batch elements, and ``indices`` is a vector indicating
- *          the index of each of the correct elements for these elements.
- *
- * \param x A mini-batch of vectors with ``indices.size()`` batch elements
- * \param indices The indices of the correct candidates for each batch element
- * \param m The margin
- *
- * \return The hinge loss of each mini-batch
- */
-  inline tensor hinge(const tensor &x, const std::vector<unsigned> &indices, float m = 1.0) {
-    return dynet::hinge(x, indices, m);
-  }
 
 
 /**
@@ -1180,148 +1146,13 @@ namespace dyana {
 
 /**
  * \ingroup flowoperations
- * \brief Batched pick
- * \details Pick elements from multiple batches.
- *
- * \param x The input expression
- * \param v A vector of indicies to choose, one for each batch in the
- *          input expression.
- * \param d The dimension along which to choose the elements
- *
- * \return A mini-batched expression containing the picked elements
- */
-  inline tensor pick(const tensor &x, const std::vector<unsigned> &v, unsigned d = 0) {
-    return dynet::pick(x, v, d);
-  }
-
-
-/**
- * \ingroup flowoperations
- * \brief (Modifiable) Pick batch element.
- * \details Pick batch element from a batched expression. For a Tensor with 3 batch elements:
- *
- *    \f$
- *      \begin{pmatrix}
- *        x_{1,1,1} & x_{1,1,2} \\
- *        x_{1,2,1} & x_{1,2,2} \\
- *      \end{pmatrix}
- *      \begin{pmatrix}
- *        x_{2,1,1} & x_{2,1,2} \\
- *        x_{2,2,1} & x_{2,2,2} \\
- *      \end{pmatrix}
- *      \begin{pmatrix}
- *        x_{3,1,1} & x_{3,1,2} \\
- *        x_{3,2,1} & x_{3,2,2} \\
- *      \end{pmatrix}
- *    \f$
- *
- * pick_batch_elem(t, 1) will return a Tensor of
- *
- *    \f$
- *      \begin{pmatrix}
- *        x_{2,1,1} & x_{2,1,2} \\
- *        x_{2,2,1} & x_{2,2,2} \\
- *      \end{pmatrix}
- *    \f$
- *
- * \param x The input expression
- * \param v The index of the batch element to be picked.
- *
- * \return The expression of picked batch element. The picked element is a tensor
- *         whose `bd` equals to one.
- */
-  inline tensor pick_batch_elem(const tensor &x, unsigned v) { return dynet::pick_batch_elem(x, v); }
-
-/**
- * \ingroup flowoperations
- * \brief (Modifiable) Pick batch elements.
- * \details Pick several batch elements from a batched expression. For a Tensor with 3 batch elements:
- *
- *    \f$
- *      \begin{pmatrix}
- *        x_{1,1,1} & x_{1,1,2} \\
- *        x_{1,2,1} & x_{1,2,2} \\
- *      \end{pmatrix}
- *      \begin{pmatrix}
- *        x_{2,1,1} & x_{2,1,2} \\
- *        x_{2,2,1} & x_{2,2,2} \\
- *      \end{pmatrix}
- *      \begin{pmatrix}
- *        x_{3,1,1} & x_{3,1,2} \\
- *        x_{3,2,1} & x_{3,2,2} \\
- *      \end{pmatrix}
- *    \f$
- *
- * pick_batch_elems(t, {1, 2}) will return a Tensor of with 2 batch elements:
- *
- *    \f$
- *      \begin{pmatrix}
- *        x_{2,1,1} & x_{2,1,2} \\
- *        x_{2,2,1} & x_{2,2,2} \\
- *      \end{pmatrix}
- *      \begin{pmatrix}
- *        x_{3,1,1} & x_{3,1,2} \\
- *        x_{3,2,1} & x_{3,2,2} \\
- *      \end{pmatrix}
- *    \f$
- *
- * \param x The input expression
- * \param v A vector of indicies of the batch elements to be picked.
- *
- * \return The expression of picked batch elements. The batch elements is a tensor
- *         whose `bd` equals to the size of vector `v`.
- */
-  inline tensor
-  pick_batch_elems(const tensor &x, const std::vector<unsigned> &v) { return dynet::pick_batch_elems(x, v); }
-
-/**
- * \ingroup flowoperations
- * \brief Pick batch element.
- * \details Pick batch element from a batched expression.
- * \param x The input expression
- * \param v A pointer to the index of the correct element to be picked.
- *
- * \return The expression of picked batch element. The picked element is a tensor
- *         whose `bd` equals to one.
- */
-  inline tensor pick_batch_elem(const tensor &x, const unsigned *v) { return dynet::pick_batch_elem(x, v); }
-
-/**
- * \ingroup flowoperations
- * \brief Pick batch elements.
- * \details Pick several batch elements from a batched expression.
- * \param x The input expression
- * \param v A pointer to the indexes
- *
- * \return The expression of picked batch elements. The batch elements is a tensor
- *         whose `bd` equals to the size of vector `v`.
- */
-  inline tensor
-  pick_batch_elems(const tensor &x, const std::vector<unsigned> *pv) { return dynet::pick_batch_elems(x, pv); }
-
-/**
- * \ingroup flowoperations
- * \brief Concatenate list of expressions to a single batched expression
- * \details Perform a concatenation of several expressions along the batch dimension.
- *          All expressions must have the same shape except for the batch dimension.
- *
- * \param xs The input expressions
- *
- * \return The expression with the batch dimensions concatenated
- */
-  inline tensor concatenate_to_batch(const std::vector<tensor> &xs) {
-    return dynet::concatenate_to_batch(tensor::vector_cast_to_base(xs));
-  }
-
-/**
- * \ingroup flowoperations
  * \brief Strided select in multiple dimensions
  * \details Select a range and/or stride of elements from an expression.
  *
  * \param x The input expression
- * \param strides List of strides for each dimension, must be >= 1. Dimensions not included default to 1. Batch dimension can be included as very last dimension.
- * \param from    List of 0-based offsets (inclusive) for each dimension, must be >= 0. Dimensions not included default to 0. Batch dimension can be included as very last dimension.
- * \param to      List of highest 0-based index to select (exclusive) for each dimension, must be >= 0. Dimensions not included default to the corresponding dim size. Batch dimension can be included as very last dimension.
+ * \param strides List of strides for each dimension, must be >= 1. Dimensions not included default to 1.
+ * \param from    List of 0-based offsets (inclusive) for each dimension, must be >= 0. Dimensions not included default to 0.
+ * \param to      List of highest 0-based index to select (exclusive) for each dimension, must be >= 0. Dimensions not included default to the corresponding dim size.
  *
  * \return The value of x[from[0]:to[0]:strides[0],..] (as it would be in numpy syntax)
  */
@@ -1439,7 +1270,7 @@ namespace dyana {
  * \brief Dropout along a specific dimension
  * \details Identical to the dropout operation except the dropout mask is the same across one dimension. Use this if you want to drop columns or lines in a matrix for example
  *
- * For now this only supports tensors of order <= 3 (with or without batch dimension)
+ * For now this only supports tensors of order <= 3
  *
  * \param x The input expression
  * \param d The dimension along which to drop
@@ -1448,18 +1279,6 @@ namespace dyana {
  * \return The dropped out expression
  */
   inline tensor dropout_dim(const tensor &x, unsigned d, float p) { return dynet::dropout_dim(x, d, p); }
-
-/**
- * \ingroup noiseoperations
- * \brief Dropout entire elements of a minibatch
- * \details Identical to the dropout operation except entire batch elements are dropped
- *
- * \param x The input expression
- * \param p The dropout probability
- *
- * \return The dropped out expression
- */
-  inline tensor dropout_batch(const tensor &x, float p) { return dynet::dropout_batch(x, p); }
 
 /**
  * \ingroup noiseoperations
@@ -1605,9 +1424,9 @@ namespace dyana {
  *
  * Reference : [Ba et al., 2016](http://arxiv.org/abs/1607.06450)
  *
- * \param x Input expression (possibly batched)
- * \param g Gain (same dimension as x, no batch dimension)
- * \param b Bias (same dimension as x, no batch dimension)
+ * \param x Input expression
+ * \param g Gain
+ * \param b Bias
  * \return An expression of the same dimension as `x`
  */
   inline tensor
