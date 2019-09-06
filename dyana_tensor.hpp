@@ -384,7 +384,7 @@ namespace dyana {
         return pem.at(dynet_param);
       }
       catch(...) {
-        return pem[dynet_param] = const_guard::is_guarded()?dynet::const_parameter(_cg(), *dynet_param):dynet::parameter(_cg(), *dynet_param);
+        return pem[dynet_param] =const_guard::is_guarded()?dynet::const_parameter(_cg(), *dynet_param):dynet::parameter(_cg(), *dynet_param);
       }
     }
   };

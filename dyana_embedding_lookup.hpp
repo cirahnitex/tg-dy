@@ -45,7 +45,9 @@ namespace dyana {
       dict->freeze();
       dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);
       capacity = dict->size();
-      lookup_table = lookup_parameter(capacity, {embedding_size});
+      for(unsigned i=0; i<capacity; i++) {
+        lookup_table.emplace_back(dyana::Dim({embedding_size}));
+      }
     }
 
     /**
@@ -61,10 +63,10 @@ namespace dyana {
       for (const auto &token:list_tokens()) {
         auto id = token_to_id(token);
         try {
-          lookup_table.initialize(id, resize_fill_random(lookup_init_embedding(token), embedding_size));
+          lookup_table[id].set_values(resize_fill_random(lookup_init_embedding(token), embedding_size));
         }
-        catch (...) {
-          lookup_table.initialize(id, resize_fill_random(std::vector<float>(), embedding_size));
+        catch(...) {
+          lookup_table[id].set_values(resize_fill_random(std::vector<float>{}, embedding_size));
         }
 
       }
@@ -90,10 +92,12 @@ namespace dyana {
       dict->freeze();
       dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);
       capacity = dict->size();
-      lookup_table = lookup_parameter(capacity, {embedding_size});
+      for(unsigned i=0; i<capacity; i++) {
+        lookup_table.emplace_back(dyana::Dim({embedding_size}));
+      }
       for (const auto &token_embedding:token_embeddings) {
         auto id = token_to_id(token_embedding.first);
-        lookup_table.initialize(id, resize_fill_random(token_embedding.second, embedding_size));
+        lookup_table[id].set_values(resize_fill_random(token_embedding.second, embedding_size));
       }
     }
 
@@ -165,10 +169,10 @@ namespace dyana {
     std::shared_ptr<dynet::Dict> dict;
     unsigned capacity;
     unsigned embedding_size;
-    dyana::lookup_parameter lookup_table;
+    std::vector<dyana::parameter> lookup_table;
 
     dyana::tensor lookup(unsigned token_id) const {
-      return const_guard::is_guarded() ? lookup_table.const_lookup(token_id) : lookup_table.lookup(token_id);
+      return lookup_table[token_id];
     }
 
     static std::vector<float> resize_fill_random(const std::vector<float> &arr, unsigned size) {

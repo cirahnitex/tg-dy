@@ -30,10 +30,10 @@ vector<bool> oracles{true, true, true, false, true, true, true, false};
 int main() {
   dyana::initialize();
 
-  xor_model model;
-  dyana::simple_sgd_trainer trainer;
-  trainer.num_epochs = 50;
-  trainer.train(model, input0s, input1s, oracles);
-
+  static dyana::parameter W({32,32});
+  static dyana::parameter b({32});
+  auto t = (W * dyana::zeros(dyana::Dim({32},1)) + b);
+  dyana::_cg().print_graphviz();
+  t.as_vector();
   return 0;
 }

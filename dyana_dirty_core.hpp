@@ -65,14 +65,18 @@ namespace dyana {
     if (!_is_initialized()) { throw std::runtime_error("dyana::initialize must be called beforehand"); }
   }
 
+  inline dynet::ComputationGraph* &_pcg() {
+    _ensure_initialized();
+    thread_local static auto* _cg = new dynet::ComputationGraph;
+    return _cg;
+  }
+
   /**
    * get the computation graph instance
    * \return
    */
   inline dynet::ComputationGraph &_cg() {
-    _ensure_initialized();
-    thread_local static dynet::ComputationGraph _cg;
-    return _cg;
+    return *_pcg();
   }
 
   inline bool &_should_check_nan() {
@@ -100,7 +104,8 @@ namespace dyana {
    */
   inline void _renew_cg() {
     _those_who_have_their_graph_started().clear();
-    _cg().clear();
+    delete _pcg();
+    _pcg() = new dynet::ComputationGraph;
     if (_should_check_nan()) {
       _cg().set_immediate_compute(true);
       _cg().set_check_validity(true);

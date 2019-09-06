@@ -177,7 +177,7 @@ namespace dyana {
 
     EASY_SERIALIZABLE(dict, fc)
 
-  private:
+//  private:
 
     dyana::immutable_dict dict;
     dyana::linear_dense_layer fc;
