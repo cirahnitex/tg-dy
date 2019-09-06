@@ -7,7 +7,7 @@
 #include <functional>
 #include <chrono>
 namespace dyana {
-  unsigned long milliseconds_elapsed(const std::function<void()>& task) {
+  inline unsigned long milliseconds_elapsed(const std::function<void()>& task) {
     using namespace std;
     auto start = chrono::steady_clock::now();
     task();
