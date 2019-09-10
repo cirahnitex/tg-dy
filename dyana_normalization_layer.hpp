@@ -17,7 +17,9 @@ namespace dyana {
       if ((bool)g) return; // ensure that this lazy initialization is only executed once
       auto dim = x.dim()[0];
       g = parameter({dim});
+      g.set_values(std::vector<float>(dim, (float)1));
       b = parameter({dim});
+      b.set_values(std::vector<float>(dim, (float)0));
     }
 
   public:
