@@ -30,10 +30,15 @@ vector<bool> oracles{true, true, true, false, true, true, true, false};
 int main() {
   dyana::initialize();
 
-  static dyana::parameter W({32,32});
-  static dyana::parameter b({32});
-  auto t = (W * dyana::zeros(dyana::Dim({32},1)) + b);
-  dyana::_cg().print_graphviz();
-  t.as_vector();
+  dyana::dropout_layer dropout;
+
+  dyana::is_training() = true;
+  auto dropped = dropout(dyana::ones({20})).as_vector();
+  dyana::is_training() = false;
+  for(auto&& d:dropped) {
+    cout << d << " ";
+  }
+  cout <<endl;
+
   return 0;
 }

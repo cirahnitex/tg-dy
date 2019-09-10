@@ -12,7 +12,7 @@
 namespace dyana {
   /**
    * a layer that performs dropout operation
-   * when the dropout happens, the other undropped values will be scaled up by 1/p
+   * when the dropout happens, the other undropped values will be scaled up by 1/(1-p)
    * this layer has no effect if not training
    */
   class dropout_layer {
