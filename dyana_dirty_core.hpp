@@ -39,10 +39,10 @@ namespace dyana {
    * call this before any other dynet related stuffs are called
    */
   inline void
-  initialize(unsigned memory = 512) {
+  initialize(unsigned memory = 2048) {
     if (_is_initialized()) return;
-    std::vector<std::string> arguments = {"", "--dynet-autobatch=1 --dynet-mem=" + std::to_string(memory)};
-
+    std::vector<std::string> arguments = {"", "--dynet-mem=" + std::to_string(memory), "--dynet-autobatch=1"};
+    std::cout << memory << std::endl;
     std::vector<char *> argv;
     for (const auto &arg : arguments)
       argv.push_back((char *) arg.data());
