@@ -25,12 +25,12 @@ namespace dyana {
 
   using Dim = dynet::Dim;
 
-  inline bool &_is_initialized() {
+  inline bool& _is_initialized() {
     static bool _ = false;
     return _;
   }
 
-  inline dynet::ParameterCollection *&_pc() {
+  inline dynet::ParameterCollection *& _pc() {
     static dynet::ParameterCollection *_pc = new dynet::ParameterCollection();
     return _pc;
   }
@@ -41,9 +41,13 @@ namespace dyana {
   inline void
   initialize(unsigned memory = 2048) {
     if (_is_initialized()) return;
-    std::vector<std::string> arguments = {"", "--dynet-mem=" + std::to_string(memory), "--dynet-autobatch=1"};
+    std::string quater_mem = std::to_string(memory / 4);
+    std::vector<std::string> arguments = {
+      "",
+      "--dynet-mem=" + quater_mem + "," + quater_mem + "," + quater_mem + "," + quater_mem,
+      "--dynet-autobatch=1"};
     std::vector<char *> argv;
-    for (const auto &arg : arguments)
+    for (const auto& arg : arguments)
       argv.push_back((char *) arg.data());
     argv.push_back(nullptr);
 
@@ -64,9 +68,9 @@ namespace dyana {
     if (!_is_initialized()) { throw std::runtime_error("dyana::initialize must be called beforehand"); }
   }
 
-  inline dynet::ComputationGraph* &_pcg() {
+  inline dynet::ComputationGraph *& _pcg() {
     _ensure_initialized();
-    thread_local static auto* _cg = new dynet::ComputationGraph;
+    thread_local static auto *_cg = new dynet::ComputationGraph;
     return _cg;
   }
 
@@ -74,16 +78,16 @@ namespace dyana {
    * get the computation graph instance
    * \return
    */
-  inline dynet::ComputationGraph &_cg() {
+  inline dynet::ComputationGraph& _cg() {
     return *_pcg();
   }
 
-  inline bool &_should_check_nan() {
+  inline bool& _should_check_nan() {
     static bool value = false;
     return value;
   }
 
-  inline std::unordered_set<const void *> &_those_who_have_their_graph_started() {
+  inline std::unordered_set<const void *>& _those_who_have_their_graph_started() {
     thread_local static std::unordered_set<const void *> _those_who_have_their_graph_started;
     return _those_who_have_their_graph_started;
   }

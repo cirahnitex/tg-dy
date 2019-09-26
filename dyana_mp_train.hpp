@@ -160,71 +160,21 @@ namespace dyana {
   };
 
   /**
-   * infer a good batch size which results in faster training
-   * randomly takes 8 training datum, and try to compute the loss in batch size of 1,2,4,8
-   * return the batch size that finishes first
-   * it also has the size effect of ensuring that all lazy-initialized paramers are initialized
-   * \tparam DATUM
-   * \param training_set the total training set
-   * \param compute_loss compute loss on a single datum
-   * \return the best batch size
+   * ensuring that all lazy-initialized paramers are initialized
+   * by randomly running 8 training datum
+   * \tparam DATUM 
+   * \param training_set 
+   * \param compute_loss 
    */
   template<typename DATUM>
-  inline unsigned _infer_batch_size(const std::vector<DATUM> &training_set, std::function<dyana::tensor(const DATUM &)> compute_loss) {
+  inline void _ensure_lazy_initialize(const std::vector<DATUM>& training_set, const std::function<dyana::tensor(const DATUM&)>& compute_loss) {
     std::vector<unsigned> train_indices(training_set.size());
     std::iota(train_indices.begin(), train_indices.end(), 0);
     std::shuffle(train_indices.begin(), train_indices.end(), *dynet::rndeng);
 
-    // try running through all examples
-    auto batch1_time = milliseconds_elapsed([&](){
-      for(unsigned i=0; i<8 && i<train_indices.size(); i++) {
-        compute_loss(training_set[train_indices[i]]).as_scalar();
-      }
-    });
-
-    // in case there are less than 8 training examples then no need to infer
-    if(train_indices.size() < 8) return 1;
-
-    auto batch2_time = milliseconds_elapsed([&](){
-      for(unsigned i=0; i<8; i+=2) {
-        (compute_loss(training_set[train_indices[i]]) +
-         compute_loss(training_set[train_indices[i + 1]])
-        ).as_scalar();
-      }
-    });
-
-    if(batch2_time > batch1_time) return 1;
-
-    auto batch4_time = milliseconds_elapsed([&](){
-      for(unsigned i=0; i<8; i+=4) {
-        (compute_loss(training_set[train_indices[i]]) +
-         compute_loss(training_set[train_indices[i + 1]]) +
-         compute_loss(training_set[train_indices[i + 2]]) +
-         compute_loss(training_set[train_indices[i + 3]])
-        ).as_scalar();
-      }
-    });
-
-
-    if(batch4_time > batch2_time) return 2;
-
-    auto batch8_time = milliseconds_elapsed([&](){
-      for(unsigned i=0; i<8; i+=8) {
-        (compute_loss(training_set[train_indices[i]]) +
-         compute_loss(training_set[train_indices[i + 1]]) +
-         compute_loss(training_set[train_indices[i + 2]]) +
-         compute_loss(training_set[train_indices[i + 3]]) +
-         compute_loss(training_set[train_indices[i + 4]]) +
-         compute_loss(training_set[train_indices[i + 5]]) +
-         compute_loss(training_set[train_indices[i + 6]]) +
-         compute_loss(training_set[train_indices[i + 7]])
-        ).as_scalar();
-      }
-    });
-
-    if(batch8_time > batch4_time) return 4;
-
-    return 8;
+    for(unsigned i=0; i<8 && i<train_indices.size(); i++) {
+      compute_loss(training_set[train_indices[i]]);
+    }
   }
 
   template<typename DATUM>
@@ -239,16 +189,14 @@ namespace dyana {
   }
 
   template<typename DATUM>
-  void _fit_impl(unsigned num_workers, unsigned num_epochs, dynet::Trainer* trainer, const std::vector<DATUM> &training_set,
+  void _fit_impl(unsigned num_workers, unsigned batch_size, unsigned num_epochs, dynet::Trainer* trainer, const std::vector<DATUM> &training_set,
                  const std::vector<DATUM> &dev_set, std::function<dyana::tensor(const DATUM &)> compute_loss,
                  const std::function<void()>& save, float num_reports_per_epoch) {
     if (training_set.empty()) return;
     is_training() = true;
-    auto batch_size = _infer_batch_size(training_set, compute_loss);
+    _ensure_lazy_initialize(training_set, compute_loss);
     is_training() = false;
-
-    std::cerr << "using batch size: "<< batch_size << std::endl;
-
+    
     if(batch_size == 1) {
       _mp_train_learner<DATUM>(num_workers, num_epochs, trainer, training_set, dev_set, compute_loss, save, num_reports_per_epoch);
       return;
@@ -298,6 +246,12 @@ namespace dyana {
      * how many times to report per epoch
      */
     float num_reports_per_epoch{1};
+    
+    /**
+     * size of a batch
+     * note that if the batch size is big, you may need to allocate more memory during dyana::initialize
+     */
+    unsigned batch_size{1};
   protected:
     virtual dynet::Trainer* get_dynet_trainer_p() = 0;
   private:
@@ -313,7 +267,7 @@ namespace dyana {
       auto compute_loss_tuple = [&](const datum_type &args_pack) {
         return model.compute_loss(get<0>(args_pack));
       };
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
                             compute_loss_tuple, save_behavior, num_reports_per_epoch);
     }
     template<typename MODEL, typename D0, typename D1>
@@ -329,7 +283,7 @@ namespace dyana {
         return model.compute_loss(get<0>(args_pack), get<1>(args_pack));
       };
 
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
                             compute_loss_tuple, save_behavior, num_reports_per_epoch);
     }
     template<typename MODEL, typename D0, typename D1, typename D2>
@@ -348,7 +302,7 @@ namespace dyana {
         return model.compute_loss(get<0>(args_pack), get<1>(args_pack), get<2>(args_pack));
       };
 
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
                             compute_loss_tuple, save_behavior, num_reports_per_epoch);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3>
@@ -368,7 +322,7 @@ namespace dyana {
         return model.compute_loss(get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack));
       };
 
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
                             compute_loss_tuple, save_behavior, num_reports_per_epoch);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4>
@@ -393,7 +347,7 @@ namespace dyana {
           get<4>(args_pack));
       };
 
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
                             compute_loss_tuple, save_behavior, num_reports_per_epoch);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5>
@@ -419,7 +373,7 @@ namespace dyana {
           get<4>(args_pack), get<5>(args_pack));
       };
 
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
                             compute_loss_tuple, save_behavior, num_reports_per_epoch);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5, typename D6>
@@ -450,7 +404,7 @@ namespace dyana {
           get<4>(args_pack), get<5>(args_pack), get<6>(args_pack));
       };
 
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
                             compute_loss_tuple, save_behavior, num_reports_per_epoch);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5, typename D6, typename D7>
@@ -482,7 +436,7 @@ namespace dyana {
           get<4>(args_pack), get<5>(args_pack), get<6>(args_pack), get<7>(args_pack));
       };
 
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, dev_set_tuple,
                             compute_loss_tuple, save_behavior, num_reports_per_epoch);
     }
 
@@ -498,7 +452,7 @@ namespace dyana {
       auto compute_loss_tuple = [&](const datum_type &args_pack) {
         return model.compute_loss(get<0>(args_pack));
       };
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
                             save_behavior, num_reports_per_epoch);
     }
     template<typename MODEL, typename D0, typename D1>
@@ -513,7 +467,7 @@ namespace dyana {
         return model.compute_loss(get<0>(args_pack), get<1>(args_pack));
       };
 
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
                             save_behavior, num_reports_per_epoch);
     }
     template<typename MODEL, typename D0, typename D1, typename D2>
@@ -530,7 +484,7 @@ namespace dyana {
         return model.compute_loss(get<0>(args_pack), get<1>(args_pack), get<2>(args_pack));
       };
 
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
                             save_behavior, num_reports_per_epoch);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3>
@@ -548,7 +502,7 @@ namespace dyana {
         return model.compute_loss(get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack));
       };
 
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
                             save_behavior, num_reports_per_epoch);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4>
@@ -570,7 +524,7 @@ namespace dyana {
           get<4>(args_pack));
       };
 
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
                             save_behavior, num_reports_per_epoch);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5>
@@ -593,7 +547,7 @@ namespace dyana {
           get<4>(args_pack), get<5>(args_pack));
       };
 
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
                             save_behavior, num_reports_per_epoch);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5, typename D6>
@@ -619,7 +573,7 @@ namespace dyana {
           get<4>(args_pack), get<5>(args_pack), get<6>(args_pack));
       };
 
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
                             save_behavior, num_reports_per_epoch);
     }
     template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5, typename D6, typename D7>
@@ -646,7 +600,7 @@ namespace dyana {
           get<4>(args_pack), get<5>(args_pack), get<6>(args_pack), get<7>(args_pack));
       };
 
-      _fit_impl<datum_type>(num_workers, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
+      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), training_set_tuple, {}, compute_loss_tuple,
                             save_behavior, num_reports_per_epoch);
     }
   public:
