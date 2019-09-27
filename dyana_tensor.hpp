@@ -10,16 +10,14 @@
 #include "dyana_dirty_core.hpp"
 #include "dyana_serialization_helper.hpp"
 #include <iostream>
+#include "dyana_guard.macro.hpp"
 
 namespace dyana {
 
   /**
-   * if the model is currently under multithread training
+   * when guarded, the model is currently under multiprocess training
    */
-  inline bool& _is_multi_processing() {
-    static bool _ = false;
-    return _;
-  }
+  DEFINE_THREAD_LOCAL_GUARAD(multiprocessing_guard)
 
   class parameter {
   public:
@@ -53,7 +51,7 @@ namespace dyana {
 
     parameter(const Dim& dim) : _dynet_parameter_m(std::make_shared<dynet::Parameter>(_pc()->add_parameters(dim).p)) {
       alives().insert(_dynet_parameter_m);
-      if(_is_multi_processing()) throw std::runtime_error(MP_PARAM_INIT_ERR_MSG);
+      if(multiprocessing_guard::is_guarded()) throw std::runtime_error(MP_PARAM_INIT_ERR_MSG);
     }
 
     ~parameter() {
@@ -107,24 +105,9 @@ namespace dyana {
   }
 
   /**
-   * parameters receive no gradients from computations defined during the scope of this guard
+   * computations defined when guarded applys no gradients to parameters
    */
-  class const_guard {
-    static unsigned& num_instances() {
-      thread_local static unsigned _;
-      return _;
-    };
-  public:
-    static bool is_guarded() {
-      return num_instances() > 0;
-    }
-    const_guard() {num_instances()++;}
-    const_guard(const const_guard&) = delete;
-    const_guard(const_guard&&) noexcept = delete;
-    const_guard &operator=(const const_guard&) = delete;
-    const_guard &operator=(const_guard&&) noexcept = delete;
-    ~const_guard() {num_instances()--;}
-  };
+  DEFINE_THREAD_LOCAL_GUARAD(const_guard)
 
   class tensor : public dynet::Expression {
   public:
@@ -420,7 +403,7 @@ namespace dyana {
     lookup_parameter(unsigned size, const Dim& dim) : _dynet_parameter_m(
       std::make_shared<dynet::LookupParameter>(_pc()->add_lookup_parameters(size, dim).p)) {
       alives().insert(_dynet_parameter_m);
-      if(_is_multi_processing()) throw std::runtime_error(parameter::MP_PARAM_INIT_ERR_MSG);
+      if(multiprocessing_guard::is_guarded()) throw std::runtime_error(parameter::MP_PARAM_INIT_ERR_MSG);
     }
 
     ~lookup_parameter() {

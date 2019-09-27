@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 #include "dyana_timer.hpp"
+#include "dyana_parallel_map.hpp"
 using namespace std;
 
 class xor_model {
@@ -30,15 +31,21 @@ vector<bool> oracles{true, true, true, false, true, true, true, false};
 int main() {
   dyana::initialize();
 
-  dyana::dropout_layer dropout;
+  // create some data
+  vector<float> xs{1,2,3,4,5};
 
-  dyana::is_training() = true;
-  auto dropped = dropout(dyana::ones({20})).as_vector();
-  dyana::is_training() = false;
-  for(auto&& d:dropped) {
-    cout << d << " ";
+  // create a square fn
+  auto square_returning_vector = [](float x) {
+    return vector<float>{x*x};
+  };
+
+  // call parallel_map
+  auto ys = dyana::parallel_map<float>(xs, square_returning_vector, 1, 2);
+
+  // print results
+  for(auto&& y:ys) {
+    cout << y[0] << endl;
   }
-  cout <<endl;
 
   return 0;
 }

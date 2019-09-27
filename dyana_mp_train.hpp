@@ -13,6 +13,7 @@
 #include "dyana_serialization_helper.hpp"
 #include "dyana_event_emitter.hpp"
 #include "dyana_timer.hpp"
+#include "dyana_guard.macro.hpp"
 
 namespace dynet {
   namespace mp {
@@ -107,14 +108,10 @@ namespace dynet {
 namespace dyana {
 
   /**
-   * if the model is training
+   * when guarded, the model is training
    * useful when determining whether to add training noise or not, like dropout.
-   * \return whether or not the model is training
    */
-  inline bool& is_training() {
-    thread_local static bool _ = false;
-    return _;
-  }
+  DEFINE_THREAD_LOCAL_GUARAD(training_guard)
 
   template<typename DATUM>
   class _mp_train_learner : private dynet::mp::ILearner<DATUM, float> {
@@ -130,10 +127,9 @@ namespace dyana {
                                               training_set.size()/num_reports_per_epoch,
                                               training_set.size()/num_reports_per_epoch, 1);
       } else {
-        _is_multi_processing() = true;
+        multiprocessing_guard _;
         dynet::mp::run_multi_process(num_workers, this, trainer, training_set, dev_set, num_epochs,
                                      training_set.size()/num_reports_per_epoch, training_set.size()/num_reports_per_epoch);
-        _is_multi_processing() = false;
       }
 
     }
@@ -144,11 +140,17 @@ namespace dyana {
         throw std::runtime_error(
           "NO GLOBAL TENSOR. All dyana::Tensor instances must be cleaned up before training on a new Datum. Otherwise severe memory leak will occur while training.");
       }
-      if(learn) is_training() = true;
-      dyana::tensor loss = compute_loss(datum);
-      is_training() = false;
-      float ret = loss.as_scalar();
-      if (learn) dyana::_cg().backward(loss);
+      float ret = 0;
+      if(learn) {
+        training_guard _;
+        dyana::tensor loss = compute_loss(datum);
+        ret = loss.as_scalar();
+        dyana::_cg().backward(loss);
+      }
+      else {
+        dyana::tensor loss = compute_loss(datum);
+        ret = loss.as_scalar();
+      }
       return ret;
     }
 
@@ -193,10 +195,11 @@ namespace dyana {
                  const std::vector<DATUM> &dev_set, std::function<dyana::tensor(const DATUM &)> compute_loss,
                  const std::function<void()>& save, float num_reports_per_epoch) {
     if (training_set.empty()) return;
-    is_training() = true;
-    _ensure_lazy_initialize(training_set, compute_loss);
-    is_training() = false;
-    
+    {
+      training_guard _;
+      _ensure_lazy_initialize(training_set, compute_loss);
+    }
+
     if(batch_size == 1) {
       _mp_train_learner<DATUM>(num_workers, num_epochs, trainer, training_set, dev_set, compute_loss, save, num_reports_per_epoch);
       return;

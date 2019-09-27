@@ -29,7 +29,7 @@ namespace dyana {
      */
     dropout_layer(float dropout_rate = 0.1):dropout_rate(dropout_rate) {};
     dyana::tensor operator()(const dyana::tensor& x) {
-      return dyana::is_training()?dyana::dropout(x, dropout_rate):x;
+      return training_guard::is_guarded()?dyana::dropout(x, dropout_rate):x;
     }
   };
 }
