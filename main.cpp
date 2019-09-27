@@ -4,7 +4,7 @@
 #include <sstream>
 #include <vector>
 #include "dyana_timer.hpp"
-#include "dyana_parallel_map.hpp"
+
 using namespace std;
 
 class xor_model {

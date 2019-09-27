@@ -20,6 +20,5 @@
 #include "dyana_normalization_layer.hpp"
 #include "dyana_binary_readout_model.hpp"
 #include "dyana_dropout_layer.hpp"
-#incldue "dyana_parallel_map.hpp"
-
+#include "dyana_parallel_map.hpp"
 #endif //DYANA_HPP
