@@ -18,9 +18,9 @@
 namespace dynet {
   namespace mp {
     template<class D, class S>
-    void run_single_process_patched(ILearner<D, S> *learner, Trainer *trainer, const std::vector<D> &train_data,
-                                    const std::vector<D> &dev_data, unsigned num_iterations, unsigned dev_frequency,
-                                    unsigned report_frequency, unsigned batch_size) {
+    void run_single_process_hacked(ILearner<D, S>* learner, Trainer* trainer, const std::vector<D>& train_data,
+                            const std::vector<D>& dev_data, unsigned num_iterations, float num_reports_per_epoch) {
+      unsigned report_frequency = train_data.size() / num_reports_per_epoch;
       std::vector<unsigned> train_indices(train_data.size());
       std::iota(train_indices.begin(), train_indices.end(), 0);
 
@@ -40,19 +40,20 @@ namespace dynet {
         unsigned data_until_report = report_frequency;
         std::vector<unsigned>::iterator begin = train_indices.begin();
         while (begin != train_indices.end()) {
-          std::vector<unsigned>::iterator end = (dev_frequency > 0) ? begin + dev_frequency : train_indices.end();
+          std::vector<unsigned>::iterator end = begin + report_frequency;
           if (end > train_indices.end()) {
             end = train_indices.end();
           }
           S batch_loss = S();
+          std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
           for (auto it = begin; it != end; ++it) {
             unsigned i = *it;
             DYNET_ASSERT(i < train_data.size(), "Out-of-bounds ID in train set for multiprocessing");
-            const D &datum = train_data[i];
+            const D& datum = train_data[i];
             S datum_loss = learner->LearnFromDatum(datum, true);
             batch_loss += datum_loss;
             train_loss += datum_loss;
-            if (++batch_counter == batch_size) {
+            if (++batch_counter == /*batch_size*/1) {
               // TODO: The scaling was originally this
               // trainer->update(1.0 / batch_size);
               trainer->update();
@@ -61,9 +62,13 @@ namespace dynet {
             data_processed++;
 
             if (--data_until_report == 0) {
+              std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+              double seconds_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
+              start_time = end_time;
+
               data_until_report = report_frequency;
               double fractional_iter = iter + 1.0 * data_processed / train_indices.size();
-              std::cerr << fractional_iter << "\t" << "loss = " << batch_loss << std::endl;
+              std::cerr << fractional_iter << "\t" << "loss = " << batch_loss << " (" << seconds_elapsed << "s)" << std::endl;
               batch_loss = S();
             }
           }
@@ -71,36 +76,115 @@ namespace dynet {
           if (stop_requested) {
             break;
           }
-//          if(true) {
-          if (dev_data.size() > 0) {
-            S dev_loss = S();
-            for (auto it = dev_indices.begin(); it != dev_indices.end(); ++it) {
-              unsigned i = *it;
-              DYNET_ASSERT(i < dev_data.size(), "Out-of-bounds ID in dev set for multiprocessing");
-              const D &datum = dev_data[i];
-              S datum_loss = learner->LearnFromDatum(datum, false);
-              dev_loss += datum_loss;
-            }
-            bool new_best = (first_dev_run || dev_loss < best_dev_loss);
-            first_dev_run = false;
-            double fractional_iter = iter + 1.0 * data_processed / train_indices.size();
-            std::cerr << fractional_iter << "\t" << "dev loss = " << dev_loss << (new_best ? " (New best!)" : "")
-                      << std::endl;
-            if (stop_requested) {
-              break;
-            }
-            if (new_best) {
-              learner->SaveModel();
-              best_dev_loss = dev_loss;
-            }
-          } else {
+
+          begin = end;
+        }
+
+        if (dev_data.size() > 0) {
+          S dev_loss = S();
+          for (auto it = dev_indices.begin(); it != dev_indices.end(); ++it) {
+            unsigned i = *it;
+            DYNET_ASSERT(i < dev_data.size(), "Out-of-bounds ID in dev set for multiprocessing");
+            const D& datum = dev_data[i];
+            S datum_loss = learner->LearnFromDatum(datum, false);
+            dev_loss += datum_loss;
+          }
+          bool new_best = (first_dev_run || dev_loss < best_dev_loss);
+          first_dev_run = false;
+          std::cerr << iter + 1.0 << "\t" << "dev loss = " << dev_loss << (new_best ? " (New best!)" : "") << std::endl;
+          if (new_best) {
             learner->SaveModel();
+            best_dev_loss = dev_loss;
+          }
+        }
+      }
+    }
+
+    template<class D, class S>
+    void run_parent_hacked(const std::vector<D>& train_data, const std::vector<D>& dev_data, ILearner<D, S>* learner,
+                    std::vector<Workload>& workloads, unsigned num_iterations, float num_reports_per_epoch) {
+      unsigned report_frequency = train_data.size() / num_reports_per_epoch;
+      const unsigned num_children = workloads.size();
+      boost::interprocess::message_queue mq(boost::interprocess::create_only, queue_name.c_str(), 10000, sizeof(unsigned));
+      std::vector<unsigned> train_indices(train_data.size());
+      std::iota(train_indices.begin(), train_indices.end(), 0);
+
+      std::vector<unsigned> dev_indices(dev_data.size());
+      std::iota(dev_indices.begin(), dev_indices.end(), 0);
+
+      S best_dev_loss = S();
+      bool first_dev_run = true;
+      for (unsigned iter = 0; iter < num_iterations && !stop_requested; ++iter) {
+        // Shuffle the training data indices
+        std::shuffle(train_indices.begin(), train_indices.end(), *rndeng);
+
+        S train_loss = S();
+
+        std::vector<unsigned>::iterator begin = train_indices.begin();
+        while (begin != train_indices.end()) {
+          std::vector<unsigned>::iterator end = begin + report_frequency;
+          if (end > train_indices.end()) {
+            end = train_indices.end();
+          }
+
+          std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+          double fractional_iter = iter + 1.0 * distance(train_indices.begin(), end) / train_indices.size();
+          S batch_loss = run_data_set<S>(begin, end, workloads, mq, {false, end == train_indices.end(), report_frequency});
+          std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+          double seconds_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
+          train_loss += batch_loss;
+          std::cerr << fractional_iter << "\t" << "loss = " << batch_loss << " (" << seconds_elapsed << "s)" << std::endl;
+
+          if (stop_requested) {
+            break;
           }
 
           begin = end;
         }
+
+        if (dev_data.size() > 0) {
+          S dev_loss = run_data_set<S>(dev_indices.begin(), dev_indices.end(), workloads, mq, {true, false, report_frequency});
+          bool new_best = (first_dev_run || dev_loss < best_dev_loss);
+          first_dev_run = false;
+          std::cerr << iter + 1 << "\t" << "dev loss = " << dev_loss << (new_best ? " (New best!)" : "") << std::endl;
+          if (new_best) {
+            learner->SaveModel();
+            best_dev_loss = dev_loss;
+          }
+        } else {
+          learner->SaveModel();
+        }
+      }
+
+      // Kill all children one by one and wait for them to exit
+      for (unsigned cid = 0; cid < num_children; ++cid) {
+        bool cont = false;
+        write_data(workloads[cid].p2c[1], cont);
+        wait(NULL);
+      }
+      boost::interprocess::message_queue::remove(queue_name.c_str());
+    }
+
+    template<class D, class S>
+    void run_multi_process_hacked(unsigned num_children, ILearner<D, S>* learner, Trainer* trainer, const std::vector<D>& train_data,
+                           const std::vector<D>& dev_data, unsigned num_iterations, float num_reports_per_epoch) {
+      queue_name = generate_queue_name();
+      boost::interprocess::message_queue::remove(queue_name.c_str());
+      boost::interprocess::message_queue::remove(queue_name.c_str());
+      shared_memory_name = generate_shared_memory_name();
+      shared_object = get_shared_memory<SharedObject>();
+      std::vector<Workload> workloads = create_workloads(num_children);
+      unsigned cid = spawn_children(workloads);
+      if (cid < num_children) {
+        run_child(cid, learner, trainer, workloads, train_data, dev_data);
+        exit(0);
+      }
+      else {
+        run_parent_hacked(train_data, dev_data, learner, workloads, num_iterations, num_reports_per_epoch);
+        cleanup(workloads);
       }
     }
+
   }
 }
 
@@ -123,13 +207,12 @@ namespace dyana {
       compute_loss(std::move(compute_loss)), save(std::move(save)) {
 
       if (num_workers <= 1) {
-        dynet::mp::run_single_process_patched(this, trainer, training_set, dev_set, num_epochs,
-                                              training_set.size()/num_reports_per_epoch,
-                                              training_set.size()/num_reports_per_epoch, 1);
+        dynet::mp::run_single_process_hacked(this, trainer, training_set, dev_set, num_epochs,
+                                             num_reports_per_epoch);
       } else {
         multiprocessing_guard _;
-        dynet::mp::run_multi_process(num_workers, this, trainer, training_set, dev_set, num_epochs,
-                                     training_set.size()/num_reports_per_epoch, training_set.size()/num_reports_per_epoch);
+        dynet::mp::run_multi_process_hacked(num_workers, this, trainer, training_set, dev_set, num_epochs,
+                                            num_reports_per_epoch);
       }
 
     }

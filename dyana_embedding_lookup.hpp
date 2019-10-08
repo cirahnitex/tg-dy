@@ -144,6 +144,10 @@ namespace dyana {
       return dict->get_words();
     }
 
+    unsigned get_embedding_size() const {
+      return embedding_size;
+    }
+
     template<class Archive>
     void save(Archive &a) const {
       a(cereal::make_nvp("vocab", dict->get_words()));
