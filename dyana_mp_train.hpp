@@ -20,7 +20,7 @@ namespace dynet {
     template<class D, class S>
     void run_single_process_hacked(ILearner<D, S>* learner, Trainer* trainer, const std::vector<D>& train_data,
                             const std::vector<D>& dev_data, unsigned num_iterations, float num_reports_per_epoch) {
-      unsigned report_frequency = train_data.size() / num_reports_per_epoch;
+      unsigned report_frequency = ceil(train_data.size() / num_reports_per_epoch);
       std::vector<unsigned> train_indices(train_data.size());
       std::iota(train_indices.begin(), train_indices.end(), 0);
 
@@ -103,7 +103,7 @@ namespace dynet {
     template<class D, class S>
     void run_parent_hacked(const std::vector<D>& train_data, const std::vector<D>& dev_data, ILearner<D, S>* learner,
                     std::vector<Workload>& workloads, unsigned num_iterations, float num_reports_per_epoch) {
-      unsigned report_frequency = train_data.size() / num_reports_per_epoch;
+      unsigned report_frequency = ceil(train_data.size() / num_reports_per_epoch);
       const unsigned num_children = workloads.size();
       boost::interprocess::message_queue mq(boost::interprocess::create_only, queue_name.c_str(), 10000, sizeof(unsigned));
       std::vector<unsigned> train_indices(train_data.size());
