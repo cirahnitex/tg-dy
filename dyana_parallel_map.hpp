@@ -21,7 +21,7 @@ namespace dyana {
 
     _parallel_map_learner(const std::vector<ITEM>& items, std::vector<dynet::Parameter>& output_container,
                           const std::function<std::vector<float>(const ITEM&)>& fn, unsigned ret_dim,
-                          unsigned num_workers)
+                          unsigned num_workers, unsigned num_reports)
       :
       fn(fn), output_container(output_container) {
 
@@ -35,8 +35,7 @@ namespace dyana {
 
       {
         multiprocessing_guard __;
-        dynet::mp::run_multi_process(num_workers, this, &trainer, numbered_items, {}, 1,
-                                     numbered_items.size(), numbered_items.size());
+        dynet::mp::run_multi_process_hacked(num_workers, this, &trainer, numbered_items, {}, 1, num_reports);
       }
 
     }
@@ -84,12 +83,13 @@ namespace dyana {
    * \param fn the callback function
    * \param ret_dim the size of each result
    * \param num_workers number of worker processes to spawn
+   * \param num_reports number of times to report the progress
    * \return a list of result
    */
   template<typename ITEM>
   std::vector<std::vector<float>>
   parallel_map(const std::vector<ITEM>& items, const std::function<std::vector<float>(const ITEM&)>& fn,
-               unsigned ret_dim, unsigned num_workers) {
+               unsigned ret_dim, unsigned num_workers, unsigned num_reports=1) {
 
     if (items.empty()) return {};
 
@@ -107,7 +107,7 @@ namespace dyana {
       output_container.push_back(pc.add_parameters({ret_dim}));
     }
 
-    _parallel_map_learner<ITEM> _learner(items, output_container, fn, ret_dim, num_workers);
+    _parallel_map_learner<ITEM> _learner(items, output_container, fn, ret_dim, num_workers, num_reports);
 
     std::vector<std::vector<float>> ret;
     for (auto&& p:output_container) {
