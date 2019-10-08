@@ -14,7 +14,6 @@
 #include "dyana_event_emitter.hpp"
 #include "dyana_timer.hpp"
 #include "dyana_guard.macro.hpp"
-#include <cmath>
 
 namespace dynet {
   namespace mp {
