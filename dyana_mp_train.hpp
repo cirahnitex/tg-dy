@@ -224,15 +224,20 @@ namespace dyana {
           "NO GLOBAL TENSOR. All dyana::Tensor instances must be cleaned up before training on a new Datum. Otherwise severe memory leak will occur while training.");
       }
       float ret = 0;
-      if(learn) {
-        training_guard _;
-        dyana::tensor loss = compute_loss(datum);
-        ret = loss.as_scalar();
-        dyana::_cg().backward(loss);
+      try {
+        if(learn) {
+          training_guard _;
+          dyana::tensor loss = compute_loss(datum);
+          ret = loss.as_scalar();
+          dyana::_cg().backward(loss);
+        }
+        else {
+          dyana::tensor loss = compute_loss(datum);
+          ret = loss.as_scalar();
+        }
       }
-      else {
-        dyana::tensor loss = compute_loss(datum);
-        ret = loss.as_scalar();
+      catch(std::exception& ex) {
+        std::cerr << ex.what() << std::endl;
       }
       return ret;
     }
