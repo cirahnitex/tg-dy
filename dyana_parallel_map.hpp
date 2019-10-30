@@ -12,15 +12,38 @@
 #include "dyana_common.hpp"
 #include "dyana_event_emitter.hpp"
 
-namespace dyana {
+namespace dynet {
+  class _do_nothing_trainer :public dynet::Trainer {
+  public:
+    explicit _do_nothing_trainer(ParameterCollection& m):Trainer(m, 0) {}
+    void restart() override {}
+    void update() override {}
+    using Trainer::restart;
+    void save(std::ostream& os) override {}
+    void populate(std::istream& is) override {}
+  protected:
+    unsigned alloc_impl() override {return 0;}
+    unsigned alloc_lookup_impl() override {return 0;}
+    void update_params(real gscale, size_t idx) override {}
+    void update_lookup_params(real gscale, size_t idx, size_t lidx) override {}
+    void update_lookup_params(real gscale, size_t idx) override {}
+    template <class MyDevice>
+    void update_rule_dev(const MyDevice & dev, real gscale, const std::vector<Tensor*> & values) {}
+    void update_rule(real gscale, const std::vector<Tensor*> & values) override {}
+  private:
+    _do_nothing_trainer():Trainer() {}
+  };
 
+}
+
+namespace dyana {
   template<typename ITEM>
   class _parallel_map_learner : private dynet::mp::ILearner<std::pair<unsigned, ITEM>, float> {
   public:
     using numbered_item_t = std::pair<unsigned, ITEM>;
 
     _parallel_map_learner(const std::vector<ITEM>& items, std::vector<dynet::Parameter>& output_container,
-                          const std::function<std::vector<float>(const ITEM&)>& fn, unsigned ret_dim,
+                          const std::function<std::vector<float>(const ITEM&, unsigned index)>& fn, unsigned ret_dim,
                           unsigned num_workers, unsigned num_reports)
       :
       fn(fn), output_container(output_container) {
@@ -30,8 +53,7 @@ namespace dyana {
         numbered_items.emplace_back(i, items[i]);
       }
 
-      dynet::ParameterCollection _;
-      dynet::SimpleSGDTrainer trainer(_);
+      dynet::_do_nothing_trainer trainer(*dyana::_pc());
 
       {
         multiprocessing_guard __;
@@ -48,7 +70,7 @@ namespace dyana {
       }
 
       // compute output on the item
-      std::vector<float> ret = fn(numbered_item.second);
+      std::vector<float> ret = fn(numbered_item.second, numbered_item.first);
 
       // store the output into parameter collection
       output_container[numbered_item.first].set_value(ret);
@@ -58,7 +80,7 @@ namespace dyana {
 
     virtual void SaveModel() {}
 
-    std::function<std::vector<float>(const ITEM&)> fn;
+    std::function<std::vector<float>(const ITEM&, unsigned index)> fn;
     std::vector<dynet::Parameter>& output_container;
   };
 
@@ -88,15 +110,15 @@ namespace dyana {
    */
   template<typename ITEM>
   std::vector<std::vector<float>>
-  parallel_map(const std::vector<ITEM>& items, const std::function<std::vector<float>(const ITEM&)>& fn,
+  parallel_map(const std::vector<ITEM>& items, const std::function<std::vector<float>(const ITEM&, unsigned index)>& fn,
                unsigned ret_dim, unsigned num_workers, unsigned num_reports=1) {
 
     if (items.empty()) return {};
 
     if (num_workers <= 1) {
       std::vector<std::vector<float>> ret;
-      for (auto&& item:items) {
-        ret.push_back(fn(item));
+      for (unsigned i=0; i<items.size(); i++) {
+        ret.push_back(fn(items[i], i));
       }
       return ret;
     }
@@ -115,6 +137,15 @@ namespace dyana {
     }
 
     return ret;
+  }
+
+  template<typename ITEM>
+  std::vector<std::vector<float>>
+  parallel_map(const std::vector<ITEM>& items, const std::function<std::vector<float>(const ITEM&)>& fn,
+               unsigned ret_dim, unsigned num_workers, unsigned num_reports=1) {
+    return parallel_map<ITEM>(items, [&](const ITEM& item, unsigned i){
+      return fn(item);
+    }, ret_dim, num_workers, num_reports);
   }
 }
 

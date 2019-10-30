@@ -49,6 +49,13 @@
         return selected_W * x + selected_b;
       }
 
+      void print_info() {
+        std::cout << "dim in: "<<dim_in<<std::endl;
+        std::cout << "dim out:"<<dim_out<<std::endl;
+        std::cout << "W dim:"<<W.dim()<<std::endl;
+        std::cout << "b dim:"<<b.dim()<<std::endl;
+      }
+
       EASY_SERIALIZABLE(dim_in, dim_out, W, b)
 
     private:

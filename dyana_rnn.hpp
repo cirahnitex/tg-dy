@@ -69,7 +69,7 @@ namespace dyana {
       std::vector<rnn_cell_state_t> output_stacked_cell_state;
       for (unsigned i = 0; i < cells.size(); i++) {
         auto &cell = cells[i];
-        auto _ = cell.forward(i < prev_state.size() ? prev_state[i] : rnn_cell_state_t(), y);
+        auto _ = cell(i < prev_state.size() ? prev_state[i] : rnn_cell_state_t(), y);
 
         if(use_residual()) {
           y = y + std::move(_.second);
