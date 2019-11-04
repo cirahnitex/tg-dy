@@ -31,11 +31,15 @@ vector<bool> oracles{true, true, true, false, true, true, true, false};
 int main() {
   dyana::initialize();
 
-  auto x = dyana::zeros({512,2});
-  for(auto&& v:x.at(1,1).as_vector()) {
-    cout << v << " ";
-  }
-  cout <<endl;
+  xor_model model;
+
+  dyana::adam_trainer trainer;
+  trainer.num_epochs = 10;
+  trainer.num_workers = 2;
+  trainer.learning_rate_scheduler = [](unsigned i) {
+    return i/100.0;
+  };
+  trainer.train(model, input0s, input1s, oracles);
 
   return 0;
 }
