@@ -66,6 +66,20 @@ namespace dyana {
       return weighted_categories(probs_for_each_side, 1).front();
     }
 
+    inline bool weighted_coinflip(float success_chance) {
+      return weighted_category({(float)1 - success_chance, success_chance});
+    }
+
+    inline std::vector<bool> weighted_coinflips(float success_chance, unsigned num_flips) {
+      auto categories = weighted_categories({(float)1 - success_chance, success_chance}, num_flips);
+      std::vector<bool> ret;
+      ret.reserve(num_flips);
+      for(auto&& c:categories) {
+        ret.emplace_back(c);
+      }
+      return ret;
+    }
+
     template<typename T>
     inline const T& choose(const std::vector<T>& range) {
       return range.at(uniform_int_0n(range.size()));
