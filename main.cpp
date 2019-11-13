@@ -31,6 +31,12 @@ vector<bool> oracles{true, true, true, false, true, true, true, false};
 int main() {
   dyana::initialize();
 
-  cout << dyana::gelu(dyana::tensor(1.0)).as_scalar() << endl;
+  vector<string> choices = {"a", "b", "c"};
+
+  for(unsigned i=0; i<10; i++) {
+    cout << dyana::random::choose(choices) << endl;
+  }
+
+
   return 0;
 }
