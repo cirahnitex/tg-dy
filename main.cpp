@@ -33,10 +33,10 @@ int main() {
 
   vector<string> choices = {"a", "b", "c"};
 
-  for(unsigned i=0; i<10; i++) {
-    cout << dyana::random::choose(choices) << endl;
+  auto flips = dyana::random::weighted_coinflips(0.5 ,5);
+  for(auto&& flip:flips) {
+    cout << flip << endl;
   }
-
 
   return 0;
 }

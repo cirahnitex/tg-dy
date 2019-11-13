@@ -54,7 +54,7 @@ namespace dyana {
           if(rand_num < prefix_probs[i]) {
             ret.push_back(i);
             pushed = true;
-            continue;
+            break;
           }
         }
         if(!pushed) ret.push_back(0);
