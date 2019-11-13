@@ -677,6 +677,11 @@ namespace dyana {
  */
   inline tensor pow(const tensor &x, const tensor &y) { return dynet::pow(x, y); }
 
+
+  inline tensor gelu(const tensor& x) {
+    return 0.5*x*(1.0+tanh(0.79788456*(x + 0.044715*cube(x))));
+  }
+
 /**
  * \ingroup arithmeticoperations
  * \brief Minimum

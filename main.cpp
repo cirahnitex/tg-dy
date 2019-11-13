@@ -31,15 +31,6 @@ vector<bool> oracles{true, true, true, false, true, true, true, false};
 int main() {
   dyana::initialize();
 
-  xor_model model;
-
-  dyana::adam_trainer trainer;
-  trainer.num_epochs = 10;
-  trainer.num_workers = 2;
-  trainer.learning_rate_scheduler = [](unsigned i) {
-    return i/100.0;
-  };
-  trainer.train(model, input0s, input1s, oracles);
-
+  cout << dyana::gelu(dyana::tensor(1.0)).as_scalar() << endl;
   return 0;
 }
