@@ -434,14 +434,28 @@ namespace dyana {
       }
     }
 
+    void set_value(unsigned i, const std::vector<float>& value) {
+      _dynet_parameter_m->initialize(i, value);
+    }
+
     void initialize(unsigned index, const std::vector<float>& values) { _dynet_parameter_m->initialize(index, values); }
 
     tensor lookup(unsigned index) const {
-      return dynet::lookup(_cg(), *_dynet_parameter_m, index);
+      if(const_guard::is_guarded()) {
+        return dynet::const_lookup(_cg(), *_dynet_parameter_m, index);
+      }
+      else {
+        return dynet::lookup(_cg(), *_dynet_parameter_m, index);
+      }
     }
 
-    tensor const_lookup(unsigned index) const {
-      return dynet::const_lookup(_cg(), *_dynet_parameter_m, index);
+    tensor lookup(const std::vector<unsigned>& indices) const {
+      if(const_guard::is_guarded()) {
+        return dynet::const_lookup(_cg(), *_dynet_parameter_m, indices);
+      }
+      else {
+        return dynet::lookup(_cg(), *_dynet_parameter_m, indices);
+      }
     }
 
     template<class Archive>

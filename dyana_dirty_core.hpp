@@ -35,17 +35,20 @@ namespace dyana {
     return _pc;
   }
 
+  enum ProfilingVerbosity {NONE=0, ROUGH, VERBOSE};
+
   /**
    * call this before any other dynet related stuffs are called
    */
   inline void
-  initialize(unsigned memory = 2048) {
+  initialize(unsigned memory = 2048, ProfilingVerbosity profiling=NONE) {
     if (_is_initialized()) return;
     std::string quater_mem = std::to_string(memory / 4);
     std::vector<std::string> arguments = {
       "",
       "--dynet-mem=" + quater_mem + "," + quater_mem + "," + quater_mem + "," + quater_mem,
-      "--dynet-autobatch=1"};
+      "--dynet-autobatch=1",
+      "--dynet-profiling=" + std::to_string((unsigned)profiling)};
     std::vector<char *> argv;
     for (const auto& arg : arguments)
       argv.push_back((char *) arg.data());

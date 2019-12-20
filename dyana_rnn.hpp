@@ -58,7 +58,8 @@ namespace dyana {
 
     /**
      * apply the RNN cell for a single time step
-     * \param prev_state the previous cell state
+     * \param prev_state the previous cell state.
+     *                   pass {} for default initial value
      * \param x the current input
      * \return 0) the cell state after this time step
      *         1) the output
@@ -69,7 +70,7 @@ namespace dyana {
       std::vector<rnn_cell_state_t> output_stacked_cell_state;
       for (unsigned i = 0; i < cells.size(); i++) {
         auto &cell = cells[i];
-        auto _ = cell(i < prev_state.size() ? prev_state[i] : rnn_cell_state_t(), y);
+        auto _ = cell(i < prev_state.size() ? prev_state[i] : cell.default_cell_state(), y);
 
         if(use_residual()) {
           y = y + std::move(_.second);
@@ -85,6 +86,7 @@ namespace dyana {
     /**
      * apply the RNN cell for multiple time steps
      * \param prev_state the previous cell state
+     *                   pass {} for default initial value
      * \param x_sequence a list of inputs to apply, in chronological order
      * \return 0) the cell state after the last time step
      *         1) the list of output in chronological order

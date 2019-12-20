@@ -45,9 +45,7 @@ namespace dyana {
       dict->freeze();
       dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);
       capacity = dict->size();
-      for(unsigned i=0; i<capacity; i++) {
-        lookup_table.emplace_back(dyana::Dim({embedding_size}));
-      }
+      lookup_table = dyana::lookup_parameter(capacity, {embedding_size});
     }
 
     /**
@@ -63,10 +61,10 @@ namespace dyana {
       for (const auto &token:list_tokens()) {
         auto id = token_to_id(token);
         try {
-          lookup_table[id].set_values(resize_fill_random(lookup_init_embedding(token), embedding_size));
+          lookup_table.set_value(id, resize_fill_random(lookup_init_embedding(token), embedding_size));
         }
         catch(...) {
-          lookup_table[id].set_values(resize_fill_random(std::vector<float>{}, embedding_size));
+          lookup_table.set_value(id, resize_fill_random(std::vector<float>{}, embedding_size));
         }
 
       }
@@ -92,12 +90,10 @@ namespace dyana {
       dict->freeze();
       dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);
       capacity = dict->size();
-      for(unsigned i=0; i<capacity; i++) {
-        lookup_table.emplace_back(dyana::Dim({embedding_size}));
-      }
+      lookup_table = dyana::lookup_parameter(capacity, {embedding_size});
       for (const auto &token_embedding:token_embeddings) {
         auto id = token_to_id(token_embedding.first);
-        lookup_table[id].set_values(resize_fill_random(token_embedding.second, embedding_size));
+        lookup_table.set_value(id, resize_fill_random(token_embedding.second, embedding_size));
       }
     }
 
@@ -109,12 +105,20 @@ namespace dyana {
       return lookup(token_to_id(token));
     }
 
-    std::vector<dyana::tensor> operator()(const std::vector<std::string> &tokens) const {
-      std::vector<dyana::tensor> ret;
-      for (auto itr = tokens.begin(); itr != tokens.end(); ++itr) {
-        ret.push_back(operator()(*itr));
+    /**
+     * lookup multiple tokens
+     * \param tokens the list of tokens to lookup
+     * \return token embeddings column by column.
+     *         specifically, tensor<D,N>
+     *         where D = embedding-size
+     *         and   N = sentence-length
+     */
+    dyana::tensor operator()(const std::vector<std::string> &tokens) const {
+      std::vector<unsigned> ids;
+      for(auto itr = tokens.begin(); itr != tokens.end(); ++itr) {
+        ids.push_back(token_to_id(*itr));
       }
-      return ret;
+      return lookup(ids);
     }
 
     unsigned token_to_id(const std::string &token) const {
@@ -173,10 +177,14 @@ namespace dyana {
     std::shared_ptr<dynet::Dict> dict;
     unsigned capacity;
     unsigned embedding_size;
-    std::vector<dyana::parameter> lookup_table;
+    dyana::lookup_parameter lookup_table;
 
     dyana::tensor lookup(unsigned token_id) const {
-      return lookup_table[token_id];
+      return lookup_table.lookup(token_id);
+    }
+
+    dyana::tensor lookup(const std::vector<unsigned>& token_ids) const {
+      return lookup_table.lookup(token_ids).reshape({embedding_size, (unsigned)token_ids.size()});
     }
 
     static std::vector<float> resize_fill_random(const std::vector<float> &arr, unsigned size) {

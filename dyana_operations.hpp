@@ -578,6 +578,7 @@ namespace dyana {
  * \return An expression where the ith element is equal to y_i = 1/(1+e^{-x_i})
  */
   inline tensor logistic(const tensor &x) { return 0.5 * dyana::tanh(x * 0.5) + 0.5; }
+  inline tensor sigmoid(const tensor &x) { return 0.5 * dyana::tanh(x * 0.5) + 0.5; }
 
 /**
  * \ingroup arithmeticoperations
@@ -679,7 +680,7 @@ namespace dyana {
 
 
   inline tensor gelu(const tensor& x) {
-    return 0.5*x*(1.0+tanh(0.79788456*(x + 0.044715*cube(x))));
+    return cmult(0.5*x, (1.0+tanh(0.79788456*(x + 0.044715*cube(x)))));
   }
 
 /**
@@ -1215,7 +1216,22 @@ namespace dyana {
  *
  * \return An expression of sub-tensor with max value along dimension d
  */
-  inline tensor max_dim(const tensor &x, unsigned d = 0) { return dynet::max_dim(x, d); }
+  inline tensor max_dim(const tensor &x, unsigned d = 0) {
+    auto dim = x.dim();
+
+    // use maxpooling2d under the hood when possible
+    // because maxpooling2d is faster than max_dim during backprop
+    if(dim.ndims() == 2) {
+      if(d==0) {
+        return dynet::reshape(dynet::maxpooling2d(x, {dim[0], 1}, {dim[0], 1}), {dim[1]});
+      }
+      else {
+        return dynet::reshape(dynet::maxpooling2d(x, {1, dim[1]}, {1, dim[1]}), {dim[0]});
+      }
+    }
+
+    return dynet::max_dim(x, d);
+  }
 
 /**
  * \ingroup flowoperations

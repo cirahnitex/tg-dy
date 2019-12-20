@@ -67,11 +67,11 @@ namespace dyana {
      */
     dyana::tensor compute_loss(const dyana::tensor &x, const std::unordered_set<std::string> &oracle) {
       using namespace std;
-      vector<float> oracle_float;
+      vector<float> evidence_multipliers;
       for (const auto &label:labels) {
-        oracle_float.push_back(oracle.count(label) > 0 ? (float) 1 : (float) 0);
+        evidence_multipliers.push_back(oracle.count(label) > 0 ? (float) 1 : (float) -1);
       }
-      return dynet::binary_log_loss(dynet::logistic(fc.operator()(x)), dyana::tensor(oracle_float));
+      return -dyana::sum_elems(dyana::log_sigmoid(dyana::cmult(fc(x), dyana::tensor(evidence_multipliers))));
     }
 
     EASY_SERIALIZABLE(labels, fc)
