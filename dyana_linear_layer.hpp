@@ -38,7 +38,7 @@
         if(x.dim()[0] != dim_in) {
           throw std::runtime_error("linear dense layer: input dimension mismatch. expected " + std::to_string(dim_in) + ", got " + std::to_string(x.dim()[0]));
         }
-        return W * x + b;
+        return dyana::affine_transform({b, W, x});
       }
 
       dyana::tensor
@@ -46,7 +46,7 @@
         ensure_init(x);
         auto selected_W = dyana::tensor(W).select_rows(output_positions);
         auto selected_b = dyana::tensor(b).select_rows(output_positions);
-        return selected_W * x + selected_b;
+        return dyana::affine_transform({selected_b, selected_W, x});
       }
 
       void print_info() {

@@ -1,6 +1,5 @@
 #include <iostream>
 #include "dyana.hpp"
-#include <xml_archive.hpp>
 #include <sstream>
 #include <vector>
 #include "dyana_timer.hpp"
@@ -29,14 +28,19 @@ vector<bool> input1s{true, false, true, false, true, false, true, false};
 vector<bool> oracles{true, true, true, false, true, true, true, false};
 
 int main() {
-  dyana::initialize();
+  dyana::initialize(512);
 
   vector<string> choices = {"a", "b", "c"};
 
-  auto flips = dyana::random::weighted_coinflips(0.5 ,5);
-  for(auto&& flip:flips) {
-    cout << flip << endl;
-  }
+  dynet::LookupParameter lookup = dyana::_pc()->add_lookup_parameters(4, {8});
 
+  cout << "make CG" << endl;
+  auto emb = dynet::tanh(dynet::lookup(dyana::_cg(), lookup, vector<unsigned>{1}));
+
+  cout << "compute" << endl;
+  dyana::_cg().forward(emb);
+
+  int* my_int = new int;
+  delete my_int;
   return 0;
 }

@@ -577,8 +577,8 @@ namespace dyana {
  *
  * \return An expression where the ith element is equal to y_i = 1/(1+e^{-x_i})
  */
-  inline tensor logistic(const tensor &x) { return 0.5 * dyana::tanh(x * 0.5) + 0.5; }
-  inline tensor sigmoid(const tensor &x) { return 0.5 * dyana::tanh(x * 0.5) + 0.5; }
+  inline tensor logistic(const tensor &x) { return dynet::logistic(x); }
+  inline tensor sigmoid(const tensor &x) { return dynet::logistic(x); }
 
 /**
  * \ingroup arithmeticoperations
