@@ -38,7 +38,7 @@ namespace dynet {
 
 namespace dyana {
   template<typename ITEM>
-  class _parallel_map_learner : private dynet::mp::ILearner<std::pair<unsigned, ITEM>, float> {
+  class _parallel_map_learner : public dynet::mp::ILearner<std::pair<unsigned, ITEM>, float> {
   public:
     using numbered_item_t = std::pair<unsigned, ITEM>;
 
@@ -57,12 +57,12 @@ namespace dyana {
 
       {
         multiprocessing_guard __;
-        dynet::mp::run_multi_process_hacked(num_workers, this, &trainer, numbered_items, {}, 1, num_reports);
+        dynet::mp::run_multi_process_hacked<_parallel_map_learner, ITEM, float>(num_workers, this, &trainer, numbered_items, {}, 1, num_reports);
       }
 
     }
 
-  private:
+
     virtual float LearnFromDatum(const numbered_item_t& numbered_item, bool learn) {
       if (dyana::tensor::get_exprs_counter() != 0) {
         throw std::runtime_error(
@@ -81,7 +81,7 @@ namespace dyana {
     virtual void SaveModel() {}
 
     void handle_epoch_completion() {}
-
+  private:
     std::function<std::vector<float>(const ITEM&, unsigned index)> fn;
     std::vector<dynet::Parameter>& output_container;
   };
