@@ -80,6 +80,8 @@ namespace dyana {
 
     virtual void SaveModel() {}
 
+    void handle_epoch_completion() {}
+
     std::function<std::vector<float>(const ITEM&, unsigned index)> fn;
     std::vector<dynet::Parameter>& output_container;
   };
