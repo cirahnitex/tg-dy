@@ -57,7 +57,7 @@ namespace dyana {
 
       {
         multiprocessing_guard __;
-        dynet::mp::run_multi_process_hacked<_parallel_map_learner, ITEM, float>(num_workers, this, &trainer, numbered_items, {}, 1, num_reports);
+        dynet::mp::run_multi_process_hacked<_parallel_map_learner, numbered_item_t, float>(num_workers, this, &trainer, numbered_items, {}, 1, num_reports);
       }
 
     }

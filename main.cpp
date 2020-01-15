@@ -50,5 +50,9 @@ int main() {
     return model.compute_loss(x, y, oracle);
   }, dyana::zip(input0s, input1s, oracles));
 
+  dyana::parallel_map<bool>(input0s, [&](const bool& x) {
+    return dyana::zeros({4}).as_vector();
+  }, 4, 2);
+
   return 0;
 }
