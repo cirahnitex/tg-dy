@@ -233,9 +233,8 @@ namespace dyana {
 
     vanilla_lstm_cell_t &operator=(vanilla_lstm_cell_t &&) = default;
 
-    vanilla_lstm_cell_t(unsigned output_dim) : output_dim(output_dim), forget_gate(output_dim),
-                                               input_gate(output_dim), input_fc(output_dim),
-                                               output_gate(output_dim) {};
+    vanilla_lstm_cell_t(unsigned output_dim) : output_dim(output_dim), input_dim(),
+    Wx(),Wh(), b(){};
 
     rnn_cell_state_t default_cell_state() const {
       auto zeros = dyana::zeros({output_dim});
@@ -244,29 +243,36 @@ namespace dyana {
 
     virtual std::pair<rnn_cell_state_t, dyana::tensor>
     operator()(const rnn_cell_state_t &prev_state, const dyana::tensor &x) {
-      if (prev_state.empty()) {
-        throw std::runtime_error("RNN: previous cell state empty. call default_cell_state to get a default one");
-      }
-      auto cell_state = prev_state[0];
-      auto hidden_state = prev_state[1];
-      auto concat = concatenate({hidden_state, x});
-      auto after_forget = dyana::cmult(cell_state, dyana::logistic(forget_gate.operator()(concat)));
-      auto input_candidate = dyana::tanh(input_fc.operator()(concat));
-      auto input = dyana::cmult(dyana::logistic(input_gate.operator()(concat)), input_candidate);
-      auto output_cell_state = after_forget + input;
-      auto output_hidden_state = dyana::cmult(dyana::logistic(output_gate.operator()(concat)),
-                                              dyana::tanh(output_cell_state));
-      return std::make_pair(rnn_cell_state_t({std::move(output_cell_state), output_hidden_state}), output_hidden_state);
+      ensure_init(x);
+      auto cell_state = prev_state.empty()?dyana::zeros({output_dim}):prev_state[0];
+      auto hidden_state = prev_state.empty()?dyana::zeros({output_dim}):prev_state[1];
+
+      auto gates_t = dynet::vanilla_lstm_gates({x}, hidden_state, dyana::tensor(Wx), dyana::tensor(Wh), dyana::tensor(b), 0);
+
+      cell_state = dyana::tensor(dynet::vanilla_lstm_c(cell_state, gates_t));
+      hidden_state = dynet::vanilla_lstm_h(cell_state, gates_t);
+      return std::make_pair(rnn_cell_state_t{cell_state, hidden_state}, hidden_state);
     }
 
-    EASY_SERIALIZABLE(output_dim, forget_gate, input_gate, input_fc, output_gate)
+    EASY_SERIALIZABLE(output_dim, input_dim, Wx, Wh, b)
 
   private:
+    void ensure_init(const dyana::tensor &x) {
+      if(input_dim > 0) return;
+      input_dim = x.dim()[0];
+      Wx = dyana::parameter({output_dim*4, input_dim});
+      Wh = dyana::parameter({output_dim*4, output_dim});
+      b = dyana::parameter({output_dim*4});
+
+      //initialize b to zeros
+      b.set_values(std::vector<float>(output_dim*4, 0));
+    }
+
     unsigned output_dim;
-    linear_dense_layer forget_gate;
-    linear_dense_layer input_gate;
-    linear_dense_layer input_fc;
-    linear_dense_layer output_gate;
+    unsigned input_dim;
+    dyana::parameter Wx;
+    dyana::parameter Wh;
+    dyana::parameter b;
   };
 
   typedef rnn<vanilla_lstm_cell_t> vanilla_lstm;
@@ -286,8 +292,7 @@ namespace dyana {
 
     coupled_lstm_cell_t &operator=(coupled_lstm_cell_t &&) = default;
 
-    coupled_lstm_cell_t(unsigned output_dim) : output_dim(output_dim), forget_gate(output_dim), input_fc(output_dim),
-                                               output_gate(output_dim) {};
+    coupled_lstm_cell_t(unsigned output_dim) : output_dim(output_dim), input_dim(), Wx(), Wh(), b() {};
 
     rnn_cell_state_t default_cell_state() const {
       auto zeros = dyana::zeros({output_dim});
@@ -296,31 +301,42 @@ namespace dyana {
 
     virtual std::pair<rnn_cell_state_t, dyana::tensor>
     operator()(const rnn_cell_state_t &prev_state, const dyana::tensor &x) {
-      if (prev_state.empty()) {
-        throw std::runtime_error("RNN: previous cell state empty. call default_cell_state to get a default one");
-      }
-      auto cell_state = prev_state[0];
-      auto hidden_state = prev_state[1];
+      ensure_init(x);
+      auto cell_state = prev_state.empty()?dyana::zeros({output_dim}):prev_state[0];
+      auto hidden_state = prev_state.empty()?dyana::zeros({output_dim}):prev_state[1];
 
-      auto concat = concatenate({hidden_state, x});
-      auto forget_coef = dyana::logistic(forget_gate.operator()(concat));
-      auto after_forget = dyana::cmult(cell_state, forget_coef);
-      auto input_candidate = dyana::tanh(input_fc.operator()(concat));
-      auto input = dyana::cmult((float)1.0 - forget_coef, input_candidate);
-      auto output_cell_state = after_forget + input;
-      auto output_hidden_state = dyana::cmult(dyana::logistic(output_gate.operator()(concat)),
-                                              dyana::tanh(output_cell_state));
+      auto gates_t = dyana::tensor(dynet::vanilla_lstm_gates({x}, hidden_state, dyana::tensor(Wx), dyana::tensor(Wh), dyana::tensor(b), 0));
 
-      return std::make_pair(rnn_cell_state_t({std::move(output_cell_state), output_hidden_state}), output_hidden_state);
+      // turn the vanilla gates into coupled gates by setting input_gate to (1 - forget_gate)
+      gates_t = dyana::concatenate({
+        (float)1 - gates_t.slice(output_dim, output_dim*2),
+        gates_t.slice(output_dim, output_dim*4)
+      });
+
+      cell_state = dyana::tensor(dynet::vanilla_lstm_c(cell_state, gates_t));
+      hidden_state = dynet::vanilla_lstm_h(cell_state, gates_t);
+      return std::make_pair(rnn_cell_state_t{cell_state, hidden_state}, hidden_state);
     }
 
-    EASY_SERIALIZABLE(output_dim, forget_gate, input_fc, output_gate)
+    EASY_SERIALIZABLE(output_dim, input_dim, Wx, Wh, b)
 
   private:
+    void ensure_init(const dyana::tensor &x) {
+      if(input_dim > 0) return;
+      input_dim = x.dim()[0];
+      Wx = dyana::parameter({output_dim*4, input_dim});
+      Wh = dyana::parameter({output_dim*4, output_dim});
+      b = dyana::parameter({output_dim*4});
+
+      //initialize b to zeros
+      b.set_values(std::vector<float>(output_dim*4, 0));
+    }
+
     unsigned output_dim;
-    linear_dense_layer forget_gate;
-    linear_dense_layer input_fc;
-    linear_dense_layer output_gate;
+    unsigned input_dim;
+    dyana::parameter Wx;
+    dyana::parameter Wh;
+    dyana::parameter b;
   };
 
   typedef rnn<coupled_lstm_cell_t> coupled_lstm;

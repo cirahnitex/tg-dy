@@ -12,18 +12,28 @@ namespace dyana {
   class event_emitter {
   public:
     using listener_t = std::function<void(Args...)>;
-    using listener_ptr = std::shared_ptr<listener_t>;
+    using listener_handle_t = std::shared_ptr<listener_t>;
   private:
-    std::unordered_set<listener_ptr> listeners;
-    std::unordered_set<listener_ptr> once_listeners;
-  public:
-    void add_listener(const listener_ptr& listener) {
+    std::unordered_set<listener_handle_t> listeners;
+    std::unordered_set<listener_handle_t> once_listeners;
+    const listener_handle_t& add_listener(const listener_handle_t& listener) {
       listeners.insert(listener);
+      return listener;
     }
-    void add_once_listener(const listener_ptr& listener) {
+    const listener_handle_t& add_once_listener(const listener_handle_t& listener) {
       once_listeners.insert(listener);
+      return listener;
     }
-    void remove_listener(const listener_ptr& listener) {
+  public:
+    listener_handle_t add_listener(const listener_t& listener) {
+      return add_listener(std::make_shared<listener_t>(listener));
+    }
+
+    listener_handle_t add_once_listener(const listener_t& listener) {
+      return add_once_listener(std::make_shared<listener_t>(listener));
+    }
+
+    void remove_listener(const listener_handle_t& listener) {
       listeners.erase(listener);
       once_listeners.erase(listener);
     }
@@ -32,7 +42,7 @@ namespace dyana {
       // call listeners
       {
         // make a copy so that removing listeners within listener is safe
-        std::unordered_set<listener_ptr> listeners_cp(listeners);
+        std::unordered_set<listener_handle_t> listeners_cp(listeners);
         for(auto&& listener:listeners_cp) {
           (*listener)(args...);
         }
@@ -40,7 +50,7 @@ namespace dyana {
 
       // call once listeners
       {
-        std::unordered_set<listener_ptr> listeners_cp(once_listeners);
+        std::unordered_set<listener_handle_t> listeners_cp(once_listeners);
         for(auto&& listener:listeners_cp) {
           (*listener)(args...);
         }

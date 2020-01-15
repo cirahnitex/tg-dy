@@ -27,20 +27,28 @@ vector<bool> input0s{true, true, false, false, true, true, false, false};
 vector<bool> input1s{true, false, true, false, true, false, true, false};
 vector<bool> oracles{true, true, true, false, true, true, true, false};
 
+
 int main() {
+
+  // todo: test out new trainer
   dyana::initialize(512);
 
-  vector<string> choices = {"a", "b", "c"};
+  xor_model model;
 
-  dynet::LookupParameter lookup = dyana::_pc()->add_lookup_parameters(4, {8});
+  using datum_t = tuple<bool, bool, bool>;
 
-  cout << "make CG" << endl;
-  auto emb = dynet::tanh(dynet::lookup(dyana::_cg(), lookup, vector<unsigned>{1}));
+  dyana::simple_sgd_trainer trainer(0.1);
+  trainer.set_num_epochs(10);
+  trainer.set_learning_rate_scheduler([&](unsigned datum_idx, unsigned epoch_idx) {
+    cout << "datum idx: "<< datum_idx << endl;
+    cout << "epoch idx: "<< epoch_idx << endl;
+    return 0.1;
+  });
+  trainer.set_batch_size(4);
+  trainer.train<datum_t>([&](const datum_t& datum) {
+    auto&& [x, y, oracle] = datum;
+    return model.compute_loss(x, y, oracle);
+  }, dyana::zip(input0s, input1s, oracles));
 
-  cout << "compute" << endl;
-  dyana::_cg().forward(emb);
-
-  int* my_int = new int;
-  delete my_int;
   return 0;
 }

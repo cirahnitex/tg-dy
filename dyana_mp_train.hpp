@@ -15,10 +15,11 @@
 #include "dyana_timer.hpp"
 #include "dyana_guard.macro.hpp"
 
+
 namespace dynet {
   namespace mp {
-    template<class D, class S>
-    void run_single_process_hacked(ILearner<D, S>* learner, Trainer* trainer, const std::vector<D>& train_data,
+    template<class LEARNER, class D, class S>
+    void run_single_process_hacked(LEARNER* learner, Trainer* trainer, const std::vector<D>& train_data,
                             const std::vector<D>& dev_data, unsigned num_iterations, unsigned num_reports_per_epoch) {
       unsigned report_frequency = (train_data.size() + num_reports_per_epoch - 1) / num_reports_per_epoch;
       std::vector<unsigned> train_indices(train_data.size());
@@ -80,6 +81,8 @@ namespace dynet {
           begin = end;
         }
 
+        learner->handle_epoch_completion();
+
         if (dev_data.size() > 0) {
           S dev_loss = S();
           for (auto it = dev_indices.begin(); it != dev_indices.end(); ++it) {
@@ -100,9 +103,8 @@ namespace dynet {
       }
     }
 
-    template<class D, class S>
-    void run_parent_hacked(const std::vector<D>& train_data, const std::vector<D>& dev_data, ILearner<D, S>* learner,
-                    std::vector<Workload>& workloads, unsigned num_iterations, unsigned num_reports_per_epoch) {
+    template<class LEARNER, class D, class S>
+    void run_parent_hacked(const std::vector<D>& train_data, const std::vector<D>& dev_data, LEARNER* learner, std::vector<Workload>& workloads, unsigned num_iterations, unsigned num_reports_per_epoch) {
       unsigned report_frequency = (train_data.size() + num_reports_per_epoch - 1) / num_reports_per_epoch;
       const unsigned num_children = workloads.size();
       boost::interprocess::message_queue mq(boost::interprocess::create_only, queue_name.c_str(), 10000, sizeof(unsigned));
@@ -142,6 +144,8 @@ namespace dynet {
           begin = end;
         }
 
+        learner->handle_epoch_completion();
+
         if (dev_data.size() > 0) {
           S dev_loss = run_data_set<S>(dev_indices.begin(), dev_indices.end(), workloads, mq, {true, false, report_frequency});
           bool new_best = (first_dev_run || dev_loss < best_dev_loss);
@@ -151,8 +155,6 @@ namespace dynet {
             learner->SaveModel();
             best_dev_loss = dev_loss;
           }
-        } else {
-          learner->SaveModel();
         }
       }
 
@@ -165,8 +167,8 @@ namespace dynet {
       boost::interprocess::message_queue::remove(queue_name.c_str());
     }
 
-    template<class D, class S>
-    void run_multi_process_hacked(unsigned num_children, ILearner<D, S>* learner, Trainer* trainer, const std::vector<D>& train_data,
+    template<class LEARNER, class D, class S>
+    void run_multi_process_hacked(unsigned num_children, LEARNER* learner, Trainer* trainer, const std::vector<D>& train_data,
                            const std::vector<D>& dev_data, unsigned num_iterations, float num_reports_per_epoch) {
       queue_name = generate_queue_name();
       boost::interprocess::message_queue::remove(queue_name.c_str());
@@ -176,11 +178,11 @@ namespace dynet {
       std::vector<Workload> workloads = create_workloads(num_children);
       unsigned cid = spawn_children(workloads);
       if (cid < num_children) {
-        run_child(cid, learner, trainer, workloads, train_data, dev_data);
+        run_child<D, S>(cid, learner, trainer, workloads, train_data, dev_data);
         exit(0);
       }
       else {
-        run_parent_hacked(train_data, dev_data, learner, workloads, num_iterations, num_reports_per_epoch);
+        run_parent_hacked<LEARNER, D, S>(train_data, dev_data, learner, workloads, num_iterations, num_reports_per_epoch);
         cleanup(workloads);
       }
     }
@@ -197,31 +199,37 @@ namespace dyana {
    */
   DEFINE_THREAD_LOCAL_GUARAD(training_guard)
 
-  using learning_rate_scheduler_t = std::function<float(unsigned)>;
+  using learning_rate_scheduler_t = std::function<float(unsigned datum_cnt, unsigned epoch_cnt)>;
 
   template<typename DATUM>
-  class _mp_train_learner : private dynet::mp::ILearner<DATUM, float> {
+  class _mp_train_learner : public dynet::mp::ILearner<DATUM, float> {
   public:
     _mp_train_learner(unsigned num_workers, unsigned num_epochs, dynet::Trainer* trainer, learning_rate_scheduler_t learning_rate_scheduler, const std::vector<DATUM> &training_set,
-                      const std::vector<DATUM> &dev_set, std::function<dyana::tensor(const DATUM &)> compute_loss,
-                      std::function<void()> save, float num_reports_per_epoch)
+                      const std::vector<DATUM> &dev_set, std::function<dyana::tensor(const DATUM &)> compute_loss, std::function<void()> new_best_callback, std::function<void()> epoch_completion_callback, float num_reports_per_epoch)
       :
-      compute_loss(std::move(compute_loss)), save(std::move(save)), trained_datum_counter_holder(), trained_datum_counter(trained_datum_counter_holder.add_parameters({1})), learning_rate_scheduler(std::move(learning_rate_scheduler)), trainer(trainer) {
+      compute_loss(std::move(compute_loss)), new_best_callback(std::move(new_best_callback)), epoch_completion_callback(std::move(epoch_completion_callback)), trained_datum_counter_holder(), trained_datum_counter(trained_datum_counter_holder.add_parameters({1})), learning_rate_scheduler(std::move(learning_rate_scheduler)), trainer(trainer), curr_epoch_index() {
 
       trained_datum_counter.set_value({0});
 
       if (num_workers <= 1) {
-        dynet::mp::run_single_process_hacked(this, trainer, training_set, dev_set, num_epochs,
+        dynet::mp::run_single_process_hacked<_mp_train_learner<DATUM>, DATUM, float>(this, trainer, training_set, dev_set, num_epochs,
                                              num_reports_per_epoch);
       } else {
         multiprocessing_guard _;
-        dynet::mp::run_multi_process_hacked(num_workers, this, trainer, training_set, dev_set, num_epochs,
+        dynet::mp::run_multi_process_hacked<_mp_train_learner<DATUM>, DATUM, float>(num_workers, this, trainer, training_set, dev_set, num_epochs,
                                             num_reports_per_epoch);
       }
 
     }
 
-  private:
+    virtual void SaveModel() { new_best_callback(); }
+
+    virtual void handle_epoch_completion() {
+      epoch_completion_callback();
+      ++curr_epoch_index;
+    }
+
+
     virtual float LearnFromDatum(const DATUM &datum, bool learn) {
       if (dyana::tensor::get_exprs_counter() != 0) {
         throw std::runtime_error(
@@ -239,7 +247,7 @@ namespace dyana {
           // because learning rate scheduler is the only usage if trained datum counter
           if(learning_rate_scheduler) {
             auto counter = increment_trained_datum_counter();
-            trainer->learning_rate = learning_rate_scheduler(counter);
+            trainer->learning_rate = learning_rate_scheduler(counter, curr_epoch_index);
           }
 
         }
@@ -254,8 +262,7 @@ namespace dyana {
       return ret;
     }
 
-    virtual void SaveModel() { save(); }
-
+  private:
     /**
      * trained datum counter ++
      * \return the trained datum counter before increment
@@ -279,11 +286,13 @@ namespace dyana {
     }
 
     std::function<dyana::tensor(const DATUM &)> compute_loss;
-    std::function<void()> save;
+    std::function<void()> new_best_callback;
+    std::function<void()> epoch_completion_callback;
     dynet::ParameterCollection trained_datum_counter_holder;
     dynet::Parameter trained_datum_counter;
     learning_rate_scheduler_t learning_rate_scheduler;
     dynet::Trainer* trainer;
+    unsigned curr_epoch_index;
 
   };
 
@@ -318,8 +327,7 @@ namespace dyana {
 
   template<typename DATUM>
   void _fit_impl(unsigned num_workers, unsigned batch_size, unsigned num_epochs, dynet::Trainer* trainer, learning_rate_scheduler_t scheduler, const std::vector<DATUM> &training_set,
-                 const std::vector<DATUM> &dev_set, std::function<dyana::tensor(const DATUM &)> compute_loss,
-                 const std::function<void()>& save, float num_reports_per_epoch) {
+                 const std::vector<DATUM> &dev_set, std::function<dyana::tensor(const DATUM &)> compute_loss, const std::function<void()>& new_best_callback, const std::function<void()>& epoch_completion_callback, float num_reports_per_epoch) {
     if (training_set.empty()) return;
     {
       training_guard _;
@@ -327,7 +335,7 @@ namespace dyana {
     }
 
     if(batch_size == 1) {
-      _mp_train_learner<DATUM>(num_workers, num_epochs, trainer, scheduler, training_set, dev_set, compute_loss, save, num_reports_per_epoch);
+      _mp_train_learner<DATUM>(num_workers, num_epochs, trainer, scheduler, training_set, dev_set, compute_loss, new_best_callback, epoch_completion_callback, num_reports_per_epoch);
       return;
     }
 
@@ -339,7 +347,11 @@ namespace dyana {
       return dyana::sum(losses);
     };
 
-    _mp_train_learner<std::vector<DATUM>>(num_workers, num_epochs, trainer, scheduler, _group_in_batch(training_set, batch_size), _group_in_batch(dev_set, batch_size), batched_compute_loss, save, num_reports_per_epoch);
+    auto batched_scheduler = (scheduler)?[&scheduler, &batch_size](unsigned datum_idx, unsigned epoch_idx) {
+      return scheduler(datum_idx * batch_size, epoch_idx);
+    }:scheduler;
+
+    _mp_train_learner<std::vector<DATUM>>(num_workers, num_epochs, trainer, batched_scheduler, _group_in_batch(training_set, batch_size), _group_in_batch(dev_set, batch_size), batched_compute_loss, new_best_callback, epoch_completion_callback, num_reports_per_epoch);
   }
 
   inline std::vector<std::tuple<>> zip() {
@@ -359,384 +371,23 @@ namespace dyana {
   }
 
   class trainer_base {
-  public:
+  private:
 
-    /**
-     * number of threads to spawn to train in parallel
-     */
     unsigned num_workers{1};
-
-    /**
-     * number of epochs to train
-     */
     unsigned num_epochs{1};
-
-    /**
-     * how many times to report per epoch
-     */
     float num_reports_per_epoch{1};
-    
-    /**
-     * size of a batch
-     * note that if the batch size is big, you may need to allocate more memory during dyana::initialize
-     */
     unsigned batch_size{1};
 
     /**
      * override the default learning rate schedular
      */
     learning_rate_scheduler_t learning_rate_scheduler;
+
+    event_emitter<> new_best_evt;
+    event_emitter<> epoch_completion_evt;
   protected:
     virtual dynet::Trainer* get_dynet_trainer_p() = 0;
-  private:
-    event_emitter<> new_best_evt;
-    template<typename MODEL, typename D0>
-    void _fit_with_dev_set_helper(MODEL &model, const std::function<void()> &save_behavior, D0&& trainingset_p0, D0&& devset_p0) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using datum_type = std::tuple<V0>;
-      auto training_set_tuple = zip(trainingset_p0);
-      auto dev_set_tuple = zip(devset_p0);
 
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(get<0>(args_pack));
-      };
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, dev_set_tuple,
-                            compute_loss_tuple, save_behavior, num_reports_per_epoch);
-    }
-    template<typename MODEL, typename D0, typename D1>
-    void _fit_with_dev_set_helper(MODEL &model,const std::function<void()> &save_behavior, D0&& trainingset_p0, D1&& trainingset_p1, D0&& devset_p0, D1&& devset_p1) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using V1 = typename std::decay<D1>::type::value_type;
-      using datum_type = std::tuple<V0, V1>;
-      auto training_set_tuple = zip(trainingset_p0, trainingset_p1);
-      auto dev_set_tuple = zip(devset_p0, devset_p1);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(get<0>(args_pack), get<1>(args_pack));
-      };
-
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, dev_set_tuple,
-                            compute_loss_tuple, save_behavior, num_reports_per_epoch);
-    }
-    template<typename MODEL, typename D0, typename D1, typename D2>
-    void _fit_with_dev_set_helper(MODEL &model, const std::function<void()> &save_behavior,
-                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2,
-                                  D0&& devset_p0, D1&& devset_p1, D2&& devset_p2) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using V1 = typename std::decay<D1>::type::value_type;
-      using V2 = typename std::decay<D2>::type::value_type;
-      using datum_type = std::tuple<V0, V1, V2>;
-      auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2);
-      auto dev_set_tuple = zip(devset_p0, devset_p1, devset_p2);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(get<0>(args_pack), get<1>(args_pack), get<2>(args_pack));
-      };
-
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, dev_set_tuple,
-                            compute_loss_tuple, save_behavior, num_reports_per_epoch);
-    }
-    template<typename MODEL, typename D0, typename D1, typename D2, typename D3>
-    void _fit_with_dev_set_helper(MODEL &model, const std::function<void()> &save_behavior,
-                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3,
-                                  D0&& devset_p0, D1&& devset_p1, D2&& devset_p2, D3&& devset_p3) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using V1 = typename std::decay<D1>::type::value_type;
-      using V2 = typename std::decay<D2>::type::value_type;
-      using V3 = typename std::decay<D3>::type::value_type;
-      using datum_type = std::tuple<V0, V1, V2, V3>;
-      auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3);
-      auto dev_set_tuple = zip(devset_p0, devset_p1, devset_p2, devset_p3);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack));
-      };
-
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, dev_set_tuple,
-                            compute_loss_tuple, save_behavior, num_reports_per_epoch);
-    }
-    template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4>
-    void _fit_with_dev_set_helper(MODEL &model, const std::function<void()> &save_behavior,
-                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3,
-                                  D4&& trainingset_p4,
-                                  D0&& devset_p0, D1&& devset_p1, D2&& devset_p2, D3&& devset_p3,
-                                  D4&& devset_p4) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using V1 = typename std::decay<D1>::type::value_type;
-      using V2 = typename std::decay<D2>::type::value_type;
-      using V3 = typename std::decay<D3>::type::value_type;
-      using V4 = typename std::decay<D4>::type::value_type;
-      using datum_type = std::tuple<V0, V1, V2, V3, V4>;
-      auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3, trainingset_p4);
-      auto dev_set_tuple = zip(devset_p0, devset_p1, devset_p2, devset_p3, devset_p4);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(
-          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
-          get<4>(args_pack));
-      };
-
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, dev_set_tuple,
-                            compute_loss_tuple, save_behavior, num_reports_per_epoch);
-    }
-    template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5>
-    void _fit_with_dev_set_helper(MODEL &model, const std::function<void()> &save_behavior,
-                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3,
-                                  D4&& trainingset_p4, D5&& trainingset_p5,
-                                  D0&& devset_p0, D1&& devset_p1, D2&& devset_p2, D3&& devset_p3,
-                                  D4&& devset_p4, D5&& devset_p5) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using V1 = typename std::decay<D1>::type::value_type;
-      using V2 = typename std::decay<D2>::type::value_type;
-      using V3 = typename std::decay<D3>::type::value_type;
-      using V4 = typename std::decay<D4>::type::value_type;
-      using V5 = typename std::decay<D5>::type::value_type;
-      using datum_type = std::tuple<V0, V1, V2, V3, V4, V5>;
-      auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3, trainingset_p4, trainingset_p5);
-      auto dev_set_tuple = zip(devset_p0, devset_p1, devset_p2, devset_p3, devset_p4, devset_p5);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(
-          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
-          get<4>(args_pack), get<5>(args_pack));
-      };
-
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, dev_set_tuple,
-                            compute_loss_tuple, save_behavior, num_reports_per_epoch);
-    }
-    template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5, typename D6>
-    void _fit_with_dev_set_helper(MODEL &model, const std::function<void()> &save_behavior,
-                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3,
-                                  D4&& trainingset_p4, D5&& trainingset_p5, D6&& trainingset_p6,
-                                  D0&& devset_p0, D1&& devset_p1, D2&& devset_p2, D3&& devset_p3,
-                                  D4&& devset_p4, D5&& devset_p5, D6&& devset_p6) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using V1 = typename std::decay<D1>::type::value_type;
-      using V2 = typename std::decay<D2>::type::value_type;
-      using V3 = typename std::decay<D3>::type::value_type;
-      using V4 = typename std::decay<D4>::type::value_type;
-      using V5 = typename std::decay<D5>::type::value_type;
-      using V6 = typename std::decay<D6>::type::value_type;
-      using datum_type = std::tuple<V0, V1, V2, V3, V4, V5, V6>;
-      auto training_set_tuple = zip(
-        trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3,
-        trainingset_p4, trainingset_p5, trainingset_p6);
-      auto dev_set_tuple = zip(
-        devset_p0, devset_p1, devset_p2, devset_p3,
-        devset_p4, devset_p5, devset_p6);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(
-          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
-          get<4>(args_pack), get<5>(args_pack), get<6>(args_pack));
-      };
-
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, dev_set_tuple,
-                            compute_loss_tuple, save_behavior, num_reports_per_epoch);
-    }
-    template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5, typename D6, typename D7>
-    void _fit_with_dev_set_helper(MODEL &model, const std::function<void()> &save_behavior,
-                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3,
-                                  D4&& trainingset_p4, D5&& trainingset_p5, D6&& trainingset_p6, D7&& trainingset_p7,
-                                  D0&& devset_p0, D1&& devset_p1, D2&& devset_p2, D3&& devset_p3,
-                                  D4&& devset_p4, D5&& devset_p5, D6&& devset_p6, D7&& devset_p7) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using V1 = typename std::decay<D1>::type::value_type;
-      using V2 = typename std::decay<D2>::type::value_type;
-      using V3 = typename std::decay<D3>::type::value_type;
-      using V4 = typename std::decay<D4>::type::value_type;
-      using V5 = typename std::decay<D5>::type::value_type;
-      using V6 = typename std::decay<D6>::type::value_type;
-      using V7 = typename std::decay<D7>::type::value_type;
-      using datum_type = std::tuple<V0, V1, V2, V3, V4, V5, V6, V7>;
-      auto training_set_tuple = zip(
-        trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3,
-        trainingset_p4, trainingset_p5, trainingset_p6, trainingset_p7);
-      auto dev_set_tuple = zip(
-        devset_p0, devset_p1, devset_p2, devset_p3,
-        devset_p4, devset_p5, devset_p6, devset_p7);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(
-          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
-          get<4>(args_pack), get<5>(args_pack), get<6>(args_pack), get<7>(args_pack));
-      };
-
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, dev_set_tuple,
-                            compute_loss_tuple, save_behavior, num_reports_per_epoch);
-    }
-
-
-
-    template<typename MODEL, typename D0>
-    void _fit_helper(MODEL &model, const std::function<void()> &save_behavior, D0&& trainingset_p0) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using datum_type = std::tuple<V0>;
-      auto training_set_tuple = zip(trainingset_p0);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(get<0>(args_pack));
-      };
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, {}, compute_loss_tuple,
-                            save_behavior, num_reports_per_epoch);
-    }
-    template<typename MODEL, typename D0, typename D1>
-    void _fit_helper(MODEL &model,const std::function<void()> &save_behavior, D0&& trainingset_p0, D1&& trainingset_p1) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using V1 = typename std::decay<D1>::type::value_type;
-      using datum_type = std::tuple<V0, V1>;
-      auto training_set_tuple = zip(trainingset_p0, trainingset_p1);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(get<0>(args_pack), get<1>(args_pack));
-      };
-
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, {}, compute_loss_tuple,
-                            save_behavior, num_reports_per_epoch);
-    }
-    template<typename MODEL, typename D0, typename D1, typename D2>
-    void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
-                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using V1 = typename std::decay<D1>::type::value_type;
-      using V2 = typename std::decay<D2>::type::value_type;
-      using datum_type = std::tuple<V0, V1, V2>;
-      auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(get<0>(args_pack), get<1>(args_pack), get<2>(args_pack));
-      };
-
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, {}, compute_loss_tuple,
-                            save_behavior, num_reports_per_epoch);
-    }
-    template<typename MODEL, typename D0, typename D1, typename D2, typename D3>
-    void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
-                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using V1 = typename std::decay<D1>::type::value_type;
-      using V2 = typename std::decay<D2>::type::value_type;
-      using V3 = typename std::decay<D3>::type::value_type;
-      using datum_type = std::tuple<V0, V1, V2, V3>;
-      auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack));
-      };
-
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, {}, compute_loss_tuple,
-                            save_behavior, num_reports_per_epoch);
-    }
-    template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4>
-    void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
-                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3,
-                                  D4&& trainingset_p4) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using V1 = typename std::decay<D1>::type::value_type;
-      using V2 = typename std::decay<D2>::type::value_type;
-      using V3 = typename std::decay<D3>::type::value_type;
-      using V4 = typename std::decay<D4>::type::value_type;
-      using datum_type = std::tuple<V0, V1, V2, V3, V4>;
-      auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3, trainingset_p4);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(
-          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
-          get<4>(args_pack));
-      };
-
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, {}, compute_loss_tuple,
-                            save_behavior, num_reports_per_epoch);
-    }
-    template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5>
-    void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
-                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3,
-                                  D4&& trainingset_p4, D5&& trainingset_p5) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using V1 = typename std::decay<D1>::type::value_type;
-      using V2 = typename std::decay<D2>::type::value_type;
-      using V3 = typename std::decay<D3>::type::value_type;
-      using V4 = typename std::decay<D4>::type::value_type;
-      using V5 = typename std::decay<D5>::type::value_type;
-      using datum_type = std::tuple<V0, V1, V2, V3, V4, V5>;
-      auto training_set_tuple = zip(trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3, trainingset_p4, trainingset_p5);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(
-          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
-          get<4>(args_pack), get<5>(args_pack));
-      };
-
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, {}, compute_loss_tuple,
-                            save_behavior, num_reports_per_epoch);
-    }
-    template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5, typename D6>
-    void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
-                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3,
-                                  D4&& trainingset_p4, D5&& trainingset_p5, D6&& trainingset_p6) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using V1 = typename std::decay<D1>::type::value_type;
-      using V2 = typename std::decay<D2>::type::value_type;
-      using V3 = typename std::decay<D3>::type::value_type;
-      using V4 = typename std::decay<D4>::type::value_type;
-      using V5 = typename std::decay<D5>::type::value_type;
-      using V6 = typename std::decay<D6>::type::value_type;
-      using datum_type = std::tuple<V0, V1, V2, V3, V4, V5, V6>;
-      auto training_set_tuple = zip(
-        trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3,
-        trainingset_p4, trainingset_p5, trainingset_p6);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(
-          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
-          get<4>(args_pack), get<5>(args_pack), get<6>(args_pack));
-      };
-
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, {}, compute_loss_tuple,
-                            save_behavior, num_reports_per_epoch);
-    }
-    template<typename MODEL, typename D0, typename D1, typename D2, typename D3, typename D4, typename D5, typename D6, typename D7>
-    void _fit_helper(MODEL &model, const std::function<void()> &save_behavior,
-                                  D0&& trainingset_p0, D1&& trainingset_p1, D2&& trainingset_p2, D3&& trainingset_p3,
-                                  D4&& trainingset_p4, D5&& trainingset_p5, D6&& trainingset_p6, D7&& trainingset_p7) {
-      using namespace std;
-      using V0 = typename std::decay<D0>::type::value_type;
-      using V1 = typename std::decay<D1>::type::value_type;
-      using V2 = typename std::decay<D2>::type::value_type;
-      using V3 = typename std::decay<D3>::type::value_type;
-      using V4 = typename std::decay<D4>::type::value_type;
-      using V5 = typename std::decay<D5>::type::value_type;
-      using V6 = typename std::decay<D6>::type::value_type;
-      using V7 = typename std::decay<D7>::type::value_type;
-      using datum_type = std::tuple<V0, V1, V2, V3, V4, V5, V6, V7>;
-      auto training_set_tuple = zip(
-        trainingset_p0, trainingset_p1, trainingset_p2, trainingset_p3,
-        trainingset_p4, trainingset_p5, trainingset_p6, trainingset_p7);
-
-      auto compute_loss_tuple = [&](const datum_type &args_pack) {
-        return model.compute_loss(
-          get<0>(args_pack), get<1>(args_pack), get<2>(args_pack), get<3>(args_pack),
-          get<4>(args_pack), get<5>(args_pack), get<6>(args_pack), get<7>(args_pack));
-      };
-
-      _fit_impl<datum_type>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set_tuple, {}, compute_loss_tuple,
-                            save_behavior, num_reports_per_epoch);
-    }
   public:
     virtual ~trainer_base() {
       // perform parameter collection GC only when destroying a trainer
@@ -744,81 +395,136 @@ namespace dyana {
       // as a result, performing GC here is techically not 100% safe, but enough for daily use
       _force_garbage_collection();
     }
+
     /**
-     * train your model on a training set. For each epochs, it reports the score on the training set (to standard error)
-     * \param model your model. must have a compute_loss function that returns a loss value as tensor
-     * \param training_set the entire training set as N vector of values.
-     * where N is the number of parameters the compuse_loss function takes.
-     * the value_type of vector #0 should match compute_loss function's expected parameter type #0
-     * the value_type of vector #1 should match compute_loss function's expected parameter type #1
-     * ...
-     * the value_type of vector #(N-1) should match compute_loss function's expected parameter type #(N-1)
+     * number of threads to spawn to train in parallel
+     * only work with CPU training
+     * \param num_workers
      */
-    template<typename MODEL, typename ...DATASET>
-    void train(MODEL &model, DATASET ...training_set) {
-      _fit_helper(model, [](){}, training_set...);
+    void set_num_workers(unsigned num_workers) {
+      this->num_workers = num_workers;
     }
 
     /**
-     * train your model on a training set. while training, also report scores on a dev set (to standard error).
-     * \param model your model. must have a compute_loss function that returns a loss value as tensor
-     * \param training_set_and_dev_set the entire training set as N vector of values,
-     * followed by the entire dev set as N vector of values.
-     * where N is the number of parameters the compuse_loss function takes.
-     * the value_type of vector #0 should match compute_loss function's expected parameter type #0
-     * the value_type of vector #1 should match compute_loss function's expected parameter type #1
-     * ...
-     * the value_type of vector #(N-1) should match compute_loss function's expected parameter type #(N-1)
-     * (end of training set)
-     * the value_type of vector #(N) should match compute_loss function's expected parameter type #0
-     * the value_type of vector #(N+1) should match compute_loss function's expected parameter type #1
-     * ...
-     * the value_type of vector #(2N-1) should match compute_loss function's expected parameter type #(N-1)
-     * (end of dev set)
+     * number of epochs to train
+     * \param num_epochs
      */
-    template<typename MODEL, typename ...Args>
-    void train_reporting_dev_score(MODEL &model, Args... training_set_and_dev_set) {
-      _fit_with_dev_set_helper(model, [&](){
-        new_best_evt.fire();
-      }, training_set_and_dev_set...);
+    void set_num_epochs(unsigned num_epochs) {
+      this->num_epochs = num_epochs;
     }
 
     /**
-     * train your model on a training set. while training, also report scores on a dev set.
-     * Whenever the model reaches a new best score, the model will be saved to a file.
-     * when saving the model, cereal::BinaryOutputArchive is used under the hood.
-     * \param model your model. must have a compute_loss function that returns a loss value as tensor
-     * \param file_path_to_save_to path to the file where your model is saved to
-     * \param training_set_and_dev_set the entire training set as N vector of values,
-     * followed by the entire dev set as N vector of values.
-     * where N is the number of parameters the compuse_loss function takes.
-     * the value_type of vector #0 should match compute_loss function's expected parameter type #0
-     * the value_type of vector #1 should match compute_loss function's expected parameter type #1
-     * ...
-     * the value_type of vector #(N-1) should match compute_loss function's expected parameter type #(N-1)
-     * (end of training set)
-     * the value_type of vector #(N) should match compute_loss function's expected parameter type #0
-     * the value_type of vector #(N+1) should match compute_loss function's expected parameter type #1
-     * ...
-     * the value_type of vector #(2N-1) should match compute_loss function's expected parameter type #(N-1)
-     * (end of dev set)
+     * how many times to report per epoch
+     * \param num_reports_per_epoch don't necessarily have to be an integer
      */
-    template<typename MODEL, typename ...Args>
-    void train_reporting_dev_score_save_best(MODEL &model, const std::string &file_path_to_save_to, Args... training_set_and_dev_set) {
+    void set_num_reports_per_epoch(float num_reports_per_epoch) {
+      this->num_reports_per_epoch = num_reports_per_epoch;
+    }
+
+    /**
+     * size of a batch
+     * note that if the batch size is big, you may need to allocate more memory during dyana::initialize
+     * \param batch_size
+     */
+    void set_batch_size(unsigned batch_size) {
+      this->batch_size = batch_size;
+    }
+
+    /**
+     * Set a dynamic learning rate.
+     * Overrides the static learning rate specified in the constructor.
+     * \param scheduler a function that takes:
+     *                  (1) the datum index (starts from 0). Not to be confused with batcch index.
+     *                  (2) the epoch index (starts from 0)
+     *                  and returns the learning rate
+     */
+    void set_learning_rate_scheduler(learning_rate_scheduler_t scheduler) {
+      this->learning_rate_scheduler = std::move(scheduler);
+    }
+
+    /**
+     * Train your model.
+     * \tparam DATUM represents a datum
+     * \param loss_fn a function that takes a datum and returns a loss to minimize
+     * \param training_set a list of datum to train on
+     */
+    template<typename DATUM>
+    void train(const std::function<dyana::tensor(const DATUM&)> &loss_fn, const std::vector<DATUM>& training_set) {
+      auto save_behavior = [&]() {};
+      auto epoch_completion_behavior = [&]() {
+        epoch_completion_evt.fire();
+      };
+
+      _fit_impl<DATUM>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set, std::vector<DATUM>{}, loss_fn, save_behavior, epoch_completion_behavior,num_reports_per_epoch);
+    }
+
+    /**
+     * Train your model and validate it against a dev set after each epoch
+     * \tparam DATUM represents a datum
+     * \param loss_fn a function that takes a datum and returns a loss to minimize
+     * \param training_set a list of datum to train on
+     * \param dev_set a list of datum to validate against
+     */
+    template<typename DATUM>
+    void train_reporting_dev_score(const std::function<dyana::tensor(const DATUM&)> &loss_fn,  const std::vector<DATUM>& training_set, const std::vector<DATUM>& dev_set) {
 
       auto save_behavior = [&]() {
-        save_model(model, file_path_to_save_to);
         new_best_evt.fire();
       };
-      _fit_with_dev_set_helper(model, save_behavior, training_set_and_dev_set...);
+
+      auto epoch_completion_behavior = [&]() {
+        epoch_completion_evt.fire();
+      };
+
+      _fit_impl<DATUM>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set, dev_set,
+                       loss_fn, save_behavior, epoch_completion_behavior, num_reports_per_epoch);
     }
 
-    void add_new_best_listener(const event_emitter<>::listener_ptr& listener) {
-      new_best_evt.add_listener(listener);
+    /**
+     * Register a listener that will be triggered
+     * when a new best validation score has been achieved.
+     * A good opportunity for you to save your model.
+     *
+     * Never triggers without a dev set
+     *
+     * \param listener the callback function to invoke
+     * \return A handle to your listener.
+     *         Please keep this handle if you want to unregister this listener later on.
+     */
+    event_emitter<>::listener_handle_t add_new_best_listener(const event_emitter<>::listener_t& listener) {
+      return new_best_evt.add_listener(listener);
     }
 
-    void remove_new_best_listener(const event_emitter<>::listener_ptr& listener) {
+    /**
+     * Unregister a new best event listener
+     * \param listener the listener handle
+     */
+    void remove_new_best_listener(const event_emitter<>::listener_handle_t& listener) {
       new_best_evt.remove_listener(listener);
+    }
+
+    /**
+     * Register a listener that will be triggered
+     * when an epoch is completed.
+     *
+     * the event sequence during the lifetime of an epoch is as follows:
+     *   (1) Training for an epoch
+     *   (2) epoch completion event
+     *   (3) validating against the dev set
+     *   (4) (possibly) new best event
+     * \param listener
+     * \return A handle to your listener.
+     */
+    event_emitter<>::listener_handle_t add_epoch_completion_listener(const event_emitter<>::listener_t& listener) {
+      return epoch_completion_evt.add_listener(listener);
+    }
+
+    /**
+     * Unregister an epoch completion event listener
+     * \param listener the listener handle
+     */
+    void remove_epoch_completion_listener(const event_emitter<>::listener_handle_t& listener) {
+      epoch_completion_evt.remove_listener(listener);
     }
   };
 
