@@ -49,55 +49,24 @@ namespace dyana {
     }
 
     /**
-     * construct with a list of tokens, also specifiing how to get initial embeddings
-     * \param embedding_size the size of embedding
-     * \param tokens the list of tokens
-     * \param lookup_init_embedding how to get initial embedding from a token. this function may return an empty std::vector or even throw an exception to indicate that the initial embedding of a given token is unknown
+     * Set the embedding of a token.
+     * \param token the token to set embedding
+     * \param embedding the embedding
      */
-    template<typename RANGE_EXP>
-    embedding_lookup(unsigned embedding_size, RANGE_EXP &&tokens,
-                     std::function<std::vector<float>(const std::string &)> lookup_init_embedding) : embedding_lookup(
-      embedding_size, tokens) {
-      for (const auto &token:list_tokens()) {
-        auto id = token_to_id(token);
-        try {
-          lookup_table.set_value(id, resize_fill_random(lookup_init_embedding(token), embedding_size));
-        }
-        catch(...) {
-          lookup_table.set_value(id, resize_fill_random(std::vector<float>{}, embedding_size));
-        }
-
+    void set_value(const std::string& token, const std::vector<float>& embedding) {
+      if(embedding.size() != embedding_size) {
+        std::stringstream msg;
+        msg << "embedding_lookup::set_value(): provided embedding size ("
+            << embedding.size()
+            << ") doesn't match the layer embedding size ("
+            << embedding_size << ")";
+        throw std::runtime_error(msg.str());
       }
+      auto id = token_to_id(token);
+      lookup_table.set_value(id, embedding);
     }
 
-    /**
-     * construct with a tokens and their initial embeddings
-     * \tparam map_args_T unordered map template parameters. left empty if you have no idea.
-     * \param embedding_size the size of embedding
-     * \param token_embeddings the token to initial embedding map. to indicate that the initial embedding of a given token is unknown, set its initial embedding to be an empty std::vector.
-     */
-    template<typename... map_args_T>
-    embedding_lookup(unsigned embedding_size,
-                     const std::unordered_map<std::string, std::vector<float>, map_args_T...> &token_embeddings) :
-      dict(std::make_shared<dynet::Dict>()),
-      capacity(),
-      embedding_size(embedding_size),
-      lookup_table() {
-      token_to_id(""); // force epsilon to be #0 token
-      for (const auto &token_embedding:token_embeddings) {
-        token_to_id(token_embedding.first);
-      }
-      dict->freeze();
-      dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);
-      capacity = dict->size();
-      lookup_table = dyana::lookup_parameter(capacity, {embedding_size});
-      for (const auto &token_embedding:token_embeddings) {
-        auto id = token_to_id(token_embedding.first);
-        lookup_table.set_value(id, resize_fill_random(token_embedding.second, embedding_size));
-      }
-    }
-
-    operator bool() {
+    explicit operator bool() const {
       return embedding_size > 0;
     }
 
