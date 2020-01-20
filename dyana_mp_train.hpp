@@ -327,31 +327,28 @@ namespace dyana {
 
   template<typename DATUM>
   void _fit_impl(unsigned num_workers, unsigned batch_size, unsigned num_epochs, dynet::Trainer* trainer, learning_rate_scheduler_t scheduler, const std::vector<DATUM> &training_set,
-                 const std::vector<DATUM> &dev_set, std::function<dyana::tensor(const DATUM &)> compute_loss, const std::function<void()>& new_best_callback, const std::function<void()>& epoch_completion_callback, float num_reports_per_epoch) {
+                 const std::vector<DATUM> &dev_set, std::function<dyana::tensor(const std::vector<DATUM> &)> batched_loss_fn, const std::function<void()>& new_best_callback, const std::function<void()>& epoch_completion_callback, float num_reports_per_epoch) {
     if (training_set.empty()) return;
+
+    std::function<dyana::tensor(const DATUM&)> loss_fn = [&](const DATUM& datum)->dyana::tensor {
+      return batched_loss_fn(std::vector<DATUM>{datum});
+    };
+
     {
       training_guard _;
-      _ensure_lazy_initialize(training_set, compute_loss);
+      _ensure_lazy_initialize(training_set, loss_fn);
     }
 
     if(batch_size == 1) {
-      _mp_train_learner<DATUM>(num_workers, num_epochs, trainer, scheduler, training_set, dev_set, compute_loss, new_best_callback, epoch_completion_callback, num_reports_per_epoch);
+      _mp_train_learner<DATUM>(num_workers, num_epochs, trainer, scheduler, training_set, dev_set, loss_fn, new_best_callback, epoch_completion_callback, num_reports_per_epoch);
       return;
     }
-
-    auto batched_compute_loss = [&compute_loss](const std::vector<DATUM>& batched_datum){
-      std::vector<dyana::tensor> losses;
-      for(auto&& datum:batched_datum) {
-        losses.push_back(compute_loss(datum));
-      }
-      return dyana::sum(losses);
-    };
 
     auto batched_scheduler = (scheduler)?[&scheduler, &batch_size](unsigned datum_idx, unsigned epoch_idx) {
       return scheduler(datum_idx * batch_size, epoch_idx);
     }:scheduler;
 
-    _mp_train_learner<std::vector<DATUM>>(num_workers, num_epochs, trainer, batched_scheduler, _group_in_batch(training_set, batch_size), _group_in_batch(dev_set, batch_size), batched_compute_loss, new_best_callback, epoch_completion_callback, num_reports_per_epoch);
+    _mp_train_learner<std::vector<DATUM>>(num_workers, num_epochs, trainer, batched_scheduler, _group_in_batch(training_set, batch_size), _group_in_batch(dev_set, batch_size), batched_loss_fn, new_best_callback, epoch_completion_callback, num_reports_per_epoch);
   }
 
   inline std::vector<std::tuple<>> zip() {
@@ -444,22 +441,43 @@ namespace dyana {
 
     /**
      * Train your model.
+     * The default strategy to compute the loss of a batch is to sum up the losses for each individual datum in the batch
      * \tparam DATUM represents a datum
      * \param loss_fn a function that takes a datum and returns a loss to minimize
      * \param training_set a list of datum to train on
      */
     template<typename DATUM>
     void train(const std::function<dyana::tensor(const DATUM&)> &loss_fn, const std::vector<DATUM>& training_set) {
+      auto batched_loss_fn = [&](const std::vector<DATUM>& datum_batch) {
+        if(datum_batch.size() == 0) return loss_fn(datum_batch.front());
+        std::vector<dyana::tensor> losses;
+        for(auto&& datum:datum_batch) {
+          losses.push_back(loss_fn(datum));
+        }
+        return dyana::sum(losses);
+      };
+      return train<DATUM>(batched_loss_fn, training_set);
+    }
+
+    /**
+     * Train your model with custom batch loss computation strategy.
+     * \tparam DATUM represents a datum
+     * \param batched_loss_fn a function that takes a minibatch of datum and returns a loss to minimize
+     * \param training_set a list of datum to train on
+     */
+    template<typename DATUM>
+    void train(const std::function<dyana::tensor(const std::vector<DATUM>&)>& batched_loss_fn, const std::vector<DATUM>& training_set) {
       auto save_behavior = [&]() {};
       auto epoch_completion_behavior = [&]() {
         epoch_completion_evt.fire();
       };
 
-      _fit_impl<DATUM>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set, std::vector<DATUM>{}, loss_fn, save_behavior, epoch_completion_behavior,num_reports_per_epoch);
+      _fit_impl<DATUM>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set, std::vector<DATUM>{}, batched_loss_fn, save_behavior, epoch_completion_behavior,num_reports_per_epoch);
     }
 
     /**
-     * Train your model and validate it against a dev set after each epoch
+     * Train your model and validate it against a dev set after each epoch.
+     * The default strategy to compute the loss of a batch is to sum up the losses for each individual datum in the batch
      * \tparam DATUM represents a datum
      * \param loss_fn a function that takes a datum and returns a loss to minimize
      * \param training_set a list of datum to train on
@@ -467,6 +485,29 @@ namespace dyana {
      */
     template<typename DATUM>
     void train_reporting_dev_score(const std::function<dyana::tensor(const DATUM&)> &loss_fn,  const std::vector<DATUM>& training_set, const std::vector<DATUM>& dev_set) {
+
+      auto batched_loss_fn = [&](const std::vector<DATUM>& datum_batch) {
+        if(datum_batch.size() == 0) return loss_fn(datum_batch.front());
+        std::vector<dyana::tensor> losses;
+        for(auto&& datum:datum_batch) {
+          losses.push_back(loss_fn(datum));
+        }
+        return dyana::sum(losses);
+      };
+
+      train_reporting_dev_score(batched_loss_fn, training_set, dev_set);
+    }
+
+    /**
+     * Train your model and validate it against a dev set after each epoch,
+     * with custom batch loss computation strategy.
+     * \tparam DATUM represents a datum
+     * \param batched_loss_fn a function that takes a minibatch of datum and returns a loss to minimize
+     * \param training_set a list of datum to train on
+     * \param dev_set a list of datum to validate against
+     */
+    template<typename DATUM>
+    void train_reporting_dev_score(const std::function<dyana::tensor(const std::vector<DATUM>&)> &batched_loss_fn, const std::vector<DATUM>& training_set, const std::vector<DATUM>& dev_set) {
 
       auto save_behavior = [&]() {
         new_best_evt.fire();
@@ -477,7 +518,7 @@ namespace dyana {
       };
 
       _fit_impl<DATUM>(num_workers, batch_size, num_epochs, get_dynet_trainer_p(), learning_rate_scheduler, training_set, dev_set,
-                       loss_fn, save_behavior, epoch_completion_behavior, num_reports_per_epoch);
+                       batched_loss_fn, save_behavior, epoch_completion_behavior, num_reports_per_epoch);
     }
 
     /**

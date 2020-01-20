@@ -11,6 +11,7 @@
 #include "dyana_serialization_helper.hpp"
 #include <iostream>
 #include "dyana_guard.macro.hpp"
+#include "dyana_event_emitter.hpp"
 
 namespace dyana {
 
@@ -342,7 +343,20 @@ namespace dyana {
       operator=(tensor(data, dim));
     }
 
+    static event_emitter<>::listener_handle_t add_before_renew_cg_listener(const event_emitter<>::listener_t& listener) {
+      return before_renew_cg_evt().add_listener(listener);
+    }
+
+    static void remove_before_renew_cg_listener(const event_emitter<>::listener_handle_t& listener) {
+      before_renew_cg_evt().remove_listener(listener);
+    }
+
   private:
+    static event_emitter<>& before_renew_cg_evt() {
+      static event_emitter<> _;
+      return _;
+    };
+
     static unsigned long& num_exprs() {
       thread_local static unsigned long _{0};
       return _;
@@ -356,6 +370,7 @@ namespace dyana {
     }
 
     static void clear_tensors() {
+      before_renew_cg_evt().fire();
       param_expr_map(true).clear();
       param_expr_map(false).clear();
       dyana::_renew_cg();
@@ -373,6 +388,9 @@ namespace dyana {
   };
 
   class lookup_parameter {
+    event_emitter<>::listener_handle_t renew_cg_handler;
+    mutable std::unordered_map<unsigned, dynet::Expression> lookup_cache{};
+    mutable std::unordered_map<unsigned, dynet::Expression> const_lookup_cache{};
   public:
     std::shared_ptr<dynet::LookupParameter> _dynet_parameter_m;
 
@@ -390,23 +408,39 @@ namespace dyana {
       return _;
     }
 
-    lookup_parameter() = default;
+    lookup_parameter():renew_cg_handler(tensor::add_before_renew_cg_listener([&](){handle_renew_cg();})){
+    };
 
-    lookup_parameter(const lookup_parameter&) = default;
+    lookup_parameter(const lookup_parameter& x):renew_cg_handler(tensor::add_before_renew_cg_listener([&](){handle_renew_cg();})), _dynet_parameter_m(x._dynet_parameter_m){
+    };
 
-    lookup_parameter(lookup_parameter&&) noexcept = default;
+    lookup_parameter(lookup_parameter&& x) noexcept :renew_cg_handler(tensor::add_before_renew_cg_listener([&](){handle_renew_cg();})), _dynet_parameter_m(std::move(x._dynet_parameter_m)){
+      tensor::remove_before_renew_cg_listener(x.renew_cg_handler);
+    };
 
-    lookup_parameter& operator=(const lookup_parameter&) = default;
+    lookup_parameter& operator=(const lookup_parameter& x) {
+      handle_renew_cg();
+      _dynet_parameter_m = x._dynet_parameter_m;
+      return *this;
+    };
 
-    lookup_parameter& operator=(lookup_parameter&&) noexcept = default;
+    lookup_parameter& operator=(lookup_parameter&& x) noexcept {
+      handle_renew_cg();
+      tensor::remove_before_renew_cg_listener(x.renew_cg_handler);
+      _dynet_parameter_m = std::move(x._dynet_parameter_m);
+      return *this;
+    }
 
-    lookup_parameter(unsigned size, const Dim& dim) : _dynet_parameter_m(
+    lookup_parameter(unsigned size, const Dim& dim) :
+      renew_cg_handler(tensor::add_before_renew_cg_listener([&](){handle_renew_cg();})),
+    _dynet_parameter_m(
       std::make_shared<dynet::LookupParameter>(_pc()->add_lookup_parameters(size, dim).p)) {
       alives().insert(_dynet_parameter_m);
       if(multiprocessing_guard::is_guarded()) throw std::runtime_error(parameter::MP_PARAM_INIT_ERR_MSG);
     }
 
     ~lookup_parameter() {
+      tensor::remove_before_renew_cg_listener(renew_cg_handler);
       // if this object is the last one holding its parameter storage pointer, mark it as "dead".
       if (_dynet_parameter_m.use_count() == 2) {
         alives().erase(_dynet_parameter_m);
@@ -442,10 +476,26 @@ namespace dyana {
 
     tensor lookup(unsigned index) const {
       if(const_guard::is_guarded()) {
-        return dynet::const_lookup(_cg(), *_dynet_parameter_m, index);
+        auto cached_result = const_lookup_cache.find(index);
+        if(cached_result != const_lookup_cache.end()) {
+          return cached_result->second;
+        }
+        else {
+          auto ret = dynet::const_lookup(_cg(), *_dynet_parameter_m, index);
+          const_lookup_cache[index] = ret;
+          return ret;
+        }
       }
       else {
-        return dynet::lookup(_cg(), *_dynet_parameter_m, index);
+        auto cached_result = lookup_cache.find(index);
+        if(cached_result != lookup_cache.end()) {
+          return cached_result->second;
+        }
+        else {
+          auto ret = dynet::lookup(_cg(), *_dynet_parameter_m, index);
+          lookup_cache[index] = ret;
+          return ret;
+        }
       }
     }
 
@@ -479,6 +529,11 @@ namespace dyana {
         dynet::load(archive, *_dynet_parameter_m);
         alives().insert(_dynet_parameter_m);
       }
+    }
+  private:
+    void handle_renew_cg() {
+      lookup_cache.clear();
+      const_lookup_cache.clear();
     }
   };
 

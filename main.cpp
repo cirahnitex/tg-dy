@@ -38,16 +38,14 @@ int main() {
   using datum_t = tuple<bool, bool, bool>;
 
   dyana::simple_sgd_trainer trainer(0.1);
-  trainer.set_num_epochs(10);
-  trainer.set_learning_rate_scheduler([&](unsigned datum_idx, unsigned epoch_idx) {
-    cout << "datum idx: "<< datum_idx << endl;
-    cout << "epoch idx: "<< epoch_idx << endl;
-    return 0.1;
-  });
+  trainer.set_num_epochs(100);
   trainer.set_batch_size(4);
-  trainer.train<datum_t>([&](const datum_t& datum) {
-    auto&& [x, y, oracle] = datum;
-    return model.compute_loss(x, y, oracle);
+  trainer.train<datum_t>([&](const vector<datum_t>& data) {
+    vector<dyana::tensor> losses;
+    for(auto&& [x, y, oracle]:data) {
+      losses.push_back(model.compute_loss(x, y, oracle));
+    }
+    return dyana::sum(losses);
   }, dyana::zip(input0s, input1s, oracles));
 
   dyana::parallel_map<bool>(input0s, [&](const bool& x) {
