@@ -10,9 +10,9 @@
 #include "dyana.hpp"
 
 namespace dyana {
+
   /**
-   * a model that predicts a label given a tensor<X>
-   * sometimes this input tensor is called embedding
+   * a model that predicts a label given a tensor
    */
   class readout_model {
   public:
@@ -175,19 +175,21 @@ namespace dyana {
       return dict.list_entries();
     }
 
-    EASY_SERIALIZABLE(dict, fc)
 
-//  private:
-
-    dyana::immutable_dict dict;
-    dyana::linear_dense_layer fc;
-    float normalization_divider{};
 
     float get_normalization_divider() {
       if(normalization_divider > 0) return normalization_divider;
       normalization_divider = log(dyana::tensor((float)size())).as_scalar();
       return normalization_divider;
     }
+
+    EASY_SERIALIZABLE(dict, fc)
+  private:
+
+    dyana::immutable_dict dict;
+    dyana::linear_dense_layer fc;
+    float normalization_divider{};
+
   };
 }
 

@@ -414,7 +414,7 @@ namespace dyana {
     lookup_parameter(const lookup_parameter& x):renew_cg_handler(tensor::add_before_renew_cg_listener([&](){handle_renew_cg();})), _dynet_parameter_m(x._dynet_parameter_m){
     };
 
-    lookup_parameter(lookup_parameter&& x) noexcept :renew_cg_handler(tensor::add_before_renew_cg_listener([&](){handle_renew_cg();})), _dynet_parameter_m(std::move(x._dynet_parameter_m)){
+    lookup_parameter(lookup_parameter&& x) noexcept :renew_cg_handler(tensor::add_before_renew_cg_listener([&](){handle_renew_cg();})), _dynet_parameter_m(x._dynet_parameter_m){
       tensor::remove_before_renew_cg_listener(x.renew_cg_handler);
     };
 
@@ -427,7 +427,7 @@ namespace dyana {
     lookup_parameter& operator=(lookup_parameter&& x) noexcept {
       handle_renew_cg();
       tensor::remove_before_renew_cg_listener(x.renew_cg_handler);
-      _dynet_parameter_m = std::move(x._dynet_parameter_m);
+      _dynet_parameter_m = x._dynet_parameter_m;
       return *this;
     }
 
@@ -510,6 +510,7 @@ namespace dyana {
 
     template<class Archive>
     void save(Archive& archive) const {
+      using namespace std;
       auto valid = (bool) _dynet_parameter_m;
       archive(cereal::make_nvp("valid", valid));
       if (valid) dynet::save(archive, *_dynet_parameter_m);

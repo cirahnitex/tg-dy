@@ -33,24 +33,17 @@ int main() {
   // todo: test out new trainer
   dyana::initialize(512);
 
-  xor_model model;
+  string GIVE = "give";
+  string ME = "me";
 
-  using datum_t = tuple<bool, bool, bool>;
+  dyana::embedding_lookup lookup_table(4, initializer_list<string>{GIVE, ME});
 
-  dyana::simple_sgd_trainer trainer(0.1);
-  trainer.set_num_epochs(100);
-  trainer.set_batch_size(4);
-  trainer.train<datum_t>([&](const vector<datum_t>& data) {
-    vector<dyana::tensor> losses;
-    for(auto&& [x, y, oracle]:data) {
-      losses.push_back(model.compute_loss(x, y, oracle));
-    }
-    return dyana::sum(losses);
-  }, dyana::zip(input0s, input1s, oracles));
+  auto result = lookup_table(GIVE).as_vector();
 
-  dyana::parallel_map<bool>(input0s, [&](const bool& x) {
-    return dyana::zeros({4}).as_vector();
-  }, 4, 2);
+  for(auto&& v:result) {
+    cout << v << " ";
+  }
+  cout << endl;
 
   return 0;
 }

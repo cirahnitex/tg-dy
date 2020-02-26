@@ -448,7 +448,7 @@ namespace dyana {
      */
     template<typename DATUM>
     void train(const std::function<dyana::tensor(const DATUM&)> &loss_fn, const std::vector<DATUM>& training_set) {
-      auto batched_loss_fn = [&](const std::vector<DATUM>& datum_batch) {
+      std::function<dyana::tensor(const std::vector<DATUM>&)> batched_loss_fn = [&](const std::vector<DATUM>& datum_batch) {
         if(datum_batch.size() == 0) return loss_fn(datum_batch.front());
         std::vector<dyana::tensor> losses;
         for(auto&& datum:datum_batch) {
@@ -486,7 +486,7 @@ namespace dyana {
     template<typename DATUM>
     void train_reporting_dev_score(const std::function<dyana::tensor(const DATUM&)> &loss_fn,  const std::vector<DATUM>& training_set, const std::vector<DATUM>& dev_set) {
 
-      auto batched_loss_fn = [&](const std::vector<DATUM>& datum_batch) {
+      std::function<dyana::tensor(const std::vector<DATUM>&)> batched_loss_fn = [&](const std::vector<DATUM>& datum_batch) {
         if(datum_batch.size() == 0) return loss_fn(datum_batch.front());
         std::vector<dyana::tensor> losses;
         for(auto&& datum:datum_batch) {

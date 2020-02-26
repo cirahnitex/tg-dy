@@ -13,6 +13,78 @@
 
 
 namespace dyana {
+  /**
+   * A lookup table that transduces an integer (often represents a category ID) into an embedding vector
+   */
+  class id_embedding_lookup {
+    unsigned embedding_size{};
+    unsigned capacity{};
+    dyana::lookup_parameter lookup_table;
+  public:
+    EASY_SERIALIZABLE(embedding_size, capacity, lookup_table)
+    id_embedding_lookup() = default;
+    id_embedding_lookup(const id_embedding_lookup&) = default;
+    id_embedding_lookup(id_embedding_lookup&&) noexcept = default;
+    id_embedding_lookup& operator=(const id_embedding_lookup&) = default;
+    id_embedding_lookup& operator=(id_embedding_lookup&&) noexcept = default;
+
+    /**
+     *
+     * \param embedding_size the dimension of any embedding vector
+     * \param capacity the total number of categories
+     */
+    id_embedding_lookup(unsigned embedding_size, unsigned capacity): embedding_size(embedding_size), capacity(capacity), lookup_table(dyana::lookup_parameter(capacity, {embedding_size})) {
+    }
+
+    void set_value(unsigned id, const std::vector<float>& embedding) {
+      if(embedding.size() != embedding_size) {
+        std::stringstream msg;
+        msg << "id_embedding_lookup::set_value(): provided embedding size ("
+            << embedding.size()
+            << ") doesn't match the layer embedding size ("
+            << embedding_size << ")";
+        throw std::runtime_error(msg.str());
+      }
+      lookup_table.set_value(id, embedding);
+    }
+
+    explicit operator bool() const {
+      return embedding_size > 0;
+    }
+
+    dyana::tensor operator()(unsigned id) const {
+      return lookup(id);
+    }
+
+    /**
+     * perform multiple lookups in one operation
+     * \param ids the list of IDs to lookup
+     * \return embeddings column by column.
+     *         specifically, tensor<D,N>
+     *         where D = embedding-size
+     *         and   N = #-of-IDs
+     */
+    dyana::tensor operator()(const std::vector<unsigned>& ids) const {
+      return lookup(ids);
+    }
+
+    unsigned get_embedding_size() const {
+      return embedding_size;
+    }
+
+    unsigned get_capacity() const {
+      return capacity;
+    }
+  private:
+    dyana::tensor lookup(unsigned token_id) const {
+      return lookup_table.lookup(token_id);
+    }
+
+    dyana::tensor lookup(const std::vector<unsigned>& token_ids) const {
+      return lookup_table.lookup(token_ids).reshape({embedding_size, (unsigned)token_ids.size()});
+    }
+  };
+
   class embedding_lookup {
   public:
     embedding_lookup() = default;
@@ -35,17 +107,14 @@ namespace dyana {
     template<typename RANGE_EXP>
     embedding_lookup(unsigned embedding_size, RANGE_EXP &&tokens) :
       dict(std::make_shared<dynet::Dict>()),
-      capacity(),
-      embedding_size(embedding_size),
-      lookup_table() {
+      numeric_embedding_lookup_m() {
       token_to_id(""); // force epsilon to be #0 token
       for (auto itr = tokens.begin(); itr != tokens.end(); ++itr) {
         token_to_id(*itr);
       }
       dict->freeze();
       dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);
-      capacity = dict->size();
-      lookup_table = dyana::lookup_parameter(capacity, {embedding_size});
+      numeric_embedding_lookup_m = id_embedding_lookup(embedding_size, dict->size());
     }
 
     /**
@@ -54,24 +123,16 @@ namespace dyana {
      * \param embedding the embedding
      */
     void set_value(const std::string& token, const std::vector<float>& embedding) {
-      if(embedding.size() != embedding_size) {
-        std::stringstream msg;
-        msg << "embedding_lookup::set_value(): provided embedding size ("
-            << embedding.size()
-            << ") doesn't match the layer embedding size ("
-            << embedding_size << ")";
-        throw std::runtime_error(msg.str());
-      }
       auto id = token_to_id(token);
-      lookup_table.set_value(id, embedding);
+      numeric_embedding_lookup_m.set_value(id, embedding);
     }
 
     explicit operator bool() const {
-      return embedding_size > 0;
+      return get_embedding_size() > 0;
     }
 
     dyana::tensor operator()(const std::string &token) const {
-      return lookup(token_to_id(token));
+      return numeric_embedding_lookup_m(token_to_id(token));
     }
 
     /**
@@ -87,7 +148,7 @@ namespace dyana {
       for(auto itr = tokens.begin(); itr != tokens.end(); ++itr) {
         ids.push_back(token_to_id(*itr));
       }
-      return lookup(ids);
+      return numeric_embedding_lookup_m(ids);
     }
 
     unsigned token_to_id(const std::string &token) const {
@@ -118,15 +179,13 @@ namespace dyana {
     }
 
     unsigned get_embedding_size() const {
-      return embedding_size;
+      return numeric_embedding_lookup_m.get_embedding_size();
     }
 
     template<class Archive>
     void save(Archive &a) const {
       a(cereal::make_nvp("vocab", dict->get_words()));
-      a(cereal::make_nvp("capacity", capacity));
-      a(cereal::make_nvp("embedding_size", embedding_size));
-      a(cereal::make_nvp("lookup_table", lookup_table));
+      a(cereal::make_nvp("capacity", numeric_embedding_lookup_m));
     }
 
     template<class Archive>
@@ -139,35 +198,12 @@ namespace dyana {
       }
       dict->freeze();
       dict->set_unk(_DYNET_WRAPPER_DEFAULT_UNK);
-      a(capacity, embedding_size, lookup_table);
+      a(numeric_embedding_lookup_m);
     }
 
   protected:
     std::shared_ptr<dynet::Dict> dict;
-    unsigned capacity;
-    unsigned embedding_size;
-    dyana::lookup_parameter lookup_table;
-
-    dyana::tensor lookup(unsigned token_id) const {
-      return lookup_table.lookup(token_id);
-    }
-
-    dyana::tensor lookup(const std::vector<unsigned>& token_ids) const {
-      return lookup_table.lookup(token_ids).reshape({embedding_size, (unsigned)token_ids.size()});
-    }
-
-    static std::vector<float> resize_fill_random(const std::vector<float> &arr, unsigned size) {
-      if (arr.size() == size) {
-        return arr;
-      } else if (arr.size() > size) { return std::vector<float>(arr.begin(), arr.begin() + size); }
-      else {
-        std::vector<float> ret(arr);
-        for (auto i = arr.size(); i < size; i++) {
-          ret.push_back(dynet::rand01());
-        }
-        return ret;
-      }
-    }
+    id_embedding_lookup numeric_embedding_lookup_m;
   };
 }
 
